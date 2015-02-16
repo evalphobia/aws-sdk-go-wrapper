@@ -19,14 +19,14 @@ const (
 
 // struct for S3 upload
 type S3Object struct {
-	data     io.Reader
+	data     io.ReadCloser
 	dataType string
 	dataByte []byte
 	size     int64
 }
 
 // Create new S3Object
-func newS3Object(f io.Reader, size int64, typ string) *S3Object {
+func newS3Object(f io.ReadCloser, size int64, typ string) *S3Object {
 	return &S3Object{
 		data:     f,
 		dataType: typ,
@@ -53,14 +53,14 @@ func NewS3ObjectCopy(file *os.File) *S3Object {
 // Create new S3Object From string
 func NewS3ObjectString(str *string) *S3Object {
 	b := *(*[]byte)(unsafe.Pointer(str))
-	var r io.Reader = NewFileBuffer(b)
+	var r io.ReadCloser = NewFileBuffer(b)
 	o := newS3Object(r, int64(len(*str)), mimeBinary)
 	o.dataByte = b
 	return o
 }
 
 // get content from S3Object
-func (o *S3Object) Content() io.Reader {
+func (o *S3Object) Content() io.ReadCloser {
 	return o.data
 }
 
@@ -91,6 +91,10 @@ func NewFileBuffer(b []byte) *FileBuffer {
 		Buffer: *bytes.NewBuffer(b),
 		Index:  int64(0),
 	}
+}
+
+func (f *FileBuffer) Close() error {
+	return nil
 }
 
 func (f *FileBuffer) Bytes() []byte {

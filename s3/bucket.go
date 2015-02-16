@@ -3,14 +3,15 @@
 package s3
 
 import (
-	// AWS "github.com/awslabs/aws-sdk-go/aws"
+	AWS "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/gen/endpoints"
 	S3 "github.com/awslabs/aws-sdk-go/gen/s3"
-	// "github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/config"
+	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 
 	"bytes"
 	"errors"
 	"io"
-	// "time"
 )
 
 const (
@@ -19,8 +20,8 @@ const (
 
 // struct for bucket
 type Bucket struct {
-	name string
-	// objects []S3.PutObjectInput
+	name    string
+	objects []S3.PutObjectRequest
 
 	client *S3.S3
 }
@@ -37,30 +38,30 @@ func (b *Bucket) AddSecretObject(obj *S3Object, path string) {
 
 // add object to write spool
 func (b *Bucket) addObject(obj *S3Object, path, acl string) {
-	// size := obj.Size()
-	// in := S3.PutObjectInput{
-	// 	ACL:           &acl,
-	// 	Bucket:        &b.name,
-	// 	Body:          obj.data,
-	// 	ContentLength: &size,
-	// 	ContentType:   AWS.String(obj.FileType()),
-	// 	Key:           AWS.String(path),
-	// }
-	// b.objects = append(b.objects, in)
+	size := obj.Size()
+	req := S3.PutObjectRequest{
+		ACL:           &acl,
+		Bucket:        &b.name,
+		Body:          obj.data,
+		ContentLength: &size,
+		ContentType:   AWS.String(obj.FileType()),
+		Key:           AWS.String(path),
+	}
+	b.objects = append(b.objects, req)
 }
 
 // put object to server
 func (b *Bucket) Put() error {
 	var err error = nil
 	errStr := ""
-	// ファイルの保存
-	// for _, obj := range b.objects {
-	// 	_, e := b.client.PutObject(&obj)
-	// 	if e != nil {
-	// 		log.Error("[S3] error on `PutObject` operation, bucket="+b.name, e.Error())
-	// 		errStr = errStr + "," + e.Error()
-	// 	}
-	// }
+	// save file
+	for _, obj := range b.objects {
+		_, e := b.client.PutObject(&obj)
+		if e != nil {
+			log.Error("[S3] error on `PutObject` operation, bucket="+b.name, e.Error())
+			errStr = errStr + "," + e.Error()
+		}
+	}
 	if errStr != "" {
 		err = errors.New(errStr)
 	}
@@ -69,15 +70,15 @@ func (b *Bucket) Put() error {
 
 // fetch object from target S3 path
 func (b *Bucket) getObject(path string) (io.Reader, error) {
-	// req := S3.GetObjectInput{
-	// 	Bucket: &b.name,
-	// 	Key:    &path,
-	// }
-	// out, err := b.client.GetObject(&req)
-	// if err != nil {
-	// 	log.Error("[S3] error on `GetObject` operation, bucket="+b.name, err.Error())
-	// }
-	// return out.Body, err
+	req := S3.GetObjectRequest{
+		Bucket: &b.name,
+		Key:    &path,
+	}
+	out, err := b.client.GetObject(&req)
+	if err != nil {
+		log.Error("[S3] error on `GetObject` operation, bucket="+b.name, err.Error())
+	}
+	return out.Body, err
 	return nil, nil
 }
 
@@ -95,30 +96,29 @@ func (b *Bucket) GetURL(path string) (string, error) {
 	return b.GetSecretURLWithExpire(path, defaultExpireSecond)
 }
 
-// fetch url of target S3 object w/ ACL permission （url expires in 3min）
+// fetch url of target S3 object w/ ACL permission (url expires in 3min)
 func (b *Bucket) GetSecretURL(path string) (string, error) {
 	return b.GetSecretURLWithExpire(path, defaultExpireSecond)
 }
 
-// fetch url of target S3 object w/ ACL permission （url expires in `expire` value seconds)
+// fetch url of target S3 object w/ ACL permission (url expires in `expire` value seconds)
+// ** this isn't work **
 func (b *Bucket) GetSecretURLWithExpire(path string, expire uint64) (string, error) {
-	// req, _ := b.client.GetObjectRequest(&S3.GetObjectInput{
-	// 	Bucket: AWS.String(b.name),
-	// 	Key:    AWS.String(path),
-	// })
-	// return req.Presign(time.Duration(expire) * time.Second)
-	return "", nil
+	// Cannot create presigned url, just return raw url
+	region := config.GetConfigValue(s3ConfigSectionName, "region", defaultRegion)
+	endpoint, _, _ := endpoints.Lookup("s3", region)
+	url := endpoint + b.name + path
+	return url, nil
 }
 
 // delete object of target path
 func (b *Bucket) DeleteObject(path string) error {
-	// _, err := b.client.DeleteObject(&S3.DeleteObjectInput{
-	// 	Bucket: AWS.String(b.name),
-	// 	Key:    AWS.String(path),
-	// })
-	// if err != nil {
-	// 	log.Error("[S3] error on `DeleteObject` operation, bucket="+b.name, err.Error())
-	// }
-	// return err
-	return nil
+	_, err := b.client.DeleteObject(&S3.DeleteObjectRequest{
+		Bucket: AWS.String(b.name),
+		Key:    AWS.String(path),
+	})
+	if err != nil {
+		log.Error("[S3] error on `DeleteObject` operation, bucket="+b.name, err.Error())
+	}
+	return err
 }
