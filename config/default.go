@@ -60,12 +60,16 @@ func (c *DefaultConfig) GetConfigValue(section, key, defaultValue string) string
 		file, e := ioutil.ReadFile(fileName)
 		if e != nil {
 			log.Error("[config] DefaultConfig File Load error, file="+fileName, e)
-			return ""
+			return defaultValue
 		}
 		json.Unmarshal(file, &c.config)
 	}
-	value := ParseToString(c.config[key])
-	return value
+	val, ok := c.config[key]
+	if ok {
+		return ParseToString(val)
+	} else {
+		return defaultValue
+	}
 }
 
 // return value
