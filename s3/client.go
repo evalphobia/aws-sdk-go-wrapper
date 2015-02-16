@@ -3,8 +3,7 @@
 package s3
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	S3 "github.com/awslabs/aws-sdk-go/service/s3"
+	S3 "github.com/awslabs/aws-sdk-go/gen/s3"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -27,15 +26,9 @@ func NewClient() *AmazonS3 {
 	s := &AmazonS3{}
 	s.buckets = make(map[string]*Bucket)
 
-	a := *auth.Auth()
+	a := auth.Auth()
 	region := config.GetConfigValue(s3ConfigSectionName, "region", defaultRegion)
-	conf := &S3.S3Config{
-		&AWS.Config{
-			Credentials: a,
-			Region:      region,
-		},
-	}
-	s.client = S3.New(conf)
+	s.client = S3.New(*a, region, nil)
 	return s
 }
 

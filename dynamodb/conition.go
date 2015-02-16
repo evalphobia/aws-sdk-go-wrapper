@@ -4,7 +4,7 @@ package dynamodb
 
 import (
 	AWS "github.com/awslabs/aws-sdk-go/aws"
-	DynamoDB "github.com/awslabs/aws-sdk-go/service/dynamodb"
+	DynamoDB "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 // wrapped struct for condition on Query operation

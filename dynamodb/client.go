@@ -4,7 +4,7 @@ package dynamodb
 
 import (
 	AWS "github.com/awslabs/aws-sdk-go/aws"
-	DynamoDB "github.com/awslabs/aws-sdk-go/service/dynamodb"
+	DynamoDB "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -31,16 +31,7 @@ func NewClient() *AmazonDynamoDB {
 	d.writeTables = make(map[string]bool)
 	a := auth.Auth()
 	region := config.GetConfigValue(dynamodbConfigSectionName, "region", defaultRegion)
-	awsConf := &AWS.Config{
-		Credentials: *a,
-		Region:      region,
-	}
-	endpoint := config.GetConfigValue(dynamodbConfigSectionName, "endpoint", "")
-	if endpoint != "" {
-		awsConf.Endpoint = endpoint
-	}
-	dynamoConf := &DynamoDB.DynamoDBConfig{awsConf}
-	d.client = DynamoDB.New(dynamoConf)
+	d.client = DynamoDB.New(*a, region, nil)
 	return d
 }
 

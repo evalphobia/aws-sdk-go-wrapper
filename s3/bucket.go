@@ -3,14 +3,14 @@
 package s3
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	S3 "github.com/awslabs/aws-sdk-go/service/s3"
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	// AWS "github.com/awslabs/aws-sdk-go/aws"
+	S3 "github.com/awslabs/aws-sdk-go/gen/s3"
+	// "github.com/evalphobia/aws-sdk-go-wrapper/log"
 
 	"bytes"
 	"errors"
 	"io"
-	"time"
+	// "time"
 )
 
 const (
@@ -19,8 +19,8 @@ const (
 
 // struct for bucket
 type Bucket struct {
-	name    string
-	objects []S3.PutObjectInput
+	name string
+	// objects []S3.PutObjectInput
 
 	client *S3.S3
 }
@@ -37,16 +37,16 @@ func (b *Bucket) AddSecretObject(obj *S3Object, path string) {
 
 // add object to write spool
 func (b *Bucket) addObject(obj *S3Object, path, acl string) {
-	size := obj.Size()
-	in := S3.PutObjectInput{
-		ACL:           &acl,
-		Bucket:        &b.name,
-		Body:          obj.data,
-		ContentLength: &size,
-		ContentType:   AWS.String(obj.FileType()),
-		Key:           AWS.String(path),
-	}
-	b.objects = append(b.objects, in)
+	// size := obj.Size()
+	// in := S3.PutObjectInput{
+	// 	ACL:           &acl,
+	// 	Bucket:        &b.name,
+	// 	Body:          obj.data,
+	// 	ContentLength: &size,
+	// 	ContentType:   AWS.String(obj.FileType()),
+	// 	Key:           AWS.String(path),
+	// }
+	// b.objects = append(b.objects, in)
 }
 
 // put object to server
@@ -54,13 +54,13 @@ func (b *Bucket) Put() error {
 	var err error = nil
 	errStr := ""
 	// ファイルの保存
-	for _, obj := range b.objects {
-		_, e := b.client.PutObject(&obj)
-		if e != nil {
-			log.Error("[S3] error on `PutObject` operation, bucket="+b.name, e.Error())
-			errStr = errStr + "," + e.Error()
-		}
-	}
+	// for _, obj := range b.objects {
+	// 	_, e := b.client.PutObject(&obj)
+	// 	if e != nil {
+	// 		log.Error("[S3] error on `PutObject` operation, bucket="+b.name, e.Error())
+	// 		errStr = errStr + "," + e.Error()
+	// 	}
+	// }
 	if errStr != "" {
 		err = errors.New(errStr)
 	}
@@ -69,15 +69,16 @@ func (b *Bucket) Put() error {
 
 // fetch object from target S3 path
 func (b *Bucket) getObject(path string) (io.Reader, error) {
-	req := S3.GetObjectInput{
-		Bucket: &b.name,
-		Key:    &path,
-	}
-	out, err := b.client.GetObject(&req)
-	if err != nil {
-		log.Error("[S3] error on `GetObject` operation, bucket="+b.name, err.Error())
-	}
-	return out.Body, err
+	// req := S3.GetObjectInput{
+	// 	Bucket: &b.name,
+	// 	Key:    &path,
+	// }
+	// out, err := b.client.GetObject(&req)
+	// if err != nil {
+	// 	log.Error("[S3] error on `GetObject` operation, bucket="+b.name, err.Error())
+	// }
+	// return out.Body, err
+	return nil, nil
 }
 
 // fetch bytes of object from target S3 path
@@ -101,21 +102,23 @@ func (b *Bucket) GetSecretURL(path string) (string, error) {
 
 // fetch url of target S3 object w/ ACL permission （url expires in `expire` value seconds)
 func (b *Bucket) GetSecretURLWithExpire(path string, expire uint64) (string, error) {
-	req, _ := b.client.GetObjectRequest(&S3.GetObjectInput{
-		Bucket: AWS.String(b.name),
-		Key:    AWS.String(path),
-	})
-	return req.Presign(time.Duration(expire) * time.Second)
+	// req, _ := b.client.GetObjectRequest(&S3.GetObjectInput{
+	// 	Bucket: AWS.String(b.name),
+	// 	Key:    AWS.String(path),
+	// })
+	// return req.Presign(time.Duration(expire) * time.Second)
+	return "", nil
 }
 
 // delete object of target path
 func (b *Bucket) DeleteObject(path string) error {
-	_, err := b.client.DeleteObject(&S3.DeleteObjectInput{
-		Bucket: AWS.String(b.name),
-		Key:    AWS.String(path),
-	})
-	if err != nil {
-		log.Error("[S3] error on `DeleteObject` operation, bucket="+b.name, err.Error())
-	}
-	return err
+	// _, err := b.client.DeleteObject(&S3.DeleteObjectInput{
+	// 	Bucket: AWS.String(b.name),
+	// 	Key:    AWS.String(path),
+	// })
+	// if err != nil {
+	// 	log.Error("[S3] error on `DeleteObject` operation, bucket="+b.name, err.Error())
+	// }
+	// return err
+	return nil
 }
