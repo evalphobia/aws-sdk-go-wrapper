@@ -14,11 +14,11 @@ const (
 )
 
 var (
-	auth *AWS.CredentialsProvider = nil
+	auth AWS.CredentialsProvider = nil
 )
 
 // return AWS authorization credentials
-func Auth() *AWS.CredentialsProvider {
+func Auth() AWS.CredentialsProvider {
 	if auth != nil {
 		return auth
 	}
@@ -26,13 +26,10 @@ func Auth() *AWS.CredentialsProvider {
 	// return if environmental params for AWS auth
 	env, err := AWS.EnvCreds()
 	if err == nil {
-		auth = &env
-		return auth
+		return env
 	}
 
 	accessKey := config.GetConfigValue(authConfigSectionName, awsAccessConfigKey, "")
 	secretKey := config.GetConfigValue(authConfigSectionName, awsSecretConfigKey, "")
-	_auth := AWS.Creds(accessKey, secretKey, "")
-	auth = &_auth
-	return auth
+	return AWS.Creds(accessKey, secretKey, "")
 }

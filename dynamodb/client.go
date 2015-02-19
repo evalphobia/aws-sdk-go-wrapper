@@ -29,9 +29,8 @@ func NewClient() *AmazonDynamoDB {
 	d := &AmazonDynamoDB{}
 	d.tables = make(map[string]*DynamoTable)
 	d.writeTables = make(map[string]bool)
-	a := auth.Auth()
 	region := config.GetConfigValue(dynamodbConfigSectionName, "region", defaultRegion)
-	d.client = DynamoDB.New(*a, region, nil)
+	d.client = DynamoDB.New(auth.Auth(), region, nil)
 	return d
 }
 

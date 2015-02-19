@@ -26,9 +26,8 @@ type AmazonSQS struct {
 func NewClient() *AmazonSQS {
 	s := &AmazonSQS{}
 	s.queues = make(map[string]*Queue)
-	a := auth.Auth()
 	region := config.GetConfigValue(sqsConfigSectionName, "region", defaultRegion)
-	s.client = SQS.New(*a, region, nil)
+	s.client = SQS.New(auth.Auth(), region, nil)
 	return s
 }
 

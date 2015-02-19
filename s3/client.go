@@ -25,10 +25,8 @@ type AmazonS3 struct {
 func NewClient() *AmazonS3 {
 	s := &AmazonS3{}
 	s.buckets = make(map[string]*Bucket)
-
-	a := auth.Auth()
 	region := config.GetConfigValue(s3ConfigSectionName, "region", defaultRegion)
-	s.client = S3.New(*a, region, nil)
+	s.client = S3.New(auth.Auth(), region, nil)
 	return s
 }
 
