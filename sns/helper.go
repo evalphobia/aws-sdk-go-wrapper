@@ -8,10 +8,9 @@ import (
 
 const (
 	// use static templete, converting map data to json is slow
-	messageTemplateGCM         = `{"data": {"message": "%s"}}`
-	messageTemplateAPNS        = `{"aps":{"alert": "%s", "sound": "%s"}}`
-	messageTemplateAPNSBadge   = `{"aps":{"alert": "%s", "sound": "%s", "badge": %d}}`
-	messageTemplateAPNSSandbox = `{"aps": {"alert": "%s"}}`
+	messageTemplateGCM       = `{"data": {"message": "%s"}}`
+	messageTemplateAPNS      = `{"aps":{"alert": "%s", "sound": "%s"}}`
+	messageTemplateAPNSBadge = `{"aps":{"alert": "%s", "sound": "%s", "badge": %d}}`
 )
 
 // make sns message for Google Cloud Messaging
@@ -34,9 +33,4 @@ func composeMessageAPNS(msg string, opt map[string]interface{}) string {
 	default:
 		return fmt.Sprintf(messageTemplateAPNS, msg, "default")
 	}
-}
-
-// make sns message for Apple Push Notification Service Sandbox
-func composeMessageAPNSSandbox(msg string) string {
-	return fmt.Sprintf(messageTemplateAPNSSandbox, msg)
 }

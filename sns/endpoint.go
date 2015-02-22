@@ -9,6 +9,6 @@ type SNSEndpoint struct {
 }
 
 // Publish notification to the endpoint
-func (e *SNSEndpoint) Publish(subject string, msg string, badge int) error {
+func (e *SNSEndpoint) Publish(msg string, badge int) error {
 	return e.client.Publish(e.arn, msg, map[string]interface{}{"badge": badge})
 }

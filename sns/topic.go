@@ -30,6 +30,6 @@ func (t *SNSTopic) Subscribe(endpoint *SNSEndpoint) (string, error) {
 }
 
 // Publish notification to the topic
-func (t *SNSTopic) Publish(subject string, msg string) error {
+func (t *SNSTopic) Publish(msg string) error {
 	return t.client.Publish(t.arn, msg, nil)
 }

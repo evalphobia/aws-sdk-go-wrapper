@@ -118,7 +118,7 @@ func (s *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) 
 	m["default"] = msg
 	m["GCM"] = composeMessageGCM(msg)
 	m["APNS"] = composeMessageAPNS(msg, opt)
-	m["APNS_SANDBOX"] = composeMessageAPNSSandbox(msg)
+	m["APNS_SANDBOX"] = m["APNS"]
 	jsonString, _ := json.Marshal(m)
 	resp, err := s.Client.Publish(&SNS.PublishInput{
 		TargetARN:        AWS.String(arn),
