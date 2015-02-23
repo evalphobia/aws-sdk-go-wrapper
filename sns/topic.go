@@ -33,3 +33,8 @@ func (t *SNSTopic) Subscribe(endpoint *SNSEndpoint) (string, error) {
 func (t *SNSTopic) Publish(msg string) error {
 	return t.client.Publish(t.arn, msg, nil)
 }
+
+// Delete topic
+func (t *SNSTopic) Delete() error {
+	return t.client.Client.DeleteTopic(&SNS.DeleteTopicInput{AWS.String(t.arn)})
+}

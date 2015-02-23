@@ -12,3 +12,8 @@ type SNSEndpoint struct {
 func (e *SNSEndpoint) Publish(msg string, badge int) error {
 	return e.client.Publish(e.arn, msg, map[string]interface{}{"badge": badge})
 }
+
+// return Endpoint ARN
+func (e *SNSEndpoint) GetARN() string {
+	return e.arn
+}

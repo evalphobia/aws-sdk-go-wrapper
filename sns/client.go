@@ -5,6 +5,10 @@ package sns
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"sync"
+	"time"
+	"unicode/utf8"
 
 	AWS "github.com/awslabs/aws-sdk-go/aws"
 	SNS "github.com/awslabs/aws-sdk-go/gen/sns"
@@ -22,6 +26,9 @@ const (
 	AppTypeAPNS        = "apns"
 	AppTypeAPNSSandbox = "apns_sandbox"
 	AppTypeGCM         = "gcm"
+
+	topicMaxDeviceNumber = 10000
+	MessageBodyLimit     = 2000
 )
 
 var isProduction bool
@@ -112,8 +119,9 @@ func (s *AmazonSNS) CreateTopic(name string) (*SNSTopic, error) {
 	return topic, nil
 }
 
-// Publish notification for arn(boty topic or endpoint)
+// Publish notification for arn(topic or endpoint)
 func (s *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) error {
+	msg = truncateMessage(msg)
 	m := make(map[string]string)
 	m["default"] = msg
 	m["GCM"] = composeMessageGCM(msg)
@@ -130,5 +138,89 @@ func (s *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) 
 		return err
 	}
 	log.Info("[SNS] publish message", *resp.MessageID)
+	return nil
+}
+
+// Limit message size to the allowed payload size
+func truncateMessage(msg string) string {
+	if len(msg) <= MessageBodyLimit {
+		return msg
+	}
+	runes := []rune(msg[:MessageBodyLimit])
+	valid := len(runes)
+	// traverse runes from last string and detect invalid string
+	for i := valid; ; {
+		i--
+		if runes[i] != utf8.RuneError {
+			break
+		}
+		valid = i
+	}
+	return string(runes[0:valid])
+}
+
+// Register endpoint(device) to application
+func (s *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
+	var app *SNSApp
+	var err error
+	switch device {
+	case "ios", "apns":
+		app, err = s.GetAppAPNS()
+	case "android", "gcm":
+		app, err = s.GetAppGCM()
+	default:
+		errMsg := "[SNS] Unsupported device, device=" + device
+		log.Error(errMsg, token)
+		return nil, errors.New(errMsg)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return app.CreateEndpoint(token)
+}
+
+// Publish notification for many endpoints
+// (supports single device only)
+func (s *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg string) error {
+	name := fmt.Sprintf("%d", time.Now().UnixNano()) + "_" + device
+	topic, err := s.CreateTopic(name)
+	if err != nil {
+		return err
+	}
+	var wg sync.WaitGroup
+	for _, token := range tokens {
+		wg.Add(1)
+		go func(t string) {
+			e, err := s.RegisterEndpoint(device, t)
+			if err != nil {
+				wg.Done()
+				return
+			}
+			topic.Subscribe(e)
+			wg.Done()
+		}(token)
+	}
+	wg.Wait()
+	topic.Publish(msg)
+	topic.Delete()
+	return nil
+}
+
+// Publish notification for many endpoints
+// tokens is map of string slices, each key stands for device, like "android"/"ios"
+// ex) tokens := map[string][]string{ "android": []string{"token1", "token2"}, "ios": []string{"token3", "token4"}}
+func (s *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error {
+	for device, t := range tokens {
+		l := len(t)
+		max := (l-1)/topicMaxDeviceNumber + 1
+		for i := 0; i < max; i++ {
+			from := i * topicMaxDeviceNumber
+			to := (i + 1) * topicMaxDeviceNumber
+			if l < to {
+				to = l
+			}
+			s.BulkPublishByDevice(device, t[from:to], msg)
+		}
+	}
 	return nil
 }
