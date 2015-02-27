@@ -94,3 +94,13 @@ func (item *DynamoItem) AddConditionLE(name string, value Any) {
 func (item *DynamoItem) AddCondition(name string, condition DynamoDB.ExpectedAttributeValue) {
 	item.conditions[name] = condition
 }
+
+// Atomic Counter
+func (item *DynamoItem) CountUp(name string, num int) {
+	// TODO: implement atomic counter
+}
+
+// Atomic Counter
+func (item *DynamoItem) CountDown(name string, num int) {
+	// TODO: implement atomic counter
+}
