@@ -3,8 +3,6 @@
 package config
 
 import (
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
-
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -59,7 +57,6 @@ func (c *DefaultConfig) GetConfigValue(section, key, defaultValue string) string
 		fileName := c.rootPath + "/" + awsConfigFileName + ".json"
 		file, e := ioutil.ReadFile(fileName)
 		if e != nil {
-			log.Error("[config] DefaultConfig File Load error, file="+fileName, e)
 			return defaultValue
 		}
 		json.Unmarshal(file, &c.config)
