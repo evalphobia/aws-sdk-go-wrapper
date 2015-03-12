@@ -6,9 +6,21 @@ At this time, it suports services below,
 - `SQS`
 - `SNS`
 
+# Configure
+
+```sh
+vim aws.json
+
+{
+    "access_key": "XXXXXXXXXXXXXXXXXXXX",
+    "secret_key": "abcdefg",
+}
+
+```
+
 # Quick Usage
 
-for DynamoDB
+### DynamoDB
 
 ```go
 import (
@@ -44,17 +56,42 @@ func main() {
 }
 ```
 
-# Configure
+### S3
 
-```sh
-vim aws.json
+```go
 
-{
-    "access_key": "XXXXXXXXXXXXXXXXXXXX",
-    "secret_key": "abcdefg",
+import(
+    "os"
+
+    // import this
+    "github.com/evalphobia/aws-sdk-go-wrapper/s3"
+)
+
+func main(){
+    cli := s3.NewClient()
+    bucket := cli.GetBucket("MyBucket")
+
+    // upload file
+    var file *os.File
+    file = getFile() // dummy code. this expects return data of "*os.File", like from POST form. 
+    s3obj := s3.NewS3Object(file)
+    bucket.AddObject(s3obj, "/foo/bar/new_file")
+    bucket.Put()
+
+    // upload file from text data
+    text := "Lorem ipsum"
+    s3obj2 := s3.NewS3ObjectString(text)
+    bucket.AddObject(s3obj2, "/log/new_text.txt")
+
+    // upload file of ACL authenticated-read
+    bucket.AddSecretObject(s3obj2, "/secret_path/new_secret_file.txt")
+
+
+    // put all added objects.
+    bucket.Put() // upload "/log/new_text.txt" & "/secret_path/new_secret_file.txt"
 }
-
 ```
+
 
 
 # License
