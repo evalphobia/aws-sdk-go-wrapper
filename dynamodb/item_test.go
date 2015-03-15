@@ -12,9 +12,6 @@ func TestNewItem(t *testing.T) {
 	if len(item.conditions) != 0 {
 		t.Errorf("DynamoItem.conditions should be an empty map at initialize time, actual=%v", item.data)
 	}
-	if len(item.counters) != 0 {
-		t.Errorf("DynamoItem.counters should be an empty map at initialize time, actual=%v", item.data)
-	}
 }
 
 func TestAddAttribute(t *testing.T) {
