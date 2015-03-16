@@ -1,3 +1,6 @@
+[![wercker status](https://app.wercker.com/status/c672d0394433c756552755947bde85d1/s/master "wercker status")](https://app.wercker.com/project/bykey/c672d0394433c756552755947bde85d1) [![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=HEAD)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=HEAD)
+
+
 # aws-sdk-go-wrapper
 Simple wrapper for aws-sdk-go
 At this time, it suports services below,
