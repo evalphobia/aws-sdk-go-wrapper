@@ -70,10 +70,18 @@ func (d *AmazonDynamoDB) GetTable(table string) (*DynamoTable, error) {
 	if err != nil {
 		return nil, err
 	}
-	t = &DynamoTable{}
-	t.table = desc
-	t.name = tableName
-	t.db = d
+	t = &DynamoTable{
+		db:      d,
+		table:   desc,
+		name:    tableName,
+		indexes: make(map[string]*DynamoIndex),
+	}
+	for _, idx := range desc.LocalSecondaryIndexes {
+		t.indexes[*idx.IndexName] = NewDynamoIndex(*idx.IndexName, indexTypeLSI, idx.KeySchema)
+	}
+	for _, idx := range desc.GlobalSecondaryIndexes {
+		t.indexes[*idx.IndexName] = NewDynamoIndex(*idx.IndexName, indexTypeGSI, idx.KeySchema)
+	}
 	d.tables[tableName] = t
 	return t, nil
 }

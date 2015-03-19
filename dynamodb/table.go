@@ -15,6 +15,7 @@ type DynamoTable struct {
 	db         *AmazonDynamoDB
 	table      *DynamoDB.TableDescription
 	name       string
+	indexes    map[string]*DynamoIndex
 	writeItems []*DynamoDB.PutItemInput
 	errorItems []*DynamoDB.PutItemInput
 }
@@ -70,6 +71,37 @@ func (t *DynamoTable) GetOne(values ...Any) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return Unmarshal(req.Item), nil
+}
+
+// query using LSI or GSI
+func (t *DynamoTable) GetByIndex(idx string, values ...Any) ([]map[string]interface{}, error) {
+	index, ok := t.indexes[idx]
+	if !ok {
+		log.Error("[DynamoDB] Cannot find the index name, table="+t.name, idx)
+		log.Error("[DynamoDB] indexes on table="+t.name, t.indexes)
+	}
+
+	hashKey := index.GetHashKeyName()
+	rangeKey := index.GetRangeKeyName()
+
+	keys := make(map[string]DynamoDB.Condition)
+	keys[hashKey] = DynamoDB.Condition{
+		AttributeValueList: []DynamoDB.AttributeValue{createAttributeValue(values[0])},
+		ComparisonOperator: AWS.String(DynamoDB.ComparisonOperatorEq),
+	}
+	if len(values) > 1 && rangeKey != "" {
+		keys[rangeKey] = DynamoDB.Condition{
+			AttributeValueList: []DynamoDB.AttributeValue{createAttributeValue(values[1])},
+			ComparisonOperator: AWS.String(DynamoDB.ComparisonOperatorEq),
+		}
+	}
+
+	in := &DynamoDB.QueryInput{
+		TableName:     AWS.String(t.name),
+		KeyConditions: keys,
+		IndexName:     &idx,
+	}
+	return t.Query(in)
 }
 
 // perform GetOne() and return slice value with single item
@@ -133,6 +165,26 @@ func (t *DynamoTable) Scan() ([]map[string]interface{}, error) {
 	return t.convertItemsToMapArray(req.Items), nil
 }
 
+// delete item
+func (t *DynamoTable) Delete(values ...Any) error {
+	key := NewItem()
+	key.AddAttribute(t.GetHashKeyName(), values[0])
+	if len(values) > 1 && t.GetRangeKeyName() != "" {
+		key.AddAttribute(t.GetRangeKeyName(), values[1])
+	}
+
+	in := &DynamoDB.DeleteItemInput{
+		TableName: AWS.String(t.name),
+		Key:       key.data,
+	}
+	_, err := t.db.client.DeleteItem(in)
+	if err != nil {
+		log.Error("[DynamoDB] Error in `DeleteItem` operation, table="+t.name, err)
+		return err
+	}
+	return nil
+}
+
 // convert from dynamodb values to map
 func (t *DynamoTable) convertItemsToMapArray(items []map[string]DynamoDB.AttributeValue) []map[string]interface{} {
 	var m []map[string]interface{}
@@ -171,4 +223,35 @@ func (t *DynamoTable) isExistPrimaryKeys(item *DynamoDB.PutItemInput) bool {
 		return false
 	}
 	return true
+}
+
+// [CAUTION]
+// only used this for developing, this performs scan all item and delete it each one by one
+func (t *DynamoTable) DeleteAll() error {
+	hashkey := t.GetHashKeyName()
+	rangekey := t.GetRangeKeyName()
+
+	result, err := t.Scan()
+	if err != nil {
+		return err
+	}
+
+	errStr := ""
+	for _, item := range result {
+		var e error
+		if rangekey != "" {
+			e = t.Delete(item[hashkey], item[rangekey])
+		} else {
+			e = t.Delete(item[hashkey])
+		}
+		if e != nil {
+			errStr = errStr + "," + e.Error()
+		}
+	}
+
+	if errStr != "" {
+		err = errors.New(errStr)
+	}
+
+	return err
 }
