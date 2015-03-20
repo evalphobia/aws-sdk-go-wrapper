@@ -23,6 +23,14 @@ func createAttributeValue(v Any) SDK.AttributeValue {
 		return SDK.AttributeValue{
 			N: AWS.String(fmt.Sprint(t)),
 		}
+	case []byte:
+		return SDK.AttributeValue{
+			B: t,
+		}
+	case bool:
+		return SDK.AttributeValue{
+			BOOL: AWS.Boolean(t),
+		}
 	default:
 		return SDK.AttributeValue{}
 	}

@@ -26,11 +26,6 @@ func (item *DynamoItem) AddAttribute(name string, value Any) {
 	item.data[name] = createAttributeValue(value)
 }
 
-// Create new empty condition for put
-func NewExpected() *DynamoDB.ExpectedAttributeValue {
-	return &DynamoDB.ExpectedAttributeValue{}
-}
-
 // Add a EXIST condition for put
 func (item *DynamoItem) AddConditionExist(name string) {
 	cond := NewExpected()
@@ -43,15 +38,6 @@ func (item *DynamoItem) AddConditionNotExist(name string) {
 	cond := NewExpected()
 	cond.Exists = AWS.Boolean(false)
 	item.AddCondition(name, *cond)
-}
-
-// Create new condition for put
-func NewExpectedCondition(value Any, operator string) *DynamoDB.ExpectedAttributeValue {
-	v := createAttributeValue(value)
-	return &DynamoDB.ExpectedAttributeValue{
-		Value:              &v,
-		ComparisonOperator: AWS.String(operator),
-	}
 }
 
 // Add a EQUAL condition for put
@@ -103,4 +89,18 @@ func (item *DynamoItem) CountUp(name string, num int) {
 // Atomic Counter
 func (item *DynamoItem) CountDown(name string, num int) {
 	// TODO: implement atomic counter
+}
+
+// Create new empty condition for put
+func NewExpected() *DynamoDB.ExpectedAttributeValue {
+	return &DynamoDB.ExpectedAttributeValue{}
+}
+
+// Create new condition for put
+func NewExpectedCondition(value Any, operator string) *DynamoDB.ExpectedAttributeValue {
+	v := createAttributeValue(value)
+	return &DynamoDB.ExpectedAttributeValue{
+		Value:              &v,
+		ComparisonOperator: AWS.String(operator),
+	}
 }
