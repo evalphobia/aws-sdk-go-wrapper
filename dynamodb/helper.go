@@ -4,7 +4,7 @@ package dynamodb
 
 import (
 	AWS "github.com/awslabs/aws-sdk-go/aws"
-	DynamoDB "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 
 	"fmt"
 	"strconv"
@@ -13,23 +13,23 @@ import (
 type Any interface{}
 
 // Create new AttributeValue from the type of value
-func createAttributeValue(v Any) DynamoDB.AttributeValue {
+func createAttributeValue(v Any) SDK.AttributeValue {
 	switch t := v.(type) {
 	case string:
-		return DynamoDB.AttributeValue{
+		return SDK.AttributeValue{
 			S: AWS.String(t),
 		}
 	case int, int32, int64, uint, uint32, uint64, float32, float64:
-		return DynamoDB.AttributeValue{
+		return SDK.AttributeValue{
 			N: AWS.String(fmt.Sprint(t)),
 		}
 	default:
-		return DynamoDB.AttributeValue{}
+		return SDK.AttributeValue{}
 	}
 }
 
 // Retrieve value from DynamoDB type
-func getItemValue(val DynamoDB.AttributeValue) Any {
+func getItemValue(val SDK.AttributeValue) Any {
 	switch {
 	case val.N != nil:
 		data, _ := strconv.Atoi(*val.N)
@@ -72,7 +72,7 @@ func getItemValue(val DynamoDB.AttributeValue) Any {
 }
 
 // Convert DynamoDB Item to map data
-func Unmarshal(item map[string]DynamoDB.AttributeValue) map[string]interface{} {
+func Unmarshal(item map[string]SDK.AttributeValue) map[string]interface{} {
 	data := make(map[string]interface{})
 	for key, val := range item {
 		data[key] = getItemValue(val)
@@ -80,46 +80,61 @@ func Unmarshal(item map[string]DynamoDB.AttributeValue) map[string]interface{} {
 	return data
 }
 
+func NewProvisionedThroughput(read, write int64) *SDK.ProvisionedThroughput {
+	return &SDK.ProvisionedThroughput{
+		ReadCapacityUnits:  AWS.Long(read),
+		WriteCapacityUnits: AWS.Long(write),
+	}
+}
+
+//=======================
+//  KeySchema
+//=======================
+
 // Create new KeySchema slice
-func NewKeySchema(elements ...*DynamoDB.KeySchemaElement) []DynamoDB.KeySchemaElement {
+func NewKeySchema(elements ...*SDK.KeySchemaElement) []SDK.KeySchemaElement {
 	if len(elements) > 1 {
-		schema := make([]DynamoDB.KeySchemaElement, 2, 2)
+		schema := make([]SDK.KeySchemaElement, 2, 2)
 		schema[0] = *elements[0]
 		schema[1] = *elements[1]
 		return schema
 	} else {
-		schema := make([]DynamoDB.KeySchemaElement, 1, 1)
+		schema := make([]SDK.KeySchemaElement, 1, 1)
 		schema[0] = *elements[0]
 		return schema
 	}
 }
 
 // Create new single KeySchema
-func NewKeyElement(keyName, keyType string) *DynamoDB.KeySchemaElement {
-	return &DynamoDB.KeySchemaElement{
+func NewKeyElement(keyName, keyType string) *SDK.KeySchemaElement {
+	return &SDK.KeySchemaElement{
 		AttributeName: AWS.String(keyName),
 		KeyType:       AWS.String(keyType),
 	}
 }
 
 // Create new single KeySchema for HashKey
-func NewHashKeyElement(keyName string) *DynamoDB.KeySchemaElement {
-	return NewKeyElement(keyName, DynamoDB.KeyTypeHash)
+func NewHashKeyElement(keyName string) *SDK.KeySchemaElement {
+	return NewKeyElement(keyName, SDK.KeyTypeHash)
 }
 
 // Create new single KeySchema for RangeKey
-func NewRangeKeyElement(keyName string) *DynamoDB.KeySchemaElement {
-	return NewKeyElement(keyName, DynamoDB.KeyTypeRange)
+func NewRangeKeyElement(keyName string) *SDK.KeySchemaElement {
+	return NewKeyElement(keyName, SDK.KeyTypeRange)
 }
 
+//=======================
+//  AttributeDefinition
+//=======================
+
 // Convert multiple definition to single slice
-func NewAttributeDefinitions(attr ...DynamoDB.AttributeDefinition) []DynamoDB.AttributeDefinition {
+func NewAttributeDefinitions(attr ...SDK.AttributeDefinition) []SDK.AttributeDefinition {
 	return attr
 }
 
 // Create new definition of table
-func NewAttributeDefinition(attrName, attrType string) DynamoDB.AttributeDefinition {
-	newAttr := DynamoDB.AttributeDefinition{}
+func NewAttributeDefinition(attrName, attrType string) SDK.AttributeDefinition {
+	newAttr := SDK.AttributeDefinition{}
 	var typ *string
 	switch attrType {
 	case "S", "N", "B", "BOOL", "L", "M", "SS", "NS", "BS":
@@ -132,22 +147,22 @@ func NewAttributeDefinition(attrName, attrType string) DynamoDB.AttributeDefinit
 	return newAttr
 }
 
-// Create new definition of table for string
-func NewStringAttribute(attrName string) DynamoDB.AttributeDefinition {
+// NewStringAttribute returns a table AttributeDefinition for string
+func NewStringAttribute(attrName string) SDK.AttributeDefinition {
 	return NewAttributeDefinition(attrName, "S")
 }
 
-// Create new definition of table for number
-func NewNumberAttribute(attrName string) DynamoDB.AttributeDefinition {
+// NewNumberAttribute returns a table AttributeDefinition for number
+func NewNumberAttribute(attrName string) SDK.AttributeDefinition {
 	return NewAttributeDefinition(attrName, "N")
 }
 
-// Create new definition of table for byte
-func NewByteAttribute(attrName string) DynamoDB.AttributeDefinition {
+// NewByteAttribute returns a table AttributeDefinition for byte
+func NewByteAttribute(attrName string) SDK.AttributeDefinition {
 	return NewAttributeDefinition(attrName, "B")
 }
 
-// Create new definition of table for boolean
-func NewBoolAttribute(attrName string) DynamoDB.AttributeDefinition {
+// NewBoolAttribute returns a table AttributeDefinition for boolean
+func NewBoolAttribute(attrName string) SDK.AttributeDefinition {
 	return NewAttributeDefinition(attrName, "BOOL")
 }
