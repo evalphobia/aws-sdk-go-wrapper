@@ -1,7 +1,6 @@
 package dynamodb
 
 import (
-	// "fmt"
 	"testing"
 	"time"
 
@@ -126,9 +125,10 @@ func TestListTables(t *testing.T) {
 
 func TestPutAll(t *testing.T) {
 	c := NewClient()
+	pfx := GetTablePrefix()
 	name := "foo_table"
-	resetTable(c, name)
-	createTable(c, getCreateTableInput(name))
+	resetTable(c, pfx+name)
+	createTable(c, getCreateTableInput(pfx+name))
 	tbl, err := c.GetTable(name)
 	if err != nil || tbl == nil || len(tbl.writeItems) != 0 {
 		t.Errorf("error on GetTable, %v, %v", err, tbl)
@@ -139,8 +139,8 @@ func TestPutAll(t *testing.T) {
 	tbl.AddItem(item)
 
 	name2 := "foo_hashtable"
-	resetTable(c, name2)
-	createTable(c, getCreateTableInput(name2))
+	resetTable(c, pfx+name2)
+	createTable(c, getCreateHashTableInput(pfx+name2))
 	tbl2, err := c.GetTable(name2)
 	if err != nil || tbl2 == nil || len(tbl2.writeItems) != 0 {
 		t.Errorf("error on GetTable, %v, %v", err, tbl2)
