@@ -3,6 +3,9 @@
 package dynamodb
 
 import (
+	"errors"
+	"strings"
+
 	AWS "github.com/awslabs/aws-sdk-go/aws"
 	DynamoDB "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 
@@ -13,7 +16,7 @@ import (
 
 const (
 	dynamodbConfigSectionName = "dynamodb"
-	defaultRegion             = "us-west-1"
+	defaultRegion             = "local"
 	defaultTablePrefix        = "dev_"
 )
 
@@ -35,13 +38,14 @@ func NewClient() *AmazonDynamoDB {
 }
 
 // Create new DynamoDB table
-func (d *AmazonDynamoDB) CreateTable(in *DynamoDB.CreateTableInput) {
+func (d *AmazonDynamoDB) CreateTable(in *DynamoDB.CreateTableInput) error {
 	data, err := d.client.CreateTable(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error on `CreateTable` operation, table="+*in.TableName, err)
-	} else {
-		log.Info("[DynamoDB] Complete CreateTable, table="+*in.TableName, data.TableDescription.TableStatus)
+		return err
 	}
+	log.Info("[DynamoDB] Complete CreateTable, table="+*in.TableName, data.TableDescription.TableStatus)
+	return nil
 }
 
 // get infomation of the table
@@ -97,14 +101,20 @@ func (d *AmazonDynamoDB) removeWriteTable(name string) {
 }
 
 // execute put operation for all tables in write spool
-func (d *AmazonDynamoDB) PutAll() {
+func (d *AmazonDynamoDB) PutAll() error {
+	var errs []string
 	for name, _ := range d.writeTables {
 		err := d.tables[name].Put()
 		if err != nil {
+			errs = append(errs, err.Error())
 			log.Error("[DynamoDB] Error on `Put` operation, table="+name, err.Error())
 		}
 		d.removeWriteTable(name)
 	}
+	if len(errs) != 0 {
+		return errors.New(strings.Join(errs, "\n"))
+	}
+	return nil
 }
 
 // get the prefix for DynamoDB table

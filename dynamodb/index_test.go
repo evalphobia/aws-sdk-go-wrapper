@@ -47,6 +47,12 @@ func TestGetRangeKeyName(t *testing.T) {
 	if rangeName != "bar" {
 		t.Errorf("error on GetHashKeyName, actual=%v", rangeName)
 	}
+
+	idx2 := NewDynamoIndex("name", "local", NewKeySchema(hashkey))
+	rangeName = idx2.GetRangeKeyName()
+	if rangeName != "" {
+		t.Errorf("error on GetHashKeyName, actual=%v", rangeName)
+	}
 }
 
 func TestNewLSI(t *testing.T) {
@@ -58,6 +64,15 @@ func TestNewLSI(t *testing.T) {
 	k := lsi.KeySchema
 	if len(k) != 1 || *k[0].AttributeName != "foo" {
 		t.Errorf("error on NewLSI, actual=%v", lsi)
+	}
+
+	lsi2 := NewLSI("name", keys, SDK.ProjectionTypeKeysOnly)
+	if *lsi2.IndexName != "name" || *lsi2.Projection.ProjectionType != SDK.ProjectionTypeKeysOnly {
+		t.Errorf("error on NewLSI, actual=%v", lsi2)
+	}
+	k = lsi2.KeySchema
+	if len(k) != 1 || *k[0].AttributeName != "foo" {
+		t.Errorf("error on NewLSI, actual=%v", lsi2)
 	}
 }
 
@@ -74,5 +89,18 @@ func TestNewGSI(t *testing.T) {
 	tp := gsi.ProvisionedThroughput
 	if *tp.ReadCapacityUnits != 5 || *tp.WriteCapacityUnits != 8 {
 		t.Errorf("error on NewGSI, actual=%v", gsi)
+	}
+
+	gsi2 := NewGSI("name", keys, NewProvisionedThroughput(5, 8), SDK.ProjectionTypeKeysOnly)
+	if *gsi2.IndexName != "name" || *gsi2.Projection.ProjectionType != SDK.ProjectionTypeKeysOnly {
+		t.Errorf("error on NewGSI, actual=%v", gsi)
+	}
+	k = gsi2.KeySchema
+	if len(k) != 1 || *k[0].AttributeName != "foo" {
+		t.Errorf("error on NewGSI, actual=%v", gsi2)
+	}
+	tp = gsi2.ProvisionedThroughput
+	if *tp.ReadCapacityUnits != 5 || *tp.WriteCapacityUnits != 8 {
+		t.Errorf("error on NewGSI, actual=%v", gsi2)
 	}
 }

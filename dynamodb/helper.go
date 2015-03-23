@@ -7,6 +7,7 @@ import (
 	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 
 	"fmt"
+	"reflect"
 	"strconv"
 )
 
@@ -31,9 +32,28 @@ func createAttributeValue(v Any) SDK.AttributeValue {
 		return SDK.AttributeValue{
 			BOOL: AWS.Boolean(t),
 		}
-	default:
-		return SDK.AttributeValue{}
+	case []string:
+		return SDK.AttributeValue{
+			SS: t,
+		}
+	case [][]byte:
+		return SDK.AttributeValue{
+			BS: t,
+		}
+	case []int, []int32, []int64, []uint, []uint32, []uint64, []float32, []float64:
+		return SDK.AttributeValue{
+			NS: MarshalStringSlice(t),
+		}
 	}
+
+	k := reflect.ValueOf(v)
+	switch {
+	case k.Kind() == reflect.Map:
+		return SDK.AttributeValue{
+			M: Marshal(v.(map[string]interface{})),
+		}
+	}
+	return SDK.AttributeValue{}
 }
 
 // Retrieve value from DynamoDB type
@@ -84,6 +104,30 @@ func Unmarshal(item map[string]SDK.AttributeValue) map[string]interface{} {
 	data := make(map[string]interface{})
 	for key, val := range item {
 		data[key] = getItemValue(val)
+	}
+	return data
+}
+
+// Convert map to DynamoDb Item data
+func Marshal(item map[string]interface{}) map[string]SDK.AttributeValue {
+	data := make(map[string]SDK.AttributeValue)
+	for key, val := range item {
+		data[key] = createAttributeValue(val)
+	}
+	return data
+}
+
+// Convert map to DynamoDb Item data
+func MarshalStringSlice(item Any) []string {
+	var data []string
+
+	switch reflect.TypeOf(item).Kind() {
+	case reflect.Slice:
+		val := reflect.ValueOf(item)
+		max := val.Len()
+		for i := 0; i < max; i++ {
+			data = append(data, fmt.Sprint(val.Index(i).Interface()))
+		}
 	}
 	return data
 }

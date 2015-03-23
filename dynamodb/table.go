@@ -8,9 +8,10 @@ import (
 
 	"errors"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"strings"
 )
 
-// DynamoDB table wrapper struct
+// DynamoTable is a wapper struct for DynamoDB table
 type DynamoTable struct {
 	db         *AmazonDynamoDB
 	table      *DynamoDB.TableDescription
@@ -20,7 +21,7 @@ type DynamoTable struct {
 	errorItems []*DynamoDB.PutItemInput
 }
 
-// add item to the write-waiting list (writeItem)
+// AddItem adds an item to the write-waiting list (writeItem)
 func (t *DynamoTable) AddItem(item *DynamoItem) {
 	w := &DynamoDB.PutItemInput{}
 	w.TableName = AWS.String(t.name)
@@ -34,26 +35,29 @@ func (t *DynamoTable) AddItem(item *DynamoItem) {
 // excecute write operation in the write-waiting list (writeItem)
 func (t *DynamoTable) Put() error {
 	var err error = nil
-	errStr := ""
+	var errs []string
 	// アイテムの保存処理
 	for _, item := range t.writeItems {
 		if !t.isExistPrimaryKeys(item) {
-			log.Error("[DynamoDB] Cannot find primary key, table="+t.name, item)
+			msg := "[DynamoDB] Cannot find primary key, table=" + t.name
+			errs = append(errs, msg)
+			log.Error(msg, item)
 			continue
 		}
 		_, e := t.db.client.PutItem(item)
 		if e != nil {
-			errStr = errStr + "," + e.Error()
+			errs = append(errs, e.Error())
 			t.errorItems = append(t.errorItems, item)
 		}
 	}
-	if errStr != "" {
-		err = errors.New(errStr)
+	t.writeItems = []*DynamoDB.PutItemInput{}
+	if len(errs) != 0 {
+		err = errors.New(strings.Join(errs, "\n"))
 	}
 	return err
 }
 
-// retrieve a single item
+// GetOne retrieves a single item by GetOne(HashKey [, RangeKey])
 func (t *DynamoTable) GetOne(values ...Any) (map[string]interface{}, error) {
 	key := NewItem()
 	key.AddAttribute(t.GetHashKeyName(), values[0])
@@ -116,8 +120,12 @@ func (t *DynamoTable) getOneAsSlice(values []Any) ([]map[string]interface{}, err
 	} else {
 		item, err = t.GetOne(values[0])
 	}
+
 	if err != nil {
 		return items, err
+	}
+	if len(item) == 0 {
+		return items, nil
 	}
 	return append(items, item), nil
 }
