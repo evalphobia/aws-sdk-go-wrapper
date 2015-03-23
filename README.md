@@ -1,4 +1,6 @@
-[![wercker status](https://app.wercker.com/status/c672d0394433c756552755947bde85d1/s/master "wercker status")](https://app.wercker.com/project/bykey/c672d0394433c756552755947bde85d1) [![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=HEAD)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=HEAD)
+[![Build Status](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/status.png)](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/latest)
+
+[![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=HEAD)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=HEAD) (DynamoDB)
 
 
 # aws-sdk-go-wrapper
