@@ -3,8 +3,7 @@
 package dynamodb
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	DynamoDB "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
 
 	"errors"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
@@ -14,20 +13,20 @@ import (
 // DynamoTable is a wapper struct for DynamoDB table
 type DynamoTable struct {
 	db         *AmazonDynamoDB
-	table      *DynamoDB.TableDescription
+	table      *SDK.TableDescription
 	name       string
 	indexes    map[string]*DynamoIndex
-	writeItems []*DynamoDB.PutItemInput
-	errorItems []*DynamoDB.PutItemInput
+	writeItems []*SDK.PutItemInput
+	errorItems []*SDK.PutItemInput
 }
 
 // AddItem adds an item to the write-waiting list (writeItem)
 func (t *DynamoTable) AddItem(item *DynamoItem) {
-	w := &DynamoDB.PutItemInput{}
-	w.TableName = AWS.String(t.name)
-	w.ReturnConsumedCapacity = AWS.String("TOTAL")
-	w.Item = item.data
-	w.Expected = item.conditions
+	w := &SDK.PutItemInput{}
+	w.TableName = String(t.name)
+	w.ReturnConsumedCapacity = String("TOTAL")
+	w.Item = &item.data
+	w.Expected = &item.conditions
 	t.writeItems = append(t.writeItems, w)
 	t.db.addWriteTable(t.name)
 }
@@ -50,7 +49,7 @@ func (t *DynamoTable) Put() error {
 			t.errorItems = append(t.errorItems, item)
 		}
 	}
-	t.writeItems = []*DynamoDB.PutItemInput{}
+	t.writeItems = []*SDK.PutItemInput{}
 	if len(errs) != 0 {
 		err = errors.New(strings.Join(errs, "\n"))
 	}
@@ -65,15 +64,16 @@ func (t *DynamoTable) GetOne(values ...Any) (map[string]interface{}, error) {
 		key.AddAttribute(t.GetRangeKeyName(), values[1])
 	}
 
-	in := &DynamoDB.GetItemInput{
-		TableName: AWS.String(t.name),
-		Key:       key.data,
+	in := &SDK.GetItemInput{
+		TableName: String(t.name),
+		Key:       &key.data,
 	}
 	req, err := t.db.client.GetItem(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error in `GetItem` operation, table="+t.name, err)
 		return nil, err
 	}
+	log.Error("[DynamoDB] test="+t.name, req.Item)
 	return Unmarshal(req.Item), nil
 }
 
@@ -88,21 +88,21 @@ func (t *DynamoTable) GetByIndex(idx string, values ...Any) ([]map[string]interf
 	hashKey := index.GetHashKeyName()
 	rangeKey := index.GetRangeKeyName()
 
-	keys := make(map[string]DynamoDB.Condition)
-	keys[hashKey] = DynamoDB.Condition{
-		AttributeValueList: []DynamoDB.AttributeValue{createAttributeValue(values[0])},
-		ComparisonOperator: AWS.String(DynamoDB.ComparisonOperatorEq),
+	keys := make(map[string]*SDK.Condition)
+	keys[hashKey] = &SDK.Condition{
+		AttributeValueList: []*SDK.AttributeValue{createAttributeValue(values[0])},
+		ComparisonOperator: String(ComparisonOperatorEQ),
 	}
 	if len(values) > 1 && rangeKey != "" {
-		keys[rangeKey] = DynamoDB.Condition{
-			AttributeValueList: []DynamoDB.AttributeValue{createAttributeValue(values[1])},
-			ComparisonOperator: AWS.String(DynamoDB.ComparisonOperatorEq),
+		keys[rangeKey] = &SDK.Condition{
+			AttributeValueList: []*SDK.AttributeValue{createAttributeValue(values[1])},
+			ComparisonOperator: String(ComparisonOperatorEQ),
 		}
 	}
 
-	in := &DynamoDB.QueryInput{
-		TableName:     AWS.String(t.name),
-		KeyConditions: keys,
+	in := &SDK.QueryInput{
+		TableName:     String(t.name),
+		KeyConditions: &keys,
 		IndexName:     &idx,
 	}
 	return t.Query(in)
@@ -136,21 +136,21 @@ func (t *DynamoTable) Get(values ...Any) ([]map[string]interface{}, error) {
 		return t.getOneAsSlice(values)
 	}
 
-	keys := make(map[string]DynamoDB.Condition)
-	keys[t.GetHashKeyName()] = DynamoDB.Condition{
-		AttributeValueList: []DynamoDB.AttributeValue{createAttributeValue(values[0])},
-		ComparisonOperator: AWS.String(DynamoDB.ComparisonOperatorEq),
+	keys := make(map[string]*SDK.Condition)
+	keys[t.GetHashKeyName()] = &SDK.Condition{
+		AttributeValueList: []*SDK.AttributeValue{createAttributeValue(values[0])},
+		ComparisonOperator: String(ComparisonOperatorEQ),
 	}
 
-	in := &DynamoDB.QueryInput{
-		TableName:     AWS.String(t.name),
-		KeyConditions: keys,
+	in := &SDK.QueryInput{
+		TableName:     String(t.name),
+		KeyConditions: &keys,
 	}
 	return t.Query(in)
 }
 
 // get mapped-items with Query operation
-func (t *DynamoTable) Query(in *DynamoDB.QueryInput) ([]map[string]interface{}, error) {
+func (t *DynamoTable) Query(in *SDK.QueryInput) ([]map[string]interface{}, error) {
 	req, err := t.db.client.Query(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error in `Query` operation, table="+t.name, err)
@@ -161,9 +161,9 @@ func (t *DynamoTable) Query(in *DynamoDB.QueryInput) ([]map[string]interface{}, 
 
 // get mapped-items with Scan operation
 func (t *DynamoTable) Scan() ([]map[string]interface{}, error) {
-	in := &DynamoDB.ScanInput{
-		TableName: AWS.String(t.name),
-		Limit:     AWS.Integer(1000),
+	in := &SDK.ScanInput{
+		TableName: String(t.name),
+		Limit:     Long(1000),
 	}
 	req, err := t.db.client.Scan(in)
 	if err != nil {
@@ -181,9 +181,9 @@ func (t *DynamoTable) Delete(values ...Any) error {
 		key.AddAttribute(t.GetRangeKeyName(), values[1])
 	}
 
-	in := &DynamoDB.DeleteItemInput{
-		TableName: AWS.String(t.name),
-		Key:       key.data,
+	in := &SDK.DeleteItemInput{
+		TableName: String(t.name),
+		Key:       &key.data,
 	}
 	_, err := t.db.client.DeleteItem(in)
 	if err != nil {
@@ -194,7 +194,7 @@ func (t *DynamoTable) Delete(values ...Any) error {
 }
 
 // convert from dynamodb values to map
-func (t *DynamoTable) convertItemsToMapArray(items []map[string]DynamoDB.AttributeValue) []map[string]interface{} {
+func (t *DynamoTable) convertItemsToMapArray(items []*map[string]*SDK.AttributeValue) []map[string]interface{} {
 	var m []map[string]interface{}
 	for _, item := range items {
 		m = append(m, Unmarshal(item))
@@ -217,15 +217,16 @@ func (t *DynamoTable) GetRangeKeyName() string {
 }
 
 // check if exists all primary keys in the item to write it.
-func (t *DynamoTable) isExistPrimaryKeys(item *DynamoDB.PutItemInput) bool {
+func (t *DynamoTable) isExistPrimaryKeys(item *SDK.PutItemInput) bool {
 	hashKey := t.GetHashKeyName()
-	_, ok := item.Item[hashKey]
+	itemAttrs := *item.Item
+	_, ok := itemAttrs[hashKey]
 	if !ok {
 		log.Warn("[DynamoDB] No HashKey, table="+t.name, hashKey)
 		return false
 	}
 	rangeKey := t.GetRangeKeyName()
-	_, ok = item.Item[rangeKey]
+	_, ok = itemAttrs[rangeKey]
 	if rangeKey != "" && !ok {
 		log.Warn("[DynamoDB] No RangeKey, table="+t.name, rangeKey)
 		return false

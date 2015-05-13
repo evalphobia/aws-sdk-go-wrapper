@@ -1,11 +1,7 @@
 package dynamodb
 
 import (
-	// "fmt"
 	"testing"
-	// "time"
-
-	// SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 func TestAddItem(t *testing.T) {
@@ -23,12 +19,12 @@ func TestAddItem(t *testing.T) {
 	}
 	items := tbl.writeItems[0]
 
-	it, ok := items.Item["attr1"]
+	it, ok := (*items.Item)["attr1"]
 	if !ok || *it.N != "99" {
 		t.Errorf("error on AddItem, %s", it)
 	}
 
-	cond, ok := items.Expected["cond1"]
+	cond, ok := (*items.Expected)["cond1"]
 	if !ok || cond.Value == nil {
 		t.Errorf("error on AddItem, %s", cond)
 	}

@@ -6,8 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	DynamoDB "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -16,13 +15,13 @@ import (
 
 const (
 	dynamodbConfigSectionName = "dynamodb"
-	defaultRegion             = "local"
+	defaultEndpoint           = "http://localhost:8000"
 	defaultTablePrefix        = "dev_"
 )
 
 // wrapped struct for DynamoDB
 type AmazonDynamoDB struct {
-	client      *DynamoDB.DynamoDB
+	client      *SDK.DynamoDB
 	tables      map[string]*DynamoTable
 	writeTables map[string]bool
 }
@@ -32,13 +31,22 @@ func NewClient() *AmazonDynamoDB {
 	d := &AmazonDynamoDB{}
 	d.tables = make(map[string]*DynamoTable)
 	d.writeTables = make(map[string]bool)
-	region := config.GetConfigValue(dynamodbConfigSectionName, "region", defaultRegion)
-	d.client = DynamoDB.New(auth.Auth(), region, nil)
+
+	region := config.GetConfigValue(dynamodbConfigSectionName, "region", "")
+	awsConf := auth.NewConfig(region)
+	endpoint := config.GetConfigValue(dynamodbConfigSectionName, "endpoint", "")
+	if region == "" {
+		endpoint = defaultEndpoint
+	}
+	if endpoint != "" {
+		awsConf.Endpoint = endpoint
+	}
+	d.client = SDK.New(awsConf)
 	return d
 }
 
 // Create new DynamoDB table
-func (d *AmazonDynamoDB) CreateTable(in *DynamoDB.CreateTableInput) error {
+func (d *AmazonDynamoDB) CreateTable(in *SDK.CreateTableInput) error {
 	data, err := d.client.CreateTable(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error on `CreateTable` operation, table="+*in.TableName, err)
@@ -49,9 +57,9 @@ func (d *AmazonDynamoDB) CreateTable(in *DynamoDB.CreateTableInput) error {
 }
 
 // get infomation of the table
-func (d *AmazonDynamoDB) DescribeTable(name string) (*DynamoDB.TableDescription, error) {
-	req, err := d.client.DescribeTable(&DynamoDB.DescribeTableInput{
-		TableName: AWS.String(name),
+func (d *AmazonDynamoDB) DescribeTable(name string) (*SDK.TableDescription, error) {
+	req, err := d.client.DescribeTable(&SDK.DescribeTableInput{
+		TableName: String(name),
 	})
 	if err != nil {
 		return nil, err
@@ -123,10 +131,10 @@ func GetTablePrefix() string {
 }
 
 // get the list of DynamoDB table
-func (d *AmazonDynamoDB) ListTables() ([]string, error) {
-	res, err := d.client.ListTables(&DynamoDB.ListTablesInput{})
+func (d *AmazonDynamoDB) ListTables() ([]*string, error) {
+	res, err := d.client.ListTables(&SDK.ListTablesInput{})
 	if err != nil {
-		return make([]string, 0, 0), err
+		return make([]*string, 0, 0), err
 	}
 	return res.TableNames, nil
 }

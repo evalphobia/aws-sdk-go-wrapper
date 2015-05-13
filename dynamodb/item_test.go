@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
 )
 
 func TestNewItem(t *testing.T) {
@@ -51,7 +51,7 @@ func TestAddCondition(t *testing.T) {
 	item := NewItem()
 
 	cond := NewExpected()
-	item.AddCondition("key", *cond)
+	item.AddCondition("key", cond)
 
 	if len(item.conditions) != 1 {
 		t.Errorf("DynamoItem.conditions should have one condition, actual=%v", item.data)
@@ -82,7 +82,7 @@ func TestAddConditionNotExist(t *testing.T) {
 }
 
 func TestAddConditionEQ(t *testing.T) {
-	expectedOperator := SDK.ComparisonOperatorEq
+	expectedOperator := ComparisonOperatorEQ
 	item := NewItem()
 	item.AddConditionEQ("int_condition", 99)
 	cond, _ := item.conditions["int_condition"]
@@ -104,7 +104,7 @@ func TestAddConditionEQ(t *testing.T) {
 }
 
 func TestAddConditionNE(t *testing.T) {
-	expectedOperator := SDK.ComparisonOperatorNe
+	expectedOperator := ComparisonOperatorNE
 	item := NewItem()
 	item.AddConditionNE("int_condition", 99)
 	cond, _ := item.conditions["int_condition"]
@@ -114,7 +114,7 @@ func TestAddConditionNE(t *testing.T) {
 }
 
 func TestAddConditionGT(t *testing.T) {
-	expectedOperator := SDK.ComparisonOperatorGt
+	expectedOperator := ComparisonOperatorGT
 	item := NewItem()
 	item.AddConditionGT("int_condition", 99)
 	cond, _ := item.conditions["int_condition"]
@@ -124,7 +124,7 @@ func TestAddConditionGT(t *testing.T) {
 }
 
 func TestAddConditionLT(t *testing.T) {
-	expectedOperator := SDK.ComparisonOperatorLt
+	expectedOperator := ComparisonOperatorLT
 	item := NewItem()
 	item.AddConditionLT("int_condition", 99)
 	cond, _ := item.conditions["int_condition"]
@@ -134,7 +134,7 @@ func TestAddConditionLT(t *testing.T) {
 }
 
 func TestAddConditionGE(t *testing.T) {
-	expectedOperator := SDK.ComparisonOperatorGe
+	expectedOperator := ComparisonOperatorGE
 	item := NewItem()
 	item.AddConditionGE("int_condition", 99)
 	cond, _ := item.conditions["int_condition"]
@@ -144,7 +144,7 @@ func TestAddConditionGE(t *testing.T) {
 }
 
 func TestAddConditionLE(t *testing.T) {
-	expectedOperator := SDK.ComparisonOperatorLe
+	expectedOperator := ComparisonOperatorLE
 	item := NewItem()
 	item.AddConditionLE("int_condition", 99)
 	cond, _ := item.conditions["int_condition"]

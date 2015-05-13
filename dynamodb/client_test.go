@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
 )
 
 func TestNewClient(t *testing.T) {
@@ -197,8 +197,8 @@ func getCreateTableInput(name string) SDK.CreateTableInput {
 		TableName:              &name,
 		KeySchema:              pKey,
 		AttributeDefinitions:   attrs,
-		LocalSecondaryIndexes:  []SDK.LocalSecondaryIndex{lsi},
-		GlobalSecondaryIndexes: []SDK.GlobalSecondaryIndex{gsi},
+		LocalSecondaryIndexes:  []*SDK.LocalSecondaryIndex{lsi},
+		GlobalSecondaryIndexes: []*SDK.GlobalSecondaryIndex{gsi},
 		ProvisionedThroughput:  NewProvisionedThroughput(1, 1),
 	}
 }
