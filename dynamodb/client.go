@@ -35,11 +35,11 @@ func NewClient() *AmazonDynamoDB {
 	region := config.GetConfigValue(dynamodbConfigSectionName, "region", "")
 	awsConf := auth.NewConfig(region)
 	endpoint := config.GetConfigValue(dynamodbConfigSectionName, "endpoint", "")
-	if region == "" {
-		endpoint = defaultEndpoint
-	}
-	if endpoint != "" {
+	switch {
+	case endpoint != "":
 		awsConf.Endpoint = endpoint
+	case region == "":
+		awsConf.Endpoint = defaultEndpoint
 	}
 	d.client = SDK.New(awsConf)
 	return d

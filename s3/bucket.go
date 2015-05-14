@@ -3,15 +3,20 @@
 package s3
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/gen/endpoints"
-	S3 "github.com/awslabs/aws-sdk-go/gen/s3"
-	"github.com/evalphobia/aws-sdk-go-wrapper/config"
+	SDK "github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 
 	"bytes"
 	"errors"
 	"io"
+	"time"
+)
+
+const (
+	ACLAuthenticatedRead = "authenticated-read"
+	ACLPrivate           = "private"
+	ACLPublicRead        = "public-read"
+	ACLPublicReadWrite   = "public-read-write"
 )
 
 const (
@@ -21,31 +26,31 @@ const (
 // struct for bucket
 type Bucket struct {
 	name    string
-	objects []S3.PutObjectRequest
+	objects []*SDK.PutObjectInput
 
-	client *S3.S3
+	client *SDK.S3
 }
 
 // add object to write spool (w/ public read access)
 func (b *Bucket) AddObject(obj *S3Object, path string) {
-	b.addObject(obj, path, S3.BucketCannedACLPublicRead)
+	b.addObject(obj, path, ACLPublicRead)
 }
 
 // add object to write spool (w/ ACL permission)
 func (b *Bucket) AddSecretObject(obj *S3Object, path string) {
-	b.addObject(obj, path, S3.BucketCannedACLAuthenticatedRead)
+	b.addObject(obj, path, ACLAuthenticatedRead)
 }
 
 // add object to write spool
 func (b *Bucket) addObject(obj *S3Object, path, acl string) {
 	size := obj.Size()
-	req := S3.PutObjectRequest{
+	req := &SDK.PutObjectInput{
 		ACL:           &acl,
 		Bucket:        &b.name,
 		Body:          obj.data,
 		ContentLength: &size,
-		ContentType:   AWS.String(obj.FileType()),
-		Key:           AWS.String(path),
+		ContentType:   String(obj.FileType()),
+		Key:           String(path),
 	}
 	b.objects = append(b.objects, req)
 }
@@ -56,7 +61,7 @@ func (b *Bucket) Put() error {
 	errStr := ""
 	// save file
 	for _, obj := range b.objects {
-		_, e := b.client.PutObject(&obj)
+		_, e := b.client.PutObject(obj)
 		if e != nil {
 			log.Error("[S3] error on `PutObject` operation, bucket="+b.name, e.Error())
 			errStr = errStr + "," + e.Error()
@@ -70,21 +75,24 @@ func (b *Bucket) Put() error {
 
 // fetch object from target S3 path
 func (b *Bucket) getObject(path string) (io.Reader, error) {
-	req := S3.GetObjectRequest{
+	req := SDK.GetObjectInput{
 		Bucket: &b.name,
 		Key:    &path,
 	}
 	out, err := b.client.GetObject(&req)
 	if err != nil {
 		log.Error("[S3] error on `GetObject` operation, bucket="+b.name, err.Error())
+		return nil, err
 	}
 	return out.Body, err
-	return nil, nil
 }
 
 // fetch bytes of object from target S3 path
 func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 	r, err := b.getObject(path)
+	if err != nil {
+		return []byte{}, err
+	}
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r)
 	return buf.Bytes(), err
@@ -104,18 +112,18 @@ func (b *Bucket) GetSecretURL(path string) (string, error) {
 // fetch url of target S3 object w/ ACL permission (url expires in `expire` value seconds)
 // ** this isn't work **
 func (b *Bucket) GetSecretURLWithExpire(path string, expire uint64) (string, error) {
-	// Cannot create presigned url, just return raw url
-	region := config.GetConfigValue(s3ConfigSectionName, "region", defaultRegion)
-	endpoint, _, _ := endpoints.Lookup("s3", region)
-	url := endpoint + b.name + path
-	return url, nil
+	req, _ := b.client.GetObjectRequest(&SDK.GetObjectInput{
+		Bucket: String(b.name),
+		Key:    String(path),
+	})
+	return req.Presign(time.Duration(expire) * time.Second)
 }
 
 // delete object of target path
 func (b *Bucket) DeleteObject(path string) error {
-	_, err := b.client.DeleteObject(&S3.DeleteObjectRequest{
-		Bucket: AWS.String(b.name),
-		Key:    AWS.String(path),
+	_, err := b.client.DeleteObject(&SDK.DeleteObjectInput{
+		Bucket: String(b.name),
+		Key:    String(path),
 	})
 	if err != nil {
 		log.Error("[S3] error on `DeleteObject` operation, bucket="+b.name, err.Error())

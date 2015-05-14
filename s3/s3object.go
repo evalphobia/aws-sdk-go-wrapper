@@ -19,14 +19,14 @@ const (
 
 // struct for S3 upload
 type S3Object struct {
-	data     io.ReadCloser
+	data     io.ReadSeeker
 	dataType string
 	dataByte []byte
 	size     int64
 }
 
 // Create new S3Object
-func newS3Object(f io.ReadCloser, size int64, typ string) *S3Object {
+func newS3Object(f io.ReadSeeker, size int64, typ string) *S3Object {
 	return &S3Object{
 		data:     f,
 		dataType: typ,
@@ -53,14 +53,14 @@ func NewS3ObjectCopy(file *os.File) *S3Object {
 // Create new S3Object From string
 func NewS3ObjectString(str *string) *S3Object {
 	b := *(*[]byte)(unsafe.Pointer(str))
-	var r io.ReadCloser = NewFileBuffer(b)
+	var r io.ReadSeeker = NewFileBuffer(b)
 	o := newS3Object(r, int64(len(*str)), mimeBinary)
 	o.dataByte = b
 	return o
 }
 
 // get content from S3Object
-func (o *S3Object) Content() io.ReadCloser {
+func (o *S3Object) Content() io.ReadSeeker {
 	return o.data
 }
 
@@ -80,7 +80,7 @@ func (o *S3Object) SetTypeAsText() {
 	o.dataType = mimeText
 }
 
-// wrapped struct for io.ReadCloser alternative
+// wrapped struct for io.ReadSeeker alternative
 type FileBuffer struct {
 	Buffer bytes.Buffer
 	Index  int64
