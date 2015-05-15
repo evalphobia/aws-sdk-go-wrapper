@@ -2,11 +2,20 @@ package s3
 
 import (
 	"testing"
+	"os"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func setTestEnv() {
+	os.Clearenv()
+	os.Setenv("AWS_ACCESS_KEY_ID", "access")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+}
+
 func TestNewClient(t *testing.T) {
+	setTestEnv()
+
 	s := NewClient()
 	assert.NotNil(t, s.client)
 
@@ -16,6 +25,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetBucket(t *testing.T) {
+	setTestEnv()
+
 	s := NewClient()
 	b := s.GetBucket("test")
 	bucketName := defaultBucketPrefix + "test"

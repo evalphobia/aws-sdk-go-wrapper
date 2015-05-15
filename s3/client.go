@@ -11,6 +11,7 @@ import (
 
 const (
 	s3ConfigSectionName = "s3"
+	defaultRegion       = "us-east-1"
 	defaultEndpoint     = "http://localhost:4567"
 	defaultBucketPrefix = "dev-"
 )
@@ -31,9 +32,13 @@ func NewClient() *AmazonS3 {
 	switch {
 	case endpoint != "":
 		awsConf.Endpoint = endpoint
+		awsConf.S3ForcePathStyle = true
 	case region == "":
+		awsConf.Region = defaultRegion
 		awsConf.Endpoint = defaultEndpoint
+		awsConf.S3ForcePathStyle = true
 	}
+
 	s.client = SDK.New(awsConf)
 	return s
 }

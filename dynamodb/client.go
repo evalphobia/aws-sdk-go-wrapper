@@ -15,6 +15,7 @@ import (
 
 const (
 	dynamodbConfigSectionName = "dynamodb"
+	defaultRegion             = "us-east-1"
 	defaultEndpoint           = "http://localhost:8000"
 	defaultTablePrefix        = "dev_"
 )
@@ -39,6 +40,7 @@ func NewClient() *AmazonDynamoDB {
 	case endpoint != "":
 		awsConf.Endpoint = endpoint
 	case region == "":
+		awsConf.Region = defaultRegion
 		awsConf.Endpoint = defaultEndpoint
 	}
 	d.client = SDK.New(awsConf)

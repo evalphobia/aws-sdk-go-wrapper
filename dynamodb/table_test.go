@@ -272,6 +272,8 @@ func putTestTable(tbl *DynamoTable, hValue, rValue Any) error {
 }
 
 func getTestTable() *DynamoTable {
+	setTestEnv()
+
 	c := NewClient()
 	name := "foo_table"
 	in := getCreateTableInput(GetTablePrefix() + name)
@@ -281,6 +283,8 @@ func getTestTable() *DynamoTable {
 }
 
 func getTestHashTable() *DynamoTable {
+	setTestEnv()
+
 	c := NewClient()
 	name := "foo_hashtable"
 	in := getCreateHashTableInput(GetTablePrefix() + name)
