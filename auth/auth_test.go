@@ -20,17 +20,52 @@ func TestAuth(t *testing.T) {
 	creds, err := a.Get()
 	assert.NotNil(t, creds)
 	assert.Nil(t, err)
+	
+	auth = nil
 }
 
 func TestNewConfig(t *testing.T) {
-	setTestEnv()
-
+	os.Clearenv()
 	conf := NewConfig("region")
 	assert.NotNil(t, conf)
 	assert.Equal(t, "region", conf.Region)
 	assert.NotNil(t, conf.Credentials)
 
 	creds, err := conf.Credentials.Get()
+	assert.NotNil(t, err)
+	auth = nil
+
+	// from env
+	setTestEnv()
+	conf = NewConfig("region")
+	assert.NotNil(t, conf)
+	assert.Equal(t, "region", conf.Region)
+	assert.NotNil(t, conf.Credentials)
+
+	creds, err = conf.Credentials.Get()
 	assert.Nil(t, err)
 	assert.NotNil(t, creds)
+
+	// from cache
+	os.Clearenv()
+	conf = NewConfig("region")
+	assert.NotNil(t, conf)
+
+	creds, err = conf.Credentials.Get()
+	assert.Nil(t, err)
+	assert.NotNil(t, creds)
+	auth = nil
+}
+
+func TestEnvRegion(t *testing.T) {
+	os.Clearenv()
+
+	region := EnvRegion()
+	assert.Equal(t, "", region)
+
+	os.Setenv("AWS_REGION", "foobar")
+	region = EnvRegion()
+	assert.Equal(t, "foobar", region)
+
+	auth = nil
 }

@@ -10,8 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	SNS "github.com/awslabs/aws-sdk-go/gen/sns"
+	SDK "github.com/awslabs/aws-sdk-go/service/sns"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -21,6 +20,7 @@ import (
 const (
 	snsConfigSectionName = "sns"
 	defaultRegion        = "us-west-1"
+	defaultEndpoint      = "http://localhost:9292"
 	defaultPrefix        = "dev_"
 
 	AppTypeAPNS        = "apns"
@@ -36,28 +36,37 @@ var isProduction bool
 type AmazonSNS struct {
 	apps   map[string]*SNSApp
 	topics map[string]*SNSTopic
-	Client *SNS.SNS
+	Client *SDK.SNS
 }
 
 // Create new AmazonSQS struct
 func NewClient() *AmazonSNS {
-	s := &AmazonSNS{}
-	s.apps = make(map[string]*SNSApp)
-	s.topics = make(map[string]*SNSTopic)
-	region := config.GetConfigValue(snsConfigSectionName, "region", defaultRegion)
-	s.Client = SNS.New(auth.Auth(), region, nil)
+	svc := &AmazonSNS{}
+	svc.apps = make(map[string]*SNSApp)
+	svc.topics = make(map[string]*SNSTopic)
+	region := config.GetConfigValue(snsConfigSectionName, "region", auth.EnvRegion())
+	awsConf := auth.NewConfig(region)
+	endpoint := config.GetConfigValue(snsConfigSectionName, "endpoint", "")
+	switch {
+	case endpoint != "":
+		awsConf.Endpoint = endpoint
+	case region == "":
+		awsConf.Region = defaultRegion
+		awsConf.Endpoint = defaultEndpoint
+	}
+	svc.Client = SDK.New(awsConf)
 	if config.GetConfigValue(snsConfigSectionName, "app.production", "false") != "false" {
 		isProduction = true
 	} else {
 		isProduction = false
 	}
-	return s
+	return svc
 }
 
 // Get SNSApp struct
-func (s *AmazonSNS) GetApp(typ string) (*SNSApp, error) {
+func (svc *AmazonSNS) GetApp(typ string) (*SNSApp, error) {
 	// get the app from cache
-	app, ok := s.apps[typ]
+	app, ok := svc.apps[typ]
 	if ok {
 		return app, nil
 	}
@@ -67,36 +76,32 @@ func (s *AmazonSNS) GetApp(typ string) (*SNSApp, error) {
 		log.Error(errMsg, typ)
 		return nil, errors.New(errMsg)
 	}
-	app = &SNSApp{
-		arn:      arn,
-		platform: typ,
-		client:   s,
-	}
-	s.apps[typ] = app
+	app = NewApp(arn, typ, svc)
+	svc.apps[typ] = app
 	return app, nil
 }
 
 // Get SNSApp struct of Apple Push Notification Service for iOS
-func (s *AmazonSNS) GetAppAPNS() (*SNSApp, error) {
+func (svc *AmazonSNS) GetAppAPNS() (*SNSApp, error) {
 	if isProduction {
-		return s.GetApp(AppTypeAPNS)
+		return svc.GetApp(AppTypeAPNS)
 	} else {
-		return s.GetApp(AppTypeAPNSSandbox)
+		return svc.GetApp(AppTypeAPNSSandbox)
 	}
 }
 
 // Get SNSApp struct for Google Cloud Messaging for Android
-func (s *AmazonSNS) GetAppGCM() (*SNSApp, error) {
-	return s.GetApp(AppTypeGCM)
+func (svc *AmazonSNS) GetAppGCM() (*SNSApp, error) {
+	return svc.GetApp(AppTypeGCM)
 }
 
 // Create SNS Topic and return `TopicARN`
-func (s *AmazonSNS) createTopic(name string) (string, error) {
+func (svc *AmazonSNS) createTopic(name string) (string, error) {
 	prefix := config.GetConfigValue(snsConfigSectionName, "prefix", defaultPrefix)
-	in := &SNS.CreateTopicInput{
-		Name: AWS.String(prefix + name),
+	in := &SDK.CreateTopicInput{
+		Name: String(prefix + name),
 	}
-	resp, err := s.Client.CreateTopic(in)
+	resp, err := svc.Client.CreateTopic(in)
 	if err != nil {
 		log.Error("[SNS] error on `CreateTopic` operation, name="+name, err.Error())
 		return "", err
@@ -105,22 +110,17 @@ func (s *AmazonSNS) createTopic(name string) (string, error) {
 }
 
 // Create SNS Topic and return `TopicARN`
-func (s *AmazonSNS) CreateTopic(name string) (*SNSTopic, error) {
-	arn, err := s.createTopic(name)
+func (svc *AmazonSNS) CreateTopic(name string) (*SNSTopic, error) {
+	arn, err := svc.createTopic(name)
 	if err != nil {
 		return nil, err
 	}
-	topic := &SNSTopic{
-		name:   name,
-		arn:    arn,
-		client: s,
-		sound:  "default",
-	}
+	topic := NewTopic(arn, name, svc)
 	return topic, nil
 }
 
 // Publish notification for arn(topic or endpoint)
-func (s *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) error {
+func (svc *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) error {
 	msg = truncateMessage(msg)
 	m := make(map[string]string)
 	m["default"] = msg
@@ -128,10 +128,10 @@ func (s *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) 
 	m["APNS"] = composeMessageAPNS(msg, opt)
 	m["APNS_SANDBOX"] = m["APNS"]
 	jsonString, _ := json.Marshal(m)
-	resp, err := s.Client.Publish(&SNS.PublishInput{
-		TargetARN:        AWS.String(arn),
-		Message:          AWS.String(string(jsonString)),
-		MessageStructure: AWS.String("json"),
+	resp, err := svc.Client.Publish(&SDK.PublishInput{
+		TargetARN:        String(arn),
+		Message:          String(string(jsonString)),
+		MessageStructure: String("json"),
 	})
 	if err != nil {
 		log.Error("[SNS] error on `Publish` operation, arn="+arn, err.Error())
@@ -160,14 +160,14 @@ func truncateMessage(msg string) string {
 }
 
 // Register endpoint(device) to application
-func (s *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
+func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
 	var app *SNSApp
 	var err error
 	switch device {
 	case "ios", "apns":
-		app, err = s.GetAppAPNS()
+		app, err = svc.GetAppAPNS()
 	case "android", "gcm":
-		app, err = s.GetAppGCM()
+		app, err = svc.GetAppGCM()
 	default:
 		errMsg := "[SNS] Unsupported device, device=" + device
 		log.Error(errMsg, token)
@@ -181,9 +181,9 @@ func (s *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error)
 
 // Publish notification for many endpoints
 // (supports single device only)
-func (s *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg string) error {
+func (svc *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg string) error {
 	name := fmt.Sprintf("%d", time.Now().UnixNano()) + "_" + device
-	topic, err := s.CreateTopic(name)
+	topic, err := svc.CreateTopic(name)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (s *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg stri
 	for _, token := range tokens {
 		wg.Add(1)
 		go func(t string) {
-			e, err := s.RegisterEndpoint(device, t)
+			e, err := svc.RegisterEndpoint(device, t)
 			if err != nil {
 				wg.Done()
 				return
@@ -209,7 +209,7 @@ func (s *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg stri
 // Publish notification for many endpoints
 // tokens is map of string slices, each key stands for device, like "android"/"ios"
 // ex) tokens := map[string][]string{ "android": []string{"token1", "token2"}, "ios": []string{"token3", "token4"}}
-func (s *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error {
+func (svc *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error {
 	for device, t := range tokens {
 		l := len(t)
 		max := (l-1)/topicMaxDeviceNumber + 1
@@ -219,7 +219,7 @@ func (s *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error {
 			if l < to {
 				to = l
 			}
-			s.BulkPublishByDevice(device, t[from:to], msg)
+			svc.BulkPublishByDevice(device, t[from:to], msg)
 		}
 	}
 	return nil

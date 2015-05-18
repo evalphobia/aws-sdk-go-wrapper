@@ -1,26 +1,34 @@
-// SNS client
+// SNS App
 
 package sns
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	SNS "github.com/awslabs/aws-sdk-go/gen/sns"
+	SDK "github.com/awslabs/aws-sdk-go/service/sns"
+
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )
 
 type SNSApp struct {
-	client   *AmazonSNS
+	svc      *AmazonSNS
 	platform string
 	arn      string
 }
 
+func NewApp(arn, pf string, svc *AmazonSNS) *SNSApp {
+	return &SNSApp{
+		arn:      arn,
+		platform: pf,
+		svc:      svc,
+	}
+}
+
 // Create Endpoint(add device) and return `EndpointARN`
 func (a *SNSApp) createEndpoint(token string) (string, error) {
-	in := &SNS.CreatePlatformEndpointInput{
-		PlatformApplicationARN: AWS.String(a.arn),
-		Token: AWS.String(token),
+	in := &SDK.CreatePlatformEndpointInput{
+		PlatformApplicationARN: String(a.arn),
+		Token: String(token),
 	}
-	resp, err := a.client.Client.CreatePlatformEndpoint(in)
+	resp, err := a.svc.Client.CreatePlatformEndpoint(in)
 	if err != nil {
 		log.Error("[SNS] error on `CreatePlatformEndpoint` operation, token="+token, err.Error())
 		return "", err
@@ -34,10 +42,6 @@ func (a *SNSApp) CreateEndpoint(token string) (*SNSEndpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	endpoint := &SNSEndpoint{
-		arn:      arn,
-		protocol: "application",
-		client:   a.client,
-	}
+	endpoint := NewEndpoint(arn, "application", a.svc)
 	return endpoint, nil
 }
