@@ -1,4 +1,5 @@
 [![Build Status](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/status.png)](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/latest)
+(checked SDK version [aws-sdk-go:deaa78b60cfd55045252c52f4f7840c6d697c491](https://github.com/awslabs/aws-sdk-go/tree/deaa78b60cfd55045252c52f4f7840c6d697c491))
 
 [![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=master)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=master)
 
@@ -6,8 +7,8 @@
 # aws-sdk-go-wrapper
 Simple wrapper for aws-sdk-go
 At this time, it suports services below,
-- `S3` 
 - `DynamoDB`
+- `S3` 
 - `SQS`
 - `SNS`
 
