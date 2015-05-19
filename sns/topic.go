@@ -1,26 +1,35 @@
-// SNS client
+// SNS topic
 
 package sns
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	SNS "github.com/awslabs/aws-sdk-go/gen/sns"
+	SDK "github.com/awslabs/aws-sdk-go/service/sns"
+
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )
 
 type SNSTopic struct {
-	name   string
-	arn    string
-	sound  string
-	client *AmazonSNS
+	name  string
+	arn   string
+	sound string
+	svc   *AmazonSNS
+}
+
+func NewTopic(arn, name string, svc *AmazonSNS) *SNSTopic {
+	return &SNSTopic{
+		arn:   arn,
+		name:  name,
+		sound: "default",
+		svc:   svc,
+	}
 }
 
 // Subscribe
 func (t *SNSTopic) Subscribe(endpoint *SNSEndpoint) (string, error) {
-	resp, err := t.client.Client.Subscribe(&SNS.SubscribeInput{
-		Endpoint: AWS.String(endpoint.arn),
-		Protocol: AWS.String(endpoint.protocol),
-		TopicARN: AWS.String(t.arn),
+	resp, err := t.svc.Client.Subscribe(&SDK.SubscribeInput{
+		Endpoint: String(endpoint.arn),
+		Protocol: String(endpoint.protocol),
+		TopicARN: String(t.arn),
 	})
 	if err != nil {
 		log.Error("[SNS] error on `Subscribe` operation, topic="+t.arn, err.Error())
@@ -31,10 +40,13 @@ func (t *SNSTopic) Subscribe(endpoint *SNSEndpoint) (string, error) {
 
 // Publish notification to the topic
 func (t *SNSTopic) Publish(msg string) error {
-	return t.client.Publish(t.arn, msg, nil)
+	return t.svc.Publish(t.arn, msg, nil)
 }
 
 // Delete topic
 func (t *SNSTopic) Delete() error {
-	return t.client.Client.DeleteTopic(&SNS.DeleteTopicInput{AWS.String(t.arn)})
+	_, err := t.svc.Client.DeleteTopic(&SDK.DeleteTopicInput{
+		TopicARN: String(t.arn),
+	})
+	return err
 }

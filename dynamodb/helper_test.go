@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	"fmt"
 )
+
+var _ = fmt.Sprint("")
 
 func TestCreateAttributeValue(t *testing.T) {
 	s := createAttributeValue("foo")
@@ -30,13 +32,13 @@ func TestCreateAttributeValue(t *testing.T) {
 
 	ssData := []string{"foo1", "foo2", "foo3"}
 	ss := createAttributeValue(ssData)
-	if len(ss.SS) != 3 || ss.SS[0] != "foo1" {
-		t.Errorf("error on createAttributeValue, actual=%+v", ss)
+	if len(ss.SS) != 3 || *ss.SS[0] != "foo1" {
+		t.Errorf("error on createAttributeValue, actual=%s, values=%+v", *ss.SS[0], ss)
 	}
 
 	nsData := []int{1, 2, 3, 9}
 	ns := createAttributeValue(nsData)
-	if len(ns.NS) != 4 || ns.NS[0] != "1" {
+	if len(ns.NS) != 4 || *ns.NS[0] != "1" {
 		t.Errorf("error on createAttributeValue, actual=%+v", ns)
 	}
 
@@ -51,7 +53,7 @@ func TestCreateAttributeValue(t *testing.T) {
 	mData["id"] = 1
 	mData["data"] = "foo"
 	m := createAttributeValue(mData)
-	if val, ok := m.M["id"]; !ok || getItemValue(val) != 1 {
+	if val, ok := (*m.M)["id"]; !ok || getItemValue(val) != 1 {
 		t.Errorf("error on createAttributeValue, actual=%+v", m)
 	}
 
@@ -83,14 +85,14 @@ func TestGetItemValue(t *testing.T) {
 	}
 
 	ns := createAttributeValue([]int{1, 2, 3})
-	nsValue := getItemValue(ns).([]int)
-	if len(nsValue) != 3 || nsValue[0] != 1 || nsValue[1] != 2 || nsValue[2] != 3 {
+	nsValue := getItemValue(ns).([]*int)
+	if len(nsValue) != 3 || *nsValue[0] != 1 || *nsValue[1] != 2 || *nsValue[2] != 3 {
 		t.Errorf("error on getItemValue, actual=%+v", nsValue)
 	}
 
 	ss := createAttributeValue([]string{"foo1", "foo2", "foo3"})
-	ssValue := getItemValue(ss).([]string)
-	if len(ssValue) != 3 || ssValue[0] != "foo1" || ssValue[1] != "foo2" || ssValue[2] != "foo3" {
+	ssValue := getItemValue(ss).([]*string)
+	if len(ssValue) != 3 || *ssValue[0] != "foo1" || *ssValue[1] != "foo2" || *ssValue[2] != "foo3" {
 		t.Errorf("error on getItemValue, actual=%+v", ssValue)
 	}
 
@@ -149,14 +151,14 @@ func TestNewKeyElement(t *testing.T) {
 
 func TestNewHashKeyElement(t *testing.T) {
 	key := NewHashKeyElement("foo")
-	if *key.AttributeName != "foo" || *key.KeyType != SDK.KeyTypeHash {
+	if *key.AttributeName != "foo" || *key.KeyType != KeyTypeHash {
 		t.Errorf("error on NewHashKeyElement, actual=%v", key)
 	}
 }
 
 func TestNewRangeKeyElement(t *testing.T) {
 	key := NewRangeKeyElement("foo")
-	if *key.AttributeName != "foo" || *key.KeyType != SDK.KeyTypeRange {
+	if *key.AttributeName != "foo" || *key.KeyType != KeyTypeRange {
 		t.Errorf("error on NewRangeKeyElement, actual=%v", key)
 	}
 }

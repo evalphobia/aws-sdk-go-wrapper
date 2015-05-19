@@ -3,8 +3,7 @@
 package sqs
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	SQS "github.com/awslabs/aws-sdk-go/gen/sqs"
+	SDK "github.com/awslabs/aws-sdk-go/service/sqs"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -13,50 +12,67 @@ import (
 
 const (
 	sqsConfigSectionName = "sqs"
-	defaultRegion        = "us-west-1"
-	defaultQueuePrefix   = "dev_"
+	defaultRegion        = "us-east-1"
+	defaultEndpoint      = "http://localhost:4568"
+	defaultQueuePrefix   = "devfs_"
 )
 
 type AmazonSQS struct {
 	queues map[string]*Queue
-	client *SQS.SQS
+	client *SDK.SQS
 }
 
 // Create new AmazonSQS struct
 func NewClient() *AmazonSQS {
-	s := &AmazonSQS{}
-	s.queues = make(map[string]*Queue)
-	region := config.GetConfigValue(sqsConfigSectionName, "region", defaultRegion)
-	s.client = SQS.New(auth.Auth(), region, nil)
-	return s
+	svc := &AmazonSQS{}
+	svc.queues = make(map[string]*Queue)
+	region := config.GetConfigValue(sqsConfigSectionName, "region", auth.EnvRegion())
+	awsConf := auth.NewConfig(region)
+	endpoint := config.GetConfigValue(sqsConfigSectionName, "endpoint", "")
+	switch {
+	case endpoint != "":
+		awsConf.Endpoint = endpoint
+	case region == "":
+		awsConf.Region = defaultRegion
+		awsConf.Endpoint = defaultEndpoint
+	}
+	svc.client = SDK.New(awsConf)
+	return svc
 }
 
 // Get a queue
-func (s *AmazonSQS) GetQueue(queue string) (*Queue, error) {
+func (svc *AmazonSQS) GetQueue(queue string) (*Queue, error) {
 	queueName := GetQueuePrefix() + queue
 
 	// get the queue from cache
-	q, ok := s.queues[queueName]
+	q, ok := svc.queues[queueName]
 	if ok {
 		return q, nil
 	}
 
 	// get the queue from server
-	url, err := s.client.GetQueueURL(&SQS.GetQueueURLRequest{
-		QueueName:              AWS.String(queueName),
+	url, err := svc.client.GetQueueURL(&SDK.GetQueueURLInput{
+		QueueName:              String(queueName),
 		QueueOwnerAWSAccountID: nil,
 	})
 	if err != nil {
 		log.Error("[SQS] error on `GetQueueURL` operation, queue="+queueName, err.Error())
 		return nil, err
 	}
-	q = &Queue{}
-	q.name = queueName
-	q.url = url.QueueURL
-	q.autoDel = false
-	q.client = s.client
-	s.queues[queueName] = q
+	q = NewQueue(queueName, url.QueueURL, svc.client)
+	svc.queues[queueName] = q
 	return q, nil
+}
+
+// Create new SQS Queue
+func (svc *AmazonSQS) CreateQueue(in *SDK.CreateQueueInput) error {
+	data, err := svc.client.CreateQueue(in)
+	if err != nil {
+		log.Error("[SQS] Error on `CreateQueue` operation, queue="+*in.QueueName, err)
+		return err
+	}
+	log.Info("[SQS] Complete CreateQueue, queue="+*in.QueueName, *(data.QueueURL))
+	return nil
 }
 
 // Get the prefix for DynamoDB table

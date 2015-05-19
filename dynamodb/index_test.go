@@ -2,8 +2,6 @@ package dynamodb
 
 import (
 	"testing"
-
-	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 func TestNewDynamoIndex(t *testing.T) {
@@ -58,7 +56,7 @@ func TestGetRangeKeyName(t *testing.T) {
 func TestNewLSI(t *testing.T) {
 	keys := NewKeySchema(NewHashKeyElement("foo"))
 	lsi := NewLSI("name", keys)
-	if *lsi.IndexName != "name" || *lsi.Projection.ProjectionType != SDK.ProjectionTypeAll {
+	if *lsi.IndexName != "name" || *lsi.Projection.ProjectionType != ProjectionTypeAll {
 		t.Errorf("error on NewLSI, actual=%v", lsi)
 	}
 	k := lsi.KeySchema
@@ -66,8 +64,8 @@ func TestNewLSI(t *testing.T) {
 		t.Errorf("error on NewLSI, actual=%v", lsi)
 	}
 
-	lsi2 := NewLSI("name", keys, SDK.ProjectionTypeKeysOnly)
-	if *lsi2.IndexName != "name" || *lsi2.Projection.ProjectionType != SDK.ProjectionTypeKeysOnly {
+	lsi2 := NewLSI("name", keys, ProjectionTypeKeysOnly)
+	if *lsi2.IndexName != "name" || *lsi2.Projection.ProjectionType != ProjectionTypeKeysOnly {
 		t.Errorf("error on NewLSI, actual=%v", lsi2)
 	}
 	k = lsi2.KeySchema
@@ -79,7 +77,7 @@ func TestNewLSI(t *testing.T) {
 func TestNewGSI(t *testing.T) {
 	keys := NewKeySchema(NewHashKeyElement("foo"))
 	gsi := NewGSI("name", keys, NewProvisionedThroughput(5, 8))
-	if *gsi.IndexName != "name" || *gsi.Projection.ProjectionType != SDK.ProjectionTypeAll {
+	if *gsi.IndexName != "name" || *gsi.Projection.ProjectionType != ProjectionTypeAll {
 		t.Errorf("error on NewGSI, actual=%v", gsi)
 	}
 	k := gsi.KeySchema
@@ -91,8 +89,8 @@ func TestNewGSI(t *testing.T) {
 		t.Errorf("error on NewGSI, actual=%v", gsi)
 	}
 
-	gsi2 := NewGSI("name", keys, NewProvisionedThroughput(5, 8), SDK.ProjectionTypeKeysOnly)
-	if *gsi2.IndexName != "name" || *gsi2.Projection.ProjectionType != SDK.ProjectionTypeKeysOnly {
+	gsi2 := NewGSI("name", keys, NewProvisionedThroughput(5, 8), ProjectionTypeKeysOnly)
+	if *gsi2.IndexName != "name" || *gsi2.Projection.ProjectionType != ProjectionTypeKeysOnly {
 		t.Errorf("error on NewGSI, actual=%v", gsi)
 	}
 	k = gsi2.KeySchema

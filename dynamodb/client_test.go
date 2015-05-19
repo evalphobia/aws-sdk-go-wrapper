@@ -1,13 +1,22 @@
 package dynamodb
 
 import (
+	"os"
 	"testing"
 	"time"
 
-	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
 )
 
+func setTestEnv() {
+	os.Clearenv()
+	os.Setenv("AWS_ACCESS_KEY_ID", "access")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+}
+
 func TestNewClient(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	if c == nil || c.client == nil {
 		t.Errorf("error on NewClient, actual=%v", c)
@@ -18,8 +27,9 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestCreateTable(t *testing.T) {
-	c := NewClient()
+	setTestEnv()
 
+	c := NewClient()
 	name := "foo_table"
 	in := getCreateTableInput(name)
 	resetTable(c, name)
@@ -31,6 +41,8 @@ func TestCreateTable(t *testing.T) {
 }
 
 func TestDescribeTable(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	name := "foo_table"
 	resetTable(c, name)
@@ -48,6 +60,8 @@ func TestDescribeTable(t *testing.T) {
 }
 
 func TestGetTable(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	origName := "foo_table"
 	name := GetTablePrefix() + origName
@@ -69,6 +83,8 @@ func TestGetTable(t *testing.T) {
 }
 
 func TestGetTablePrefix(t *testing.T) {
+	setTestEnv()
+
 	pfx := GetTablePrefix()
 	if pfx != defaultTablePrefix {
 		t.Errorf("error on GetTablePrefix, %s", pfx)
@@ -76,6 +92,8 @@ func TestGetTablePrefix(t *testing.T) {
 }
 
 func TestAddWriteTable(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	name := "foo_table"
 	c.addWriteTable(name)
@@ -89,6 +107,8 @@ func TestAddWriteTable(t *testing.T) {
 }
 
 func TestRemoveWriteTable(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	name := "foo_table"
 	c.removeWriteTable(name)
@@ -102,6 +122,8 @@ func TestRemoveWriteTable(t *testing.T) {
 }
 
 func TestListTables(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	name := "foo_table"
 	resetTable(c, name)
@@ -124,6 +146,8 @@ func TestListTables(t *testing.T) {
 }
 
 func TestPutAll(t *testing.T) {
+	setTestEnv()
+
 	c := NewClient()
 	pfx := GetTablePrefix()
 	name := "foo_table"
@@ -197,8 +221,8 @@ func getCreateTableInput(name string) SDK.CreateTableInput {
 		TableName:              &name,
 		KeySchema:              pKey,
 		AttributeDefinitions:   attrs,
-		LocalSecondaryIndexes:  []SDK.LocalSecondaryIndex{lsi},
-		GlobalSecondaryIndexes: []SDK.GlobalSecondaryIndex{gsi},
+		LocalSecondaryIndexes:  []*SDK.LocalSecondaryIndex{lsi},
+		GlobalSecondaryIndexes: []*SDK.GlobalSecondaryIndex{gsi},
 		ProvisionedThroughput:  NewProvisionedThroughput(1, 1),
 	}
 }

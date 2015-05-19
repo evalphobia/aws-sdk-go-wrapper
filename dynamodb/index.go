@@ -3,12 +3,15 @@
 package dynamodb
 
 import (
-	SDK "github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
 )
 
 const (
 	indexTypeLSI = "local"
 	indexTypeGSI = "global"
+
+	ProjectionTypeAll = "ALL"
+	ProjectionTypeKeysOnly = "KEYS_ONLY"
 )
 
 // DynamoIndex is wrapper struct for Index,
@@ -16,11 +19,11 @@ const (
 type DynamoIndex struct {
 	Name      string
 	IndexType string
-	KeySchema []SDK.KeySchemaElement
+	KeySchema []*SDK.KeySchemaElement
 }
 
 // NewDynamoIndex returns initialized DynamoIndex
-func NewDynamoIndex(name, typ string, schema []SDK.KeySchemaElement) *DynamoIndex {
+func NewDynamoIndex(name, typ string, schema []*SDK.KeySchemaElement) *DynamoIndex {
 	return &DynamoIndex{
 		Name:      name,
 		IndexType: typ,
@@ -43,8 +46,8 @@ func (idx *DynamoIndex) GetRangeKeyName() string {
 }
 
 // NewLSI returns initilized LocalSecondaryIndex
-func NewLSI(name string, schema []SDK.KeySchemaElement, projection ...string) SDK.LocalSecondaryIndex {
-	lsi := SDK.LocalSecondaryIndex{
+func NewLSI(name string, schema []*SDK.KeySchemaElement, projection ...string) *SDK.LocalSecondaryIndex {
+	lsi := &SDK.LocalSecondaryIndex{
 		IndexName: &name,
 		KeySchema: schema,
 	}
@@ -53,15 +56,15 @@ func NewLSI(name string, schema []SDK.KeySchemaElement, projection ...string) SD
 	if len(projection) > 0 {
 		proj = projection[0]
 	} else {
-		proj = SDK.ProjectionTypeAll
+		proj = ProjectionTypeAll
 	}
 	lsi.Projection = &SDK.Projection{ProjectionType: &proj}
 	return lsi
 }
 
 // NewGSI returns initilized GlobalSecondaryIndex
-func NewGSI(name string, schema []SDK.KeySchemaElement, tp *SDK.ProvisionedThroughput, projection ...string) SDK.GlobalSecondaryIndex {
-	gsi := SDK.GlobalSecondaryIndex{
+func NewGSI(name string, schema []*SDK.KeySchemaElement, tp *SDK.ProvisionedThroughput, projection ...string) *SDK.GlobalSecondaryIndex {
+	gsi := &SDK.GlobalSecondaryIndex{
 		IndexName:             &name,
 		KeySchema:             schema,
 		ProvisionedThroughput: tp,
@@ -71,7 +74,7 @@ func NewGSI(name string, schema []SDK.KeySchemaElement, tp *SDK.ProvisionedThrou
 	if len(projection) > 0 {
 		proj = projection[0]
 	} else {
-		proj = SDK.ProjectionTypeAll
+		proj = ProjectionTypeAll
 	}
 	gsi.Projection = &SDK.Projection{ProjectionType: &proj}
 	return gsi

@@ -3,7 +3,10 @@
 package auth
 
 import (
+	"os"
+
 	AWS "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 )
 
@@ -14,22 +17,37 @@ const (
 )
 
 var (
-	auth AWS.CredentialsProvider = nil
+	auth *credentials.Credentials = nil
 )
 
 // return AWS authorization credentials
-func Auth() AWS.CredentialsProvider {
+func Auth() *credentials.Credentials {
 	if auth != nil {
 		return auth
 	}
 
 	// return if environmental params for AWS auth
-	env, err := AWS.EnvCreds()
-	if err == nil {
-		return env
+	e := credentials.NewEnvCredentials()
+	_, err := e.Get()
+	if err == nil {	
+		auth = e
+		return auth
 	}
 
 	accessKey := config.GetConfigValue(authConfigSectionName, awsAccessConfigKey, "")
 	secretKey := config.GetConfigValue(authConfigSectionName, awsSecretConfigKey, "")
-	return AWS.Creds(accessKey, secretKey, "")
+	auth = credentials.NewStaticCredentials(accessKey, secretKey, "")
+	return auth
+}
+
+func NewConfig(region string) *AWS.Config {
+	auth := Auth()
+	return &AWS.Config{
+		Credentials: auth,
+		Region:      region,
+	}
+}
+
+func EnvRegion() string {
+	return 	os.Getenv("AWS_REGION")
 }
