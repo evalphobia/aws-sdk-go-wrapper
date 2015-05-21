@@ -73,7 +73,6 @@ func (t *DynamoTable) GetOne(values ...Any) (map[string]interface{}, error) {
 		log.Error("[DynamoDB] Error in `GetItem` operation, table="+t.name, err)
 		return nil, err
 	}
-	log.Error("[DynamoDB] test="+t.name, req.Item)
 	return Unmarshal(req.Item), nil
 }
 
