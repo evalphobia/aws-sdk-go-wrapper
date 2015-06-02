@@ -59,7 +59,6 @@ func (d *AmazonDynamoDB) CreateTable(in *SDK.CreateTableInput) error {
 }
 
 // Delete DynamoDB table
-// TODO write test
 func (d *AmazonDynamoDB) DeleteTable(name string) error {
 	in := &SDK.DeleteTableInput{
 		TableName: String(name),

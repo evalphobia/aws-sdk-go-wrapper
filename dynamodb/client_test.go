@@ -40,6 +40,21 @@ func TestCreateTable(t *testing.T) {
 	}
 }
 
+func TestDeleteTable(t *testing.T) {
+	setTestEnv()
+
+	c := NewClient()
+	name := "foo_table_delete"
+
+	in := getCreateTableInput(name)
+	createTable(c, in)
+
+	err := c.DeleteTable(name)
+	if err != nil {
+		t.Errorf("error on DeleteTable, %s", err.Error())
+	}
+}
+
 func TestDescribeTable(t *testing.T) {
 	setTestEnv()
 
