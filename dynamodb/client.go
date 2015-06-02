@@ -58,6 +58,21 @@ func (d *AmazonDynamoDB) CreateTable(in *SDK.CreateTableInput) error {
 	return nil
 }
 
+// Delete DynamoDB table
+// TODO write test
+func (d *AmazonDynamoDB) DeleteTable(name string) error {
+	in := &SDK.DeleteTableInput{
+		TableName: String(name),
+	}
+	data, err := d.client.DeleteTable(in)
+	if err != nil {
+		log.Error("[DynamoDB] Error on `DeleteTable` operation, table="+*in.TableName, err)
+		return err
+	}
+	log.Info("[DynamoDB] Complete DeleteTable, table="+*in.TableName, data.TableDescription.TableStatus)
+	return nil
+}
+
 // get infomation of the table
 func (d *AmazonDynamoDB) DescribeTable(name string) (*SDK.TableDescription, error) {
 	req, err := d.client.DescribeTable(&SDK.DescribeTableInput{
