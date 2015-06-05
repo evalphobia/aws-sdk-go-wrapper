@@ -48,6 +48,10 @@ func createAttributeValue(v Any) *SDK.AttributeValue {
 		return &SDK.AttributeValue{
 			NS: MarshalStringSlice(t),
 		}
+	case []map[string]interface{}:
+		return &SDK.AttributeValue{
+			L: createPointerMap(v.([]map[string]interface{})),
+		}
 	}
 
 	k := reflect.ValueOf(v)
@@ -58,6 +62,16 @@ func createAttributeValue(v Any) *SDK.AttributeValue {
 		}
 	}
 	return &SDK.AttributeValue{}
+}
+
+func createPointerMap(values []map[string]interface{}) []*SDK.AttributeValue {
+	var p []*SDK.AttributeValue
+	for _, val := range values {
+		p = append(p, &SDK.AttributeValue{
+			M: Marshal(val),
+		})
+	}
+	return p
 }
 
 func createPointerSliceString(values []string) []*string {
