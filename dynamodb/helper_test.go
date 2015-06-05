@@ -61,6 +61,37 @@ func TestCreateAttributeValue(t *testing.T) {
 	if st.S != nil || st.N != nil || st.BOOL != nil || len(st.B) != 0 {
 		t.Errorf("error on createAttributeValue, actual=%+v", st)
 	}
+
+	lData := []map[string]interface{}{}
+	foomap := map[string]interface{}{"foo": "childfoo"}
+	barmap := map[string]interface{}{"bar": "childbar", "buz": "childbuz"}
+	lData = append(lData, foomap, barmap)
+
+	l := createAttributeValue(lData)
+	if len(l.L) != 2 || len(*l.L[0].M) != 1 || len(*l.L[1].M) != 2 {
+		t.Errorf("error on createAttributeValue, actual=%+v", l)
+	}
+	for key, val := range *l.L[0].M {
+		if key != "foo" || *val.S != "childfoo" {
+			t.Errorf("error on createAttributeValue, actual=%+v", l)
+		}
+	}
+	for key, val := range *l.L[1].M {
+		if !(key == "bar" || key == "buz") {
+			t.Errorf("error on createAttributeValue, actual=%+v", l)
+			continue
+		}
+		switch key {
+		case "bar":
+			if *val.S != "childbar" {
+				t.Errorf("error on createAttributeValue, actual=%+v", l)
+			}
+		case "buz":
+			if *val.S != "childbuz" {
+				t.Errorf("error on createAttributeValue, actual=%+v", l)
+			}
+		}
+	}
 }
 
 func TestGetItemValue(t *testing.T) {
