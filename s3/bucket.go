@@ -3,7 +3,7 @@
 package s3
 
 import (
-	SDK "github.com/awslabs/aws-sdk-go/service/s3"
+	SDK "github.com/aws/aws-sdk-go/service/s3"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 
 	"bytes"

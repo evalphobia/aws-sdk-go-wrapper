@@ -5,8 +5,8 @@ package auth
 import (
 	"os"
 
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/credentials"
+	AWS "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 )
 

@@ -53,7 +53,7 @@ func TestCreateAttributeValue(t *testing.T) {
 	mData["id"] = 1
 	mData["data"] = "foo"
 	m := createAttributeValue(mData)
-	if val, ok := (*m.M)["id"]; !ok || getItemValue(val) != 1 {
+	if val, ok := m.M["id"]; !ok || getItemValue(val) != 1 {
 		t.Errorf("error on createAttributeValue, actual=%+v", m)
 	}
 

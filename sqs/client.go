@@ -3,7 +3,7 @@
 package sqs
 
 import (
-	SDK "github.com/awslabs/aws-sdk-go/service/sqs"
+	SDK "github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
