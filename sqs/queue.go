@@ -3,8 +3,8 @@
 package sqs
 
 import (
-	AWS "github.com/awslabs/aws-sdk-go/aws"
-	SDK "github.com/awslabs/aws-sdk-go/service/sqs"
+	AWS "github.com/aws/aws-sdk-go/aws"
+	SDK "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 
 	"encoding/json"
@@ -273,8 +273,8 @@ func (q *Queue) CountMessage() (int, int, error) {
 		return 0, 0, err
 	}
 	m := out.Attributes
-	visible, _ := strconv.Atoi(*(*m)["ApproximateNumberOfMessages"])
-	invisible, _ := strconv.Atoi(*(*m)["ApproximateNumberOfMessagesNotVisible"])
+	visible, _ := strconv.Atoi(*m["ApproximateNumberOfMessages"])
+	invisible, _ := strconv.Atoi(*m["ApproximateNumberOfMessagesNotVisible"])
 	return visible, invisible, nil
 }
 

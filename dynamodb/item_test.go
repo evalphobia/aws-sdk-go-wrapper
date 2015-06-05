@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
+	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 func TestNewItem(t *testing.T) {

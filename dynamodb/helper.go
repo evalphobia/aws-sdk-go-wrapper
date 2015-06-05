@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strconv"
 
-	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
+	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 const (
@@ -81,7 +81,7 @@ func getItemValue(val *SDK.AttributeValue) Any {
 		return *val.BOOL
 	case len(val.B) > 0:
 		return val.B
-	case val.M != nil && len(*val.M) > 0:
+	case len(val.M) > 0:
 		return Unmarshal(val.M)
 	case len(val.NS) > 0:
 		var data []*int
@@ -113,24 +113,24 @@ func getItemValue(val *SDK.AttributeValue) Any {
 }
 
 // Convert DynamoDB Item to map data
-func Unmarshal(item *map[string]*SDK.AttributeValue) map[string]interface{} {
+func Unmarshal(item map[string]*SDK.AttributeValue) map[string]interface{} {
 	data := make(map[string]interface{})
 	if item == nil {
 		return data
 	}
-	for key, val := range *item {
+	for key, val := range item {
 		data[key] = getItemValue(val)
 	}
 	return data
 }
 
 // Convert map to DynamoDb Item data
-func Marshal(item map[string]interface{}) *map[string]*SDK.AttributeValue {
+func Marshal(item map[string]interface{}) map[string]*SDK.AttributeValue {
 	data := make(map[string]*SDK.AttributeValue)
 	for key, val := range item {
 		data[key] = createAttributeValue(val)
 	}
-	return &data
+	return data
 }
 
 // Convert string slice to DynamoDb Item data

@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	SDK "github.com/awslabs/aws-sdk-go/service/sns"
+	SDK "github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
+	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 func setTestEnv() {

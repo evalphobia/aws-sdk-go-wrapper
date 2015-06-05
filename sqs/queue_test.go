@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	SDK "github.com/awslabs/aws-sdk-go/service/sqs"
+	SDK "github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/stretchr/testify/assert"
 )

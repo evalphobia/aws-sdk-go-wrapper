@@ -3,7 +3,7 @@
 package sns
 
 import (
-	SDK "github.com/awslabs/aws-sdk-go/service/sns"
+	SDK "github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )

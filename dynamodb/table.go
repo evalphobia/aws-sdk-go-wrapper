@@ -3,7 +3,7 @@
 package dynamodb
 
 import (
-	SDK "github.com/awslabs/aws-sdk-go/service/dynamodb"
+	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"errors"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
@@ -25,8 +25,8 @@ func (t *DynamoTable) AddItem(item *DynamoItem) {
 	w := &SDK.PutItemInput{}
 	w.TableName = String(t.name)
 	w.ReturnConsumedCapacity = String("TOTAL")
-	w.Item = &item.data
-	w.Expected = &item.conditions
+	w.Item = item.data
+	w.Expected = item.conditions
 	t.writeItems = append(t.writeItems, w)
 	t.db.addWriteTable(t.name)
 }
@@ -66,7 +66,7 @@ func (t *DynamoTable) GetOne(values ...Any) (map[string]interface{}, error) {
 
 	in := &SDK.GetItemInput{
 		TableName: String(t.name),
-		Key:       &key.data,
+		Key:       key.data,
 	}
 	req, err := t.db.client.GetItem(in)
 	if err != nil {
@@ -101,7 +101,7 @@ func (t *DynamoTable) GetByIndex(idx string, values ...Any) ([]map[string]interf
 
 	in := &SDK.QueryInput{
 		TableName:     String(t.name),
-		KeyConditions: &keys,
+		KeyConditions: keys,
 		IndexName:     &idx,
 	}
 	return t.Query(in)
@@ -143,7 +143,7 @@ func (t *DynamoTable) Get(values ...Any) ([]map[string]interface{}, error) {
 
 	in := &SDK.QueryInput{
 		TableName:     String(t.name),
-		KeyConditions: &keys,
+		KeyConditions: keys,
 	}
 	return t.Query(in)
 }
@@ -182,7 +182,7 @@ func (t *DynamoTable) Delete(values ...Any) error {
 
 	in := &SDK.DeleteItemInput{
 		TableName: String(t.name),
-		Key:       &key.data,
+		Key:       key.data,
 	}
 	_, err := t.db.client.DeleteItem(in)
 	if err != nil {
@@ -193,7 +193,7 @@ func (t *DynamoTable) Delete(values ...Any) error {
 }
 
 // convert from dynamodb values to map
-func (t *DynamoTable) convertItemsToMapArray(items []*map[string]*SDK.AttributeValue) []map[string]interface{} {
+func (t *DynamoTable) convertItemsToMapArray(items []map[string]*SDK.AttributeValue) []map[string]interface{} {
 	var m []map[string]interface{}
 	for _, item := range items {
 		m = append(m, Unmarshal(item))
@@ -218,7 +218,7 @@ func (t *DynamoTable) GetRangeKeyName() string {
 // check if exists all primary keys in the item to write it.
 func (t *DynamoTable) isExistPrimaryKeys(item *SDK.PutItemInput) bool {
 	hashKey := t.GetHashKeyName()
-	itemAttrs := *item.Item
+	itemAttrs := item.Item
 	_, ok := itemAttrs[hashKey]
 	if !ok {
 		log.Warn("[DynamoDB] No HashKey, table="+t.name, hashKey)
