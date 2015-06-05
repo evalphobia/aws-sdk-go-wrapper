@@ -68,15 +68,15 @@ func TestCreateAttributeValue(t *testing.T) {
 	lData = append(lData, foomap, barmap)
 
 	l := createAttributeValue(lData)
-	if len(l.L) != 2 || len(*l.L[0].M) != 1 || len(*l.L[1].M) != 2 {
+	if len(l.L) != 2 || len(l.L[0].M) != 1 || len(l.L[1].M) != 2 {
 		t.Errorf("error on createAttributeValue, actual=%+v", l)
 	}
-	for key, val := range *l.L[0].M {
+	for key, val := range l.L[0].M {
 		if key != "foo" || *val.S != "childfoo" {
 			t.Errorf("error on createAttributeValue, actual=%+v", l)
 		}
 	}
-	for key, val := range *l.L[1].M {
+	for key, val := range l.L[1].M {
 		if !(key == "bar" || key == "buz") {
 			t.Errorf("error on createAttributeValue, actual=%+v", l)
 			continue
