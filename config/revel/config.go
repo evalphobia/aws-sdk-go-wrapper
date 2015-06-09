@@ -1,34 +1,39 @@
-/*
-   config library for revel
-   use like this
-       import "github.com/evalphobia/aws-sdk-go-wrapper/<AWS service name>"
-       import _ "github.com/evalphobia/aws-sdk-go-wrapper/config/revel"
-*/
-
 package revel
 
 import (
+	loader "github.com/evalphobia/revel-config-loader"
+
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
-	revel_config "github.com/evalphobia/revel-config-loader"
 )
 
 const (
-	awsConfigFileName    = "aws"
 	awsConfigSectionName = "aws"
 )
 
-// override loggers in initialize
 func init() {
-	config.SetConfig(NewRevelConfig())
+	config.SetConfig(NewConfig())
 }
 
-type RevelConfig struct{}
+// Config is struct for revel config
+type Config struct{}
 
-func NewRevelConfig() *RevelConfig {
-	return &RevelConfig{}
+// NewConfig creates new Config for revel config
+func NewConfig() *Config {
+	return &Config{}
 }
 
-// get prams from config file
-func (c *RevelConfig) GetConfigValue(section, key, df string) string {
-	return revel_config.GetConfigValueDefault(awsConfigFileName, awsConfigSectionName, section+"."+key, df)
+// GetConfigValue gets value from loaded revel configs
+func (c *Config) GetConfigValue(section, key, df string) string {
+	return loader.GetConfigValueDefault(config.AWSConfigFileName, awsConfigSectionName, section+"."+key, df)
+}
+
+// TODO: SetValues
+func (c *Config) SetValues(data map[string]interface{}) {
+	// TODO: implement
+}
+
+// TODO: LoadFile
+func (c *Config) LoadFile(path string) error {
+	// TODO: implement
+	return nil
 }
