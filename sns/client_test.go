@@ -7,11 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
 type testConfig struct {
 	config map[string]interface{}
 }
+
+func (c *testConfig) LoadFile(string) error {
+	return nil
+}
+
+func (c *testConfig) SetValues(map[string]interface{}) {}
 
 func (c *testConfig) GetConfigValue(sec, key, df string) string {
 	v, ok := c.config[key]
@@ -135,7 +142,7 @@ func TestRegisterEndpoint(t *testing.T) {
 	setTestEnv()
 	setTestConfig()
 	svc := NewClient()
-	
+
 	ep, err := svc.RegisterEndpoint("foo", "token")
 	assert.NotNil(t, err)
 	assert.Nil(t, ep)
@@ -149,7 +156,7 @@ func TestBulkPublishByDevice(t *testing.T) {
 	setTestEnv()
 	setTestConfig()
 	svc := NewClient()
-	
+
 	err := svc.BulkPublishByDevice("ios", []string{"fooEndpoint"}, "message")
 	assert.Nil(t, err)
 }
@@ -158,8 +165,8 @@ func TestBulkPublish(t *testing.T) {
 	setTestEnv()
 	setTestConfig()
 	svc := NewClient()
-	
-	tokens := map[string][]string{ "android": []string{"token1", "token2"}, "ios": []string{"token3", "token4"}}
+
+	tokens := map[string][]string{"android": []string{"token1", "token2"}, "ios": []string{"token3", "token4"}}
 	err := svc.BulkPublish(tokens, "message")
 	assert.Nil(t, err)
 }

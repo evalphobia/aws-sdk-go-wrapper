@@ -10,7 +10,7 @@ const (
 	indexTypeLSI = "local"
 	indexTypeGSI = "global"
 
-	ProjectionTypeAll = "ALL"
+	ProjectionTypeAll      = "ALL"
 	ProjectionTypeKeysOnly = "KEYS_ONLY"
 )
 

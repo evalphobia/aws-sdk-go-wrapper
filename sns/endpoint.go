@@ -5,7 +5,7 @@ package sns
 type SNSEndpoint struct {
 	arn      string
 	protocol string
-	svc   *AmazonSNS
+	svc      *AmazonSNS
 }
 
 func NewEndpoint(arn, protocol string, svc *AmazonSNS) *SNSEndpoint {

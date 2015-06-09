@@ -1,8 +1,8 @@
 package sqs
 
 import (
-	"testing"
 	"os"
+	"testing"
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/assert"

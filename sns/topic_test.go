@@ -23,7 +23,7 @@ func TestSubscribe(t *testing.T) {
 	topicName := "fooTopic"
 	svc := NewClient()
 	topic, _ := svc.CreateTopic(topicName)
-	
+
 	e := NewEndpoint("arn", "application", svc)
 	res, err := topic.Subscribe(e)
 	assert.Nil(t, err)

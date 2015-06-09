@@ -1,10 +1,12 @@
 package s3
 
 import (
-	"testing"
 	"os"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
 func setTestEnv() {

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
 func setTestEnv() {
@@ -20,7 +22,7 @@ func TestAuth(t *testing.T) {
 	creds, err := a.Get()
 	assert.NotNil(t, creds)
 	assert.Nil(t, err)
-	
+
 	auth = nil
 }
 

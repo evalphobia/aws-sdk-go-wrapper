@@ -29,7 +29,7 @@ func Auth() *credentials.Credentials {
 	// return if environmental params for AWS auth
 	e := credentials.NewEnvCredentials()
 	_, err := e.Get()
-	if err == nil {	
+	if err == nil {
 		auth = e
 		return auth
 	}
@@ -49,5 +49,5 @@ func NewConfig(region string) *AWS.Config {
 }
 
 func EnvRegion() string {
-	return 	os.Getenv("AWS_REGION")
+	return os.Getenv("AWS_REGION")
 }

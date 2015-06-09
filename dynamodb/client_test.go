@@ -6,6 +6,8 @@ import (
 	"time"
 
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
+
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
 func setTestEnv() {
@@ -156,7 +158,7 @@ func TestListTables(t *testing.T) {
 		t.Errorf("error on ListTables, %s", err.Error())
 	}
 	if len(tables1)+1 != len(tables2) {
-		t.Errorf("error on ListTables, %s, %s", tables1, tables2)
+		t.Errorf("error on ListTables, %v, %v", tables1, tables2)
 	}
 }
 

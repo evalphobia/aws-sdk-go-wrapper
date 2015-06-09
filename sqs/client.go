@@ -7,6 +7,7 @@ import (
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )
 
