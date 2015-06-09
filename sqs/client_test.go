@@ -4,8 +4,10 @@ import (
 	"os"
 	"testing"
 
-	SDK "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/assert"
+
+	SDK "github.com/aws/aws-sdk-go/service/sqs"
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
 func setTestEnv() {
