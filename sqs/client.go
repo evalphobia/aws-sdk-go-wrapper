@@ -75,6 +75,13 @@ func (svc *AmazonSQS) CreateQueue(in *SDK.CreateQueueInput) error {
 	return nil
 }
 
+// CreateQueueWithName creates new SQS Queue by the name
+func (svc *AmazonSQS) CreateQueueWithName(name string) error {
+	return svc.CreateQueue(&SDK.CreateQueueInput{
+		QueueName: String(GetQueuePrefix()+name),
+	})
+}
+
 // Get the prefix for DynamoDB table
 func GetQueuePrefix() string {
 	return config.GetConfigValue(sqsConfigSectionName, "prefix", defaultQueuePrefix)
