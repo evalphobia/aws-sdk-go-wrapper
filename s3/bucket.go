@@ -99,9 +99,11 @@ func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 }
 
 // fetch url of target S3 object
-// (this is same as secret at this time, since it is no method for public url)
-func (b *Bucket) GetURL(path string) (string, error) {
-	return b.GetSecretURLWithExpire(path, defaultExpireSecond)
+func (b *Bucket) GetURL(path string) string {
+	if b.client == nil || b.client.Service == nil {
+		return ""
+	}
+	return b.client.Service.Endpoint + "/" + b.name + path
 }
 
 // fetch url of target S3 object w/ ACL permission (url expires in 3min)
