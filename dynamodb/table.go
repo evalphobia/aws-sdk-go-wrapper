@@ -20,6 +20,81 @@ type DynamoTable struct {
 	errorItems []*SDK.PutItemInput
 }
 
+func (t *DynamoTable) Desc() (*SDK.TableDescription, error) {
+	req, err := t.db.client.DescribeTable(&SDK.DescribeTableInput{
+		TableName: String(t.name),
+	})
+	if err != nil {
+		log.Error("[DynamoDB] Error in `DescribeTable` operation, table="+t.name, err)
+		return nil, err
+	}
+	return req.Table, nil
+}
+
+func (t *DynamoTable) UpdateThroughput(r int64, w int64) error {
+	th := t.table.ProvisionedThroughput
+	th.ReadCapacityUnits = Long(r)
+	th.WriteCapacityUnits = Long(w)
+	return t.updateThroughput(t.toProvisionedThroughput(th))
+}
+
+func (t *DynamoTable) UpdateWriteThroughput(v int64) error {
+	th := t.table.ProvisionedThroughput
+	th.WriteCapacityUnits = Long(v)
+	return t.updateThroughput(t.toProvisionedThroughput(th))
+}
+
+func (t *DynamoTable) UpdateReadThroughput(v int64) error {
+	th := t.table.ProvisionedThroughput
+	th.ReadCapacityUnits = Long(v)
+	return t.updateThroughput(t.toProvisionedThroughput(th))
+}
+
+func (t *DynamoTable) toProvisionedThroughput (in *SDK.ProvisionedThroughputDescription) *SDK.UpdateTableInput {
+	return &SDK.UpdateTableInput{
+		TableName: String(t.name),
+		ProvisionedThroughput: &SDK.ProvisionedThroughput{
+			ReadCapacityUnits: in.ReadCapacityUnits,
+			WriteCapacityUnits: in.WriteCapacityUnits,
+		},
+	}
+}
+
+// updateThroughput updates dynamodb table provisioned throughput
+func (t *DynamoTable) updateThroughput(in *SDK.UpdateTableInput) error {
+	if t.isSameThroughput(in) {
+		return nil
+	}
+	_, err := t.db.client.UpdateTable(in)
+	if err != nil {
+		log.Error("[DynamoDB] Error in `UpdateTable` operation, table="+t.name, err)
+		return err
+	}
+	desc, err := t.Desc()
+	if err != nil {
+		return err
+	}
+	t.table = desc
+	return nil
+}
+
+// isSameThroughput checks if the given throughput is same as current table throughput or not
+func (t *DynamoTable) isSameThroughput(in *SDK.UpdateTableInput) bool {
+	desc, err := t.Desc()
+	if err != nil {
+		return false
+	}
+	from := desc.ProvisionedThroughput
+	to := in.ProvisionedThroughput
+	switch {
+	case *from.ReadCapacityUnits != *to.ReadCapacityUnits:
+		return false
+	case *from.WriteCapacityUnits != *to.WriteCapacityUnits:
+		return false
+	}
+	return true
+}
+
 // AddItem adds an item to the write-waiting list (writeItem)
 func (t *DynamoTable) AddItem(item *DynamoItem) {
 	w := &SDK.PutItemInput{}

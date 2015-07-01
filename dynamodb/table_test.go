@@ -2,7 +2,68 @@ package dynamodb
 
 import (
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestDesc(t *testing.T) {
+	assert := assert.New(t)
+	tbl := getTestTable()
+
+	desc, err := tbl.Desc()
+	assert.Nil(err)
+	assert.Equal(tbl.table, desc)
+}
+
+func TestUpdateThroughput(t *testing.T) {
+	assert := assert.New(t)
+	tbl := getTestTable()
+
+	var r, w int64
+	r = 10
+	w = 20
+	err := tbl.UpdateThroughput(r, w)
+	assert.Nil(err)
+	
+	time.Sleep(500 * time.Millisecond)
+	desc, _ := tbl.Desc()
+	th := desc.ProvisionedThroughput
+	assert.Equal(r, *th.ReadCapacityUnits)
+	assert.Equal(w, *th.WriteCapacityUnits)
+}
+
+func TestUpdateReadThroughput(t *testing.T) {
+	assert := assert.New(t)
+	tbl := getTestTable()
+
+	var r int64
+	r = 50
+	err := tbl.UpdateReadThroughput(r)
+	assert.Nil(err)
+	
+	time.Sleep(500 * time.Millisecond)
+	desc, _ := tbl.Desc()
+	th := desc.ProvisionedThroughput
+	assert.Equal(r, *th.ReadCapacityUnits)
+	assert.Equal(*tbl.table.ProvisionedThroughput.WriteCapacityUnits, *th.WriteCapacityUnits)
+}
+
+func TestUpdateWriteThroughput(t *testing.T) {
+	assert := assert.New(t)
+	tbl := getTestTable()
+
+	var w int64
+	w = 30
+	err := tbl.UpdateWriteThroughput(w)
+	assert.Nil(err)
+	
+	time.Sleep(500 * time.Millisecond)
+	desc, _ := tbl.Desc()
+	th := desc.ProvisionedThroughput
+	assert.Equal(w, *th.WriteCapacityUnits)
+	assert.Equal(*tbl.table.ProvisionedThroughput.ReadCapacityUnits, *th.ReadCapacityUnits)
+}
 
 func TestAddItem(t *testing.T) {
 	tbl := getTestTable()
