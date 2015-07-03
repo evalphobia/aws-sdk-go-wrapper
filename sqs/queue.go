@@ -167,8 +167,8 @@ func (q *Queue) FetchBody(num int) []string {
 	for _, msg := range resp.Messages {
 		messages = append(messages, *msg.Body)
 	}
-	q.AddDeleteList(resp.Messages)
 	if q.autoDel {
+		q.AddDeleteList(resp.Messages)
 		defer q.DeleteListItems()
 	}
 	return messages
