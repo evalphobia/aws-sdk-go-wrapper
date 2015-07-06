@@ -179,6 +179,25 @@ func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, erro
 	return app.CreateEndpoint(token)
 }
 
+// PublishAPNSByToken sends push message for iOS device by device token
+func (svc *AmazonSNS) PublishAPNSByToken(token string, msg string, badge int) error {
+	return svc.PublishByToken(AppTypeAPNS, token, msg, badge)
+}
+
+// PublishGCMByToken sends push message for Android device by device token
+func (svc *AmazonSNS) PublishGCMByToken(token string, msg string, badge int) error {
+	return svc.PublishByToken(AppTypeGCM, token, msg, badge)
+}
+
+// PublishByToken sends push message by device token
+func (svc *AmazonSNS) PublishByToken(device, token string, msg string, badge int) error {
+	ep, err := svc.RegisterEndpoint(device, token)
+	if err != nil {
+		return err
+	}
+	return ep.Publish(msg, badge)
+}
+
 // Publish notification for many endpoints
 // (supports single device only)
 func (svc *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg string) error {
