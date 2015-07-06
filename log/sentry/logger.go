@@ -15,8 +15,6 @@ import (
 // override loggers in initialize
 func init() {
 	LOG.SetLogger(newSentryLogger())
-	l := newSentryLogger()
-	l.Warn("なんでだい？", "")
 }
 
 type SentryLogger struct{}

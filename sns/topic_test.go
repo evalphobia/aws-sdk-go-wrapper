@@ -24,7 +24,7 @@ func TestSubscribe(t *testing.T) {
 	svc := NewClient()
 	topic, _ := svc.CreateTopic(topicName)
 
-	e := NewEndpoint("arn", "application", svc)
+	e := svc.NewApplicationEndpoint("arn")
 	res, err := topic.Subscribe(e)
 	assert.Nil(t, err)
 	assert.Contains(t, res, "arn:aws:sns:")

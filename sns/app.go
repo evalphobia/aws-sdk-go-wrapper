@@ -14,14 +14,6 @@ type SNSApp struct {
 	arn      string
 }
 
-func NewApp(arn, pf string, svc *AmazonSNS) *SNSApp {
-	return &SNSApp{
-		arn:      arn,
-		platform: pf,
-		svc:      svc,
-	}
-}
-
 // Create Endpoint(add device) and return `EndpointARN`
 func (a *SNSApp) createEndpoint(token string) (string, error) {
 	in := &SDK.CreatePlatformEndpointInput{
@@ -42,6 +34,6 @@ func (a *SNSApp) CreateEndpoint(token string) (*SNSEndpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	endpoint := NewEndpoint(arn, "application", a.svc)
+	endpoint := a.svc.NewApplicationEndpoint(arn)
 	return endpoint, nil
 }

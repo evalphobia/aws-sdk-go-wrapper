@@ -9,10 +9,10 @@ import (
 )
 
 type SNSTopic struct {
+	svc   *AmazonSNS
 	name  string
 	arn   string
 	sound string
-	svc   *AmazonSNS
 }
 
 func NewTopic(arn, name string, svc *AmazonSNS) *SNSTopic {

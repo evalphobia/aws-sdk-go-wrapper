@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+	"strconv"
 
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
@@ -29,6 +30,8 @@ const (
 
 	topicMaxDeviceNumber = 10000
 	MessageBodyLimit     = 2000
+	
+	ProtocolApplication = "application"
 )
 
 var isProduction bool
@@ -63,6 +66,39 @@ func NewClient() *AmazonSNS {
 	return svc
 }
 
+func (svc *AmazonSNS) NewApp(arn, pf string) *SNSApp {
+	return &SNSApp{
+		svc:      svc,
+		arn:      arn,
+		platform: pf,
+	}
+}
+
+func (svc *AmazonSNS) NewEndpoint(arn, protocol string) *SNSEndpoint {
+	return &SNSEndpoint{
+		svc:      svc,
+		arn:      arn,
+		protocol: protocol,
+	}
+}
+
+func (svc *AmazonSNS) NewApplicationEndpoint(arn string) *SNSEndpoint {
+	return &SNSEndpoint{
+		svc:      svc,
+		arn:      arn,
+		protocol: ProtocolApplication,
+	}
+}
+
+func (svc *AmazonSNS) NewTopic(arn, name string) *SNSTopic {
+	return &SNSTopic{
+		svc:   svc,
+		arn:   arn,
+		name:  name,
+		sound: "default",
+	}
+}
+
 // Get SNSApp struct
 func (svc *AmazonSNS) GetApp(typ string) (*SNSApp, error) {
 	// get the app from cache
@@ -76,7 +112,7 @@ func (svc *AmazonSNS) GetApp(typ string) (*SNSApp, error) {
 		log.Error(errMsg, typ)
 		return nil, errors.New(errMsg)
 	}
-	app = NewApp(arn, typ, svc)
+	app = svc.NewApp(arn, typ)
 	svc.apps[typ] = app
 	return app, nil
 }
@@ -159,25 +195,6 @@ func truncateMessage(msg string) string {
 	return string(runes[0:valid])
 }
 
-// Register endpoint(device) to application
-func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
-	var app *SNSApp
-	var err error
-	switch device {
-	case "ios", "apns":
-		app, err = svc.GetAppAPNS()
-	case "android", "gcm":
-		app, err = svc.GetAppGCM()
-	default:
-		errMsg := "[SNS] Unsupported device, device=" + device
-		log.Error(errMsg, token)
-		return nil, errors.New(errMsg)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return app.CreateEndpoint(token)
-}
 
 // PublishAPNSByToken sends push message for iOS device by device token
 func (svc *AmazonSNS) PublishAPNSByToken(token string, msg string, badge int) error {
@@ -242,4 +259,45 @@ func (svc *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error 
 		}
 	}
 	return nil
+}
+
+// Register endpoint(device) to application
+func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
+	var app *SNSApp
+	var err error
+	switch device {
+	case "ios", "apns":
+		app, err = svc.GetAppAPNS()
+	case "android", "gcm":
+		app, err = svc.GetAppGCM()
+	default:
+		errMsg := "[SNS] Unsupported device, device=" + device
+		log.Error(errMsg, token)
+		return nil, errors.New(errMsg)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return app.CreateEndpoint(token)
+}
+
+// GetEndpoint 
+func (svc *AmazonSNS) GetEndpoint(arn string) (*SNSEndpoint, error) {
+	in := &SDK.GetEndpointAttributesInput{
+		EndpointARN: String(arn),
+	}
+	resp, err := svc.Client.GetEndpointAttributes(in)
+	if err != nil {
+		log.Error("[SNS] error on `GetEndpointAttributes` operation, arn="+arn, err.Error())
+		return nil, err
+	}
+	attr := resp.Attributes
+	ep := svc.NewApplicationEndpoint(arn)
+	ep.token = *attr["Token"]
+	ep.enable, err = strconv.ParseBool(*attr["Enabled"])
+	if err != nil {
+		log.Error("[SNS] error on `Endpoint Attributes` Enabled="+*attr["Enabled"], err.Error())
+		ep.enable = false
+	}
+	return ep, err
 }
