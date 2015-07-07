@@ -2,7 +2,7 @@
 
 package sns
 
-import(
+import (
 	"strconv"
 
 	SDK "github.com/aws/aws-sdk-go/service/sns"
@@ -13,8 +13,8 @@ type SNSEndpoint struct {
 	svc      *AmazonSNS
 	arn      string
 	protocol string
-	token string
-	enable bool
+	token    string
+	enable   bool
 }
 
 // Publish sends push notification to the endpoint
@@ -37,6 +37,16 @@ func (e *SNSEndpoint) SetToken(token string) {
 	e.token = token
 }
 
+// Enable returns endpoint Enable
+func (e *SNSEndpoint) Enable() bool {
+	return e.enable
+}
+
+// SetEnable set endpoint Enable
+func (e *SNSEndpoint) SetEnable(enable bool) {
+	e.enable = enable
+}
+
 // UpdateTokenAsEnable updates token and enabled as true
 func (e *SNSEndpoint) UpdateTokenAsEnable() error {
 	e.enable = true
@@ -49,14 +59,13 @@ func (e *SNSEndpoint) UpdateTokenAsDisable() error {
 	return e.UpdateToken()
 }
 
-
 // UpdateToken updates endpoint attributes
 func (e *SNSEndpoint) UpdateToken() error {
 	in := &SDK.SetEndpointAttributesInput{
 		EndpointARN: String(e.arn),
 		Attributes: map[string]*string{
 			"Enabled": String(strconv.FormatBool(e.enable)),
-			"Token": String(e.token),
+			"Token":   String(e.token),
 		},
 	}
 	_, err := e.svc.Client.SetEndpointAttributes(in)
