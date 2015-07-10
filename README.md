@@ -1,5 +1,5 @@
 [![Build Status](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/status.png)](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/latest)
-(checked SDK version [aws-sdk-go:bdf1817fc58b39206de0a54c683352d6e068f6c9](https://github.com/awslabs/aws-sdk-go/tree/bdf1817fc58b39206de0a54c683352d6e068f6c9))
+(checked SDK version [aws-sdk-go](https://github.com/awslabs/aws-sdk-go/) :: [v0.6.6](https://github.com/awslabs/aws-sdk-go/tree/v0.6.6) 
 
 [![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=master)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=master)
 
