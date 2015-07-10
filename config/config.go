@@ -32,6 +32,9 @@ func SetConfig(conf Config) {
 
 // GetConfigValue gets value from laoded config
 func GetConfigValue(section, key, df string) string {
+	if _config == nil {
+		return df
+	}
 	return _config.GetConfigValue(section, key, df)
 }
 

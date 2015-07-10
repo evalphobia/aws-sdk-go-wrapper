@@ -50,11 +50,11 @@ func (t *DynamoTable) UpdateReadThroughput(v int64) error {
 	return t.updateThroughput(t.toProvisionedThroughput(th))
 }
 
-func (t *DynamoTable) toProvisionedThroughput (in *SDK.ProvisionedThroughputDescription) *SDK.UpdateTableInput {
+func (t *DynamoTable) toProvisionedThroughput(in *SDK.ProvisionedThroughputDescription) *SDK.UpdateTableInput {
 	return &SDK.UpdateTableInput{
 		TableName: String(t.name),
 		ProvisionedThroughput: &SDK.ProvisionedThroughput{
-			ReadCapacityUnits: in.ReadCapacityUnits,
+			ReadCapacityUnits:  in.ReadCapacityUnits,
 			WriteCapacityUnits: in.WriteCapacityUnits,
 		},
 	}

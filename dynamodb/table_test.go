@@ -25,7 +25,7 @@ func TestUpdateThroughput(t *testing.T) {
 	w = 20
 	err := tbl.UpdateThroughput(r, w)
 	assert.Nil(err)
-	
+
 	time.Sleep(500 * time.Millisecond)
 	desc, _ := tbl.Desc()
 	th := desc.ProvisionedThroughput
@@ -41,7 +41,7 @@ func TestUpdateReadThroughput(t *testing.T) {
 	r = 50
 	err := tbl.UpdateReadThroughput(r)
 	assert.Nil(err)
-	
+
 	time.Sleep(500 * time.Millisecond)
 	desc, _ := tbl.Desc()
 	th := desc.ProvisionedThroughput
@@ -57,7 +57,7 @@ func TestUpdateWriteThroughput(t *testing.T) {
 	w = 30
 	err := tbl.UpdateWriteThroughput(w)
 	assert.Nil(err)
-	
+
 	time.Sleep(500 * time.Millisecond)
 	desc, _ := tbl.Desc()
 	th := desc.ProvisionedThroughput
@@ -337,7 +337,7 @@ func getTestTable() *DynamoTable {
 
 	c := NewClient()
 	name := "foo_table"
-	in := getCreateTableInput(GetTablePrefix() + name)
+	in := getCreateTableInput(c.TablePrefix + name)
 	createTable(c, in)
 	tbl, _ := c.GetTable(name)
 	return tbl
@@ -348,7 +348,7 @@ func getTestHashTable() *DynamoTable {
 
 	c := NewClient()
 	name := "foo_hashtable"
-	in := getCreateHashTableInput(GetTablePrefix() + name)
+	in := getCreateHashTableInput(c.TablePrefix + name)
 	createTable(c, in)
 	tbl, _ := c.GetTable(name)
 	return tbl

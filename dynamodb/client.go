@@ -22,6 +22,8 @@ const (
 
 // wrapped struct for DynamoDB
 type AmazonDynamoDB struct {
+	TablePrefix string
+
 	client      *SDK.DynamoDB
 	tables      map[string]*DynamoTable
 	writeTables map[string]bool
@@ -29,20 +31,27 @@ type AmazonDynamoDB struct {
 
 // Create new AmazonDynamoDB struct
 func NewClient() *AmazonDynamoDB {
+	region := config.GetConfigValue(dynamodbConfigSectionName, "region", "")
+	endpoint := config.GetConfigValue(dynamodbConfigSectionName, "endpoint", "")
+	conf := auth.NewConfig(region, endpoint)
+	return newClient(conf)
+}
+
+// Create new AmazonDynamoDB struct
+func NewClientWithKeys(k auth.Keys) *AmazonDynamoDB {
+	conf := auth.NewConfigWithKeys(k)
+	return newClient(conf)
+}
+
+// Create new AmazonDynamoDB struct
+func newClient(conf auth.Config) *AmazonDynamoDB {
 	d := &AmazonDynamoDB{}
 	d.tables = make(map[string]*DynamoTable)
 	d.writeTables = make(map[string]bool)
+	d.TablePrefix = config.GetConfigValue(dynamodbConfigSectionName, "prefix", defaultTablePrefix)
 
-	region := config.GetConfigValue(dynamodbConfigSectionName, "region", "")
-	awsConf := auth.NewConfig(region)
-	endpoint := config.GetConfigValue(dynamodbConfigSectionName, "endpoint", "")
-	switch {
-	case endpoint != "":
-		awsConf.Endpoint = endpoint
-	case region == "":
-		awsConf.Region = defaultRegion
-		awsConf.Endpoint = defaultEndpoint
-	}
+	conf.SetDefault(defaultRegion, defaultEndpoint)
+	awsConf := conf.Config
 	d.client = SDK.New(awsConf)
 	return d
 }
@@ -85,7 +94,7 @@ func (d *AmazonDynamoDB) DescribeTable(name string) (*SDK.TableDescription, erro
 
 // get the DynamoDB table
 func (d *AmazonDynamoDB) GetTable(table string) (*DynamoTable, error) {
-	tableName := GetTablePrefix() + table
+	tableName := d.TablePrefix + table
 
 	// get the table from cache
 	t, ok := d.tables[tableName]
@@ -139,11 +148,6 @@ func (d *AmazonDynamoDB) PutAll() error {
 		return errors.New(strings.Join(errs, "\n"))
 	}
 	return nil
-}
-
-// get the prefix for DynamoDB table
-func GetTablePrefix() string {
-	return config.GetConfigValue(dynamodbConfigSectionName, "prefix", defaultTablePrefix)
 }
 
 // get the list of DynamoDB table

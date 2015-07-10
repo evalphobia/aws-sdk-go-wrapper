@@ -81,7 +81,7 @@ func TestGetTable(t *testing.T) {
 
 	c := NewClient()
 	origName := "foo_table"
-	name := GetTablePrefix() + origName
+	name := c.TablePrefix + origName
 	resetTable(c, name)
 
 	in := getCreateTableInput(name)
@@ -96,15 +96,6 @@ func TestGetTable(t *testing.T) {
 	}
 	if tbl.name != name || *tbl.table.TableName != name {
 		t.Errorf("error on GetTable, %v", tbl)
-	}
-}
-
-func TestGetTablePrefix(t *testing.T) {
-	setTestEnv()
-
-	pfx := GetTablePrefix()
-	if pfx != defaultTablePrefix {
-		t.Errorf("error on GetTablePrefix, %s", pfx)
 	}
 }
 
@@ -166,7 +157,7 @@ func TestPutAll(t *testing.T) {
 	setTestEnv()
 
 	c := NewClient()
-	pfx := GetTablePrefix()
+	pfx := c.TablePrefix
 	name := "foo_table"
 	resetTable(c, pfx+name)
 	createTable(c, getCreateTableInput(pfx+name))

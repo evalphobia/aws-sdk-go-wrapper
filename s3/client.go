@@ -27,19 +27,13 @@ func NewClient() *AmazonS3 {
 	s := &AmazonS3{}
 	s.buckets = make(map[string]*Bucket)
 	region := config.GetConfigValue(s3ConfigSectionName, "region", "")
-	awsConf := auth.NewConfig(region)
 	endpoint := config.GetConfigValue(s3ConfigSectionName, "endpoint", "")
-	switch {
-	case endpoint != "":
-		awsConf.Endpoint = endpoint
-		awsConf.S3ForcePathStyle = true
-	case region == "":
-		awsConf.Region = defaultRegion
-		awsConf.Endpoint = defaultEndpoint
-		awsConf.S3ForcePathStyle = true
+	conf := auth.NewConfig(region, endpoint)
+	conf.SetDefault(defaultRegion, defaultEndpoint)
+	if conf.Config.Endpoint != "" {
+		conf.Config.S3ForcePathStyle = true
 	}
-
-	s.client = SDK.New(awsConf)
+	s.client = SDK.New(conf.Config)
 	return s
 }
 

@@ -27,16 +27,10 @@ func NewClient() *AmazonSQS {
 	svc := &AmazonSQS{}
 	svc.queues = make(map[string]*Queue)
 	region := config.GetConfigValue(sqsConfigSectionName, "region", auth.EnvRegion())
-	awsConf := auth.NewConfig(region)
 	endpoint := config.GetConfigValue(sqsConfigSectionName, "endpoint", "")
-	switch {
-	case endpoint != "":
-		awsConf.Endpoint = endpoint
-	case region == "":
-		awsConf.Region = defaultRegion
-		awsConf.Endpoint = defaultEndpoint
-	}
-	svc.client = SDK.New(awsConf)
+	conf := auth.NewConfig(region, endpoint)
+	conf.SetDefault(defaultRegion, defaultEndpoint)
+	svc.client = SDK.New(conf.Config)
 	return svc
 }
 
@@ -78,7 +72,7 @@ func (svc *AmazonSQS) CreateQueue(in *SDK.CreateQueueInput) error {
 // CreateQueueWithName creates new SQS Queue by the name
 func (svc *AmazonSQS) CreateQueueWithName(name string) error {
 	return svc.CreateQueue(&SDK.CreateQueueInput{
-		QueueName: String(GetQueuePrefix()+name),
+		QueueName: String(GetQueuePrefix() + name),
 	})
 }
 

@@ -17,10 +17,10 @@ const (
 )
 
 var (
-	auth *credentials.Credentials = nil
+	auth *credentials.Credentials
 )
 
-// return AWS authorization credentials
+// Auth return AWS authorization credentials
 func Auth() *credentials.Credentials {
 	if auth != nil {
 		return auth
@@ -40,14 +40,56 @@ func Auth() *credentials.Credentials {
 	return auth
 }
 
-func NewConfig(region string) *AWS.Config {
+// NewConfig returns initialized Config
+func NewConfig(region, endpoint string) Config {
 	auth := Auth()
-	return &AWS.Config{
+	awsConf := &AWS.Config{
 		Credentials: auth,
 		Region:      region,
+		Endpoint:    endpoint,
 	}
+	return Config{awsConf}
 }
 
+// Clear deletes cache for auth
+func Clear() {
+	auth = nil
+}
+
+// EnvRegion get region from env params
 func EnvRegion() string {
 	return os.Getenv("AWS_REGION")
+}
+
+// Keys used for manual initialization of config on NewConfigWithKeys(Key)
+type Keys struct {
+	AccessKey string
+	SecretKey string
+	Region    string
+	Endpoint  string
+}
+
+// NewConfigWithKeys returns initialized Config with given parameters
+func NewConfigWithKeys(k Keys) Config {
+	auth := credentials.NewStaticCredentials(k.AccessKey, k.SecretKey, "")
+	awsConf := &AWS.Config{
+		Credentials: auth,
+		Region:      k.Region,
+		Endpoint:    k.Endpoint,
+	}
+	return Config{awsConf}
+}
+
+// Config is wrapper struct of AWS.Config
+type Config struct {
+	*AWS.Config
+}
+
+// SetDefault fills parameter of region and endpoint when empty
+func (c Config) SetDefault(region, endpoint string) {
+	awsConf := c.Config
+	if awsConf.Region == "" && awsConf.Endpoint == "" {
+		awsConf.Region = region
+		awsConf.Endpoint = endpoint
+	}
 }

@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 	"unicode/utf8"
-	"strconv"
 
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
@@ -30,7 +30,7 @@ const (
 
 	topicMaxDeviceNumber = 10000
 	MessageBodyLimit     = 2000
-	
+
 	ProtocolApplication = "application"
 )
 
@@ -48,16 +48,10 @@ func NewClient() *AmazonSNS {
 	svc.apps = make(map[string]*SNSApp)
 	svc.topics = make(map[string]*SNSTopic)
 	region := config.GetConfigValue(snsConfigSectionName, "region", auth.EnvRegion())
-	awsConf := auth.NewConfig(region)
 	endpoint := config.GetConfigValue(snsConfigSectionName, "endpoint", "")
-	switch {
-	case endpoint != "":
-		awsConf.Endpoint = endpoint
-	case region == "":
-		awsConf.Region = defaultRegion
-		awsConf.Endpoint = defaultEndpoint
-	}
-	svc.Client = SDK.New(awsConf)
+	conf := auth.NewConfig(region, endpoint)
+	conf.SetDefault(defaultRegion, defaultEndpoint)
+	svc.Client = SDK.New(conf.Config)
 	if config.GetConfigValue(snsConfigSectionName, "app.production", "false") != "false" {
 		isProduction = true
 	} else {
@@ -195,7 +189,6 @@ func truncateMessage(msg string) string {
 	return string(runes[0:valid])
 }
 
-
 // PublishAPNSByToken sends push message for iOS device by device token
 func (svc *AmazonSNS) PublishAPNSByToken(token string, msg string, badge int) error {
 	return svc.PublishByToken(AppTypeAPNS, token, msg, badge)
@@ -281,7 +274,7 @@ func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, erro
 	return app.CreateEndpoint(token)
 }
 
-// GetEndpoint 
+// GetEndpoint
 func (svc *AmazonSNS) GetEndpoint(arn string) (*SNSEndpoint, error) {
 	in := &SDK.GetEndpointAttributesInput{
 		EndpointARN: String(arn),
