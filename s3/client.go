@@ -24,18 +24,32 @@ type AmazonS3 struct {
 
 // Create new AmazonS3 struct
 func NewClient() *AmazonS3 {
-	s := &AmazonS3{}
-	s.buckets = make(map[string]*Bucket)
 	region := config.GetConfigValue(s3ConfigSectionName, "region", "")
 	endpoint := config.GetConfigValue(s3ConfigSectionName, "endpoint", "")
 	conf := auth.NewConfig(region, endpoint)
+	return newClient(conf)
+}
+
+// Create new AmazonS3 struct
+func NewClientWithKeys(k auth.Keys) *AmazonS3 {
+	conf := auth.NewConfigWithKeys(k)
+	return newClient(conf)
+}
+
+// Create new AmazonS3 struct
+func newClient(conf auth.Config) *AmazonS3 {
+	s := &AmazonS3{}
+	s.buckets = make(map[string]*Bucket)
+
 	conf.SetDefault(defaultRegion, defaultEndpoint)
-	if conf.Config.Endpoint != "" {
-		conf.Config.S3ForcePathStyle = true
+	awsConf := conf.Config
+	if *awsConf.Endpoint != "" {
+		awsConf.S3ForcePathStyle = Bool(true)
 	}
-	s.client = SDK.New(conf.Config)
+	s.client = SDK.New(awsConf)
 	return s
 }
+
 
 // get bucket
 func (s *AmazonS3) GetBucket(bucket string) *Bucket {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testS3Path = "/test_path"
+var testS3Path = "test_path"
 var testBucketName = "test-bucket"
 
 func TestAddObject(t *testing.T) {
@@ -104,7 +104,7 @@ func TestGetURL(t *testing.T) {
 	assert.Equal(url, baseURL+"/test_path")
 
 	// get from non existed path
-	url = b.GetURL("/non_exist/path")
+	url = b.GetURL("non_exist/path")
 	assert.Equal(url, baseURL+"/non_exist/path")
 }
 
@@ -123,7 +123,7 @@ func TestGetSecretURL(t *testing.T) {
 	assert.Contains(data, "X-Amz-Expires=180")
 
 	// get from non existed path
-	data, err = b.GetSecretURL("/non_exist/path")
+	data, err = b.GetSecretURL("non_exist/path")
 	assert.Nil(err)
 	assert.Contains(data, baseURL+"/non_exist/path")
 	assert.Contains(data, "X-Amz-Expires=180")
@@ -144,7 +144,7 @@ func TestGetSecretURLWithExpire(t *testing.T) {
 	assert.Contains(data, "X-Amz-Expires=520")
 
 	// get from non existed path
-	data, err = b.GetSecretURLWithExpire("/non_exist/path", 10)
+	data, err = b.GetSecretURLWithExpire("non_exist/path", 10)
 	assert.Nil(err)
 	assert.Contains(data, baseURL+"/non_exist/path")
 	assert.Contains(data, "X-Amz-Expires=10")

@@ -38,8 +38,8 @@ func TestNewConfig(t *testing.T) {
 	conf = NewConfig("region", "")
 	awsConf = conf.Config
 	assert.NotNil(awsConf)
-	assert.Equal("region", awsConf.Region)
-	assert.Empty(awsConf.Endpoint)
+	assert.Equal("region", *awsConf.Region)
+	assert.Empty(*awsConf.Endpoint)
 	assert.NotNil(awsConf.Credentials)
 
 	creds, err := awsConf.Credentials.Get()
@@ -50,8 +50,8 @@ func TestNewConfig(t *testing.T) {
 	conf = NewConfig("region", "endpoint")
 	awsConf = conf.Config
 	assert.NotNil(awsConf)
-	assert.Equal("region", awsConf.Region)
-	assert.Equal("endpoint", awsConf.Endpoint)
+	assert.Equal("region", *awsConf.Region)
+	assert.Equal("endpoint", *awsConf.Endpoint)
 	assert.NotNil(awsConf.Credentials)
 
 	creds, err = awsConf.Credentials.Get()
@@ -63,7 +63,7 @@ func TestNewConfig(t *testing.T) {
 	conf = NewConfig("region", "")
 	awsConf = conf.Config
 	assert.NotNil(awsConf)
-	assert.Equal("region", awsConf.Region)
+	assert.Equal("region", *awsConf.Region)
 	assert.NotNil(awsConf.Credentials)
 
 	creds, err = awsConf.Credentials.Get()
@@ -107,8 +107,8 @@ func TestNewConfigWithKeys(t *testing.T) {
 	})
 	assert.NotNil(conf.Config)
 	assert.NotNil(conf.Config.Credentials)
-	assert.Empty(conf.Config.Region)
-	assert.Empty(conf.Config.Endpoint)
+	assert.Empty(*conf.Config.Region)
+	assert.Empty(*conf.Config.Endpoint)
 
 	conf = NewConfigWithKeys(Keys{
 		AccessKey: "access",
@@ -118,8 +118,8 @@ func TestNewConfigWithKeys(t *testing.T) {
 	})
 	assert.NotNil(conf.Config)
 	assert.NotNil(conf.Config.Credentials)
-	assert.Equal("region", conf.Config.Region)
-	assert.Equal("endpoint", conf.Config.Endpoint)
+	assert.Equal("region", *conf.Config.Region)
+	assert.Equal("endpoint", *conf.Config.Endpoint)
 }
 
 func TestSetDefault(t *testing.T) {
@@ -133,12 +133,12 @@ func TestSetDefault(t *testing.T) {
 	})
 	assert.NotNil(conf.Config)
 	assert.NotNil(conf.Config.Credentials)
-	assert.Empty(conf.Config.Region)
-	assert.Empty(conf.Config.Endpoint)
+	assert.Empty(*conf.Config.Region)
+	assert.Empty(*conf.Config.Endpoint)
 
 	conf.SetDefault("region", "endpoint")
-	assert.Equal("region", conf.Config.Region)
-	assert.Equal("endpoint", conf.Config.Endpoint)
+	assert.Equal("region", *conf.Config.Region)
+	assert.Equal("endpoint", *conf.Config.Endpoint)
 
 	conf = NewConfigWithKeys(Keys{
 		AccessKey: "access",
@@ -147,10 +147,10 @@ func TestSetDefault(t *testing.T) {
 	})
 	assert.NotNil(conf.Config)
 	assert.NotNil(conf.Config.Credentials)
-	assert.Equal("region", conf.Config.Region)
-	assert.Empty(conf.Config.Endpoint)
+	assert.Equal("region", *conf.Config.Region)
+	assert.Empty(*conf.Config.Endpoint)
 
 	conf.SetDefault("region", "endpoint")
-	assert.Equal("region", conf.Config.Region)
-	assert.Empty(conf.Config.Endpoint)
+	assert.Equal("region", *conf.Config.Region)
+	assert.Empty(*conf.Config.Endpoint)
 }

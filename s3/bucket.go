@@ -3,13 +3,13 @@
 package s3
 
 import (
-	SDK "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
-
 	"bytes"
 	"errors"
 	"io"
 	"time"
+
+	SDK "github.com/aws/aws-sdk-go/service/s3"
+	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )
 
 const (
@@ -103,7 +103,7 @@ func (b *Bucket) GetURL(path string) string {
 	if b.client == nil || b.client.Service == nil {
 		return ""
 	}
-	return b.client.Service.Endpoint + "/" + b.name + path
+	return b.client.Service.Endpoint + "/" + b.name + "/" + path
 }
 
 // fetch url of target S3 object w/ ACL permission (url expires in 3min)

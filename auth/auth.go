@@ -45,8 +45,8 @@ func NewConfig(region, endpoint string) Config {
 	auth := Auth()
 	awsConf := &AWS.Config{
 		Credentials: auth,
-		Region:      region,
-		Endpoint:    endpoint,
+		Region:      AWS.String(region),
+		Endpoint:    AWS.String(endpoint),
 	}
 	return Config{awsConf}
 }
@@ -74,8 +74,8 @@ func NewConfigWithKeys(k Keys) Config {
 	auth := credentials.NewStaticCredentials(k.AccessKey, k.SecretKey, "")
 	awsConf := &AWS.Config{
 		Credentials: auth,
-		Region:      k.Region,
-		Endpoint:    k.Endpoint,
+		Region:      AWS.String(k.Region),
+		Endpoint:    AWS.String(k.Endpoint),
 	}
 	return Config{awsConf}
 }
@@ -88,8 +88,8 @@ type Config struct {
 // SetDefault fills parameter of region and endpoint when empty
 func (c Config) SetDefault(region, endpoint string) {
 	awsConf := c.Config
-	if awsConf.Region == "" && awsConf.Endpoint == "" {
-		awsConf.Region = region
-		awsConf.Endpoint = endpoint
+	if *awsConf.Region == "" && *awsConf.Endpoint == "" {
+		awsConf.Region = AWS.String(region)
+		awsConf.Endpoint = AWS.String(endpoint)
 	}
 }
