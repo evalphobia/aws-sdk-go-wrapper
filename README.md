@@ -5,6 +5,8 @@
 
 
 # aws-sdk-go-wrapper
+
+[![Join the chat at https://gitter.im/evalphobia/aws-sdk-go-wrapper](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/evalphobia/aws-sdk-go-wrapper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Simple wrapper for aws-sdk-go
 At this time, it suports services below,
 - `DynamoDB`
