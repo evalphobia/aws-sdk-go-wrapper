@@ -29,13 +29,13 @@ func (t *SNSTopic) Subscribe(endpoint *SNSEndpoint) (string, error) {
 	resp, err := t.svc.Client.Subscribe(&SDK.SubscribeInput{
 		Endpoint: String(endpoint.arn),
 		Protocol: String(endpoint.protocol),
-		TopicARN: String(t.arn),
+		TopicArn: String(t.arn),
 	})
 	if err != nil {
 		log.Error("[SNS] error on `Subscribe` operation, topic="+t.arn, err.Error())
 		return "", err
 	}
-	return *resp.SubscriptionARN, nil
+	return *resp.SubscriptionArn, nil
 }
 
 // Publish notification to the topic
@@ -46,7 +46,7 @@ func (t *SNSTopic) Publish(msg string) error {
 // Delete topic
 func (t *SNSTopic) Delete() error {
 	_, err := t.svc.Client.DeleteTopic(&SDK.DeleteTopicInput{
-		TopicARN: String(t.arn),
+		TopicArn: String(t.arn),
 	})
 	return err
 }

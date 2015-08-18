@@ -136,7 +136,7 @@ func (svc *AmazonSNS) createTopic(name string) (string, error) {
 		log.Error("[SNS] error on `CreateTopic` operation, name="+name, err.Error())
 		return "", err
 	}
-	return *resp.TopicARN, nil
+	return *resp.TopicArn, nil
 }
 
 // Create SNS Topic and return `TopicARN`
@@ -159,7 +159,7 @@ func (svc *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}
 	m["APNS_SANDBOX"] = m["APNS"]
 	jsonString, _ := json.Marshal(m)
 	resp, err := svc.Client.Publish(&SDK.PublishInput{
-		TargetARN:        String(arn),
+		TargetArn:        String(arn),
 		Message:          String(string(jsonString)),
 		MessageStructure: String("json"),
 	})
@@ -167,7 +167,7 @@ func (svc *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}
 		log.Error("[SNS] error on `Publish` operation, arn="+arn, err.Error())
 		return err
 	}
-	log.Info("[SNS] publish message", *resp.MessageID)
+	log.Info("[SNS] publish message", *resp.MessageId)
 	return nil
 }
 
@@ -277,7 +277,7 @@ func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, erro
 // GetEndpoint
 func (svc *AmazonSNS) GetEndpoint(arn string) (*SNSEndpoint, error) {
 	in := &SDK.GetEndpointAttributesInput{
-		EndpointARN: String(arn),
+		EndpointArn: String(arn),
 	}
 	resp, err := svc.Client.GetEndpointAttributes(in)
 	if err != nil {

@@ -57,7 +57,7 @@ func (e *SNSEndpoint) UpdateTokenAsDisable() error {
 // UpdateToken updates endpoint attributes
 func (e *SNSEndpoint) UpdateToken() error {
 	in := &SDK.SetEndpointAttributesInput{
-		EndpointARN: String(e.arn),
+		EndpointArn: String(e.arn),
 		Attributes: map[string]*string{
 			"Enabled": String(strconv.FormatBool(e.enable)),
 			"Token":   String(e.token),

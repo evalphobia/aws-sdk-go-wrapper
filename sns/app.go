@@ -17,7 +17,7 @@ type SNSApp struct {
 // Create Endpoint(add device) and return `EndpointARN`
 func (a *SNSApp) createEndpoint(token string) (string, error) {
 	in := &SDK.CreatePlatformEndpointInput{
-		PlatformApplicationARN: String(a.arn),
+		PlatformApplicationArn: String(a.arn),
 		Token: String(token),
 	}
 	resp, err := a.svc.Client.CreatePlatformEndpoint(in)
@@ -25,7 +25,7 @@ func (a *SNSApp) createEndpoint(token string) (string, error) {
 		log.Error("[SNS] error on `CreatePlatformEndpoint` operation, token="+token, err.Error())
 		return "", err
 	}
-	return *resp.EndpointARN, nil
+	return *resp.EndpointArn, nil
 }
 
 // Create Endpoint(add device) and return `EndpointARN`

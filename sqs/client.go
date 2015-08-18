@@ -45,15 +45,15 @@ func (svc *AmazonSQS) GetQueue(queue string) (*Queue, error) {
 	}
 
 	// get the queue from server
-	url, err := svc.client.GetQueueURL(&SDK.GetQueueURLInput{
+	url, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
 		QueueName:              String(queueName),
-		QueueOwnerAWSAccountID: nil,
+		QueueOwnerAWSAccountId: nil,
 	})
 	if err != nil {
 		log.Error("[SQS] error on `GetQueueURL` operation, queue="+queueName, err.Error())
 		return nil, err
 	}
-	q = NewQueue(queueName, url.QueueURL, svc.client)
+	q = NewQueue(queueName, url.QueueUrl, svc.client)
 	svc.queues[queueName] = q
 	return q, nil
 }
@@ -65,7 +65,7 @@ func (svc *AmazonSQS) CreateQueue(in *SDK.CreateQueueInput) error {
 		log.Error("[SQS] Error on `CreateQueue` operation, queue="+*in.QueueName, err)
 		return err
 	}
-	log.Info("[SQS] Complete CreateQueue, queue="+*in.QueueName, *(data.QueueURL))
+	log.Info("[SQS] Complete CreateQueue, queue="+*in.QueueName, *(data.QueueUrl))
 	return nil
 }
 

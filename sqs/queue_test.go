@@ -213,7 +213,7 @@ func TestAddDeleteList(t *testing.T) {
 	assert.Equal(t, 0, len(q.delMessages))
 
 	msg := &SDK.Message{
-		MessageID:     String(""),
+		MessageId:     String(""),
 		ReceiptHandle: String(""),
 	}
 

@@ -57,7 +57,7 @@ func (q *Queue) AddMessage(message string) {
 	m := &SDK.SendMessageBatchRequestEntry{}
 	m.MessageBody = AWS.String(message)
 	num := fmt.Sprint(len(q.messages) + 1)
-	m.ID = AWS.String(defaultMessageIDPrefix + num) // serial numbering for convenience sake
+	m.Id = AWS.String(defaultMessageIDPrefix + num) // serial numbering for convenience sake
 	q.messages = append(q.messages, m)
 }
 
@@ -105,7 +105,7 @@ func (q *Queue) Send() error {
 func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 	res, err := q.client.SendMessageBatch(&SDK.SendMessageBatchInput{
 		Entries:  msg,
-		QueueURL: q.url,
+		QueueUrl: q.url,
 	})
 	q.failedSend = append(q.failedSend, res.Failed...)
 	return err
@@ -123,7 +123,7 @@ func (q *Queue) Fetch(num int) (*SDK.ReceiveMessageOutput, error) {
 
 	// receive message from server
 	resp, err := q.client.ReceiveMessage(&SDK.ReceiveMessageInput{
-		QueueURL:            q.url,
+		QueueUrl:            q.url,
 		WaitTimeSeconds:     Long(wait),
 		MaxNumberOfMessages: Long(num),
 		VisibilityTimeout:   Long(defaultExpireSecond),
@@ -189,13 +189,13 @@ func (q *Queue) AddDeleteList(msg interface{}) {
 	case []*SDK.Message:
 		for _, m := range v {
 			q.delMessages = append(q.delMessages, &SDK.DeleteMessageBatchRequestEntry{
-				ID:            m.MessageID,
+				Id:            m.MessageId,
 				ReceiptHandle: m.ReceiptHandle,
 			})
 		}
 	case *SDK.Message:
 		q.delMessages = append(q.delMessages, &SDK.DeleteMessageBatchRequestEntry{
-			ID:            v.MessageID,
+			Id:            v.MessageId,
 			ReceiptHandle: v.ReceiptHandle,
 		})
 	}
@@ -204,7 +204,7 @@ func (q *Queue) AddDeleteList(msg interface{}) {
 // Delete a message from server
 func (q *Queue) DeleteMessage(msg *SDK.Message) error {
 	_, err := q.client.DeleteMessage(&SDK.DeleteMessageInput{
-		QueueURL:      q.url,
+		QueueUrl:      q.url,
 		ReceiptHandle: msg.ReceiptHandle,
 	})
 	if err != nil {
@@ -249,7 +249,7 @@ func (q *Queue) delete(msg []*SDK.DeleteMessageBatchRequestEntry) error {
 	}
 	res, err := q.client.DeleteMessageBatch(&SDK.DeleteMessageBatchInput{
 		Entries:  msg,
-		QueueURL: q.url,
+		QueueUrl: q.url,
 	})
 	if err != nil {
 		log.Error("[SQS] error on `DeleteMessageBatch`, queue="+q.name, err.Error())
@@ -262,7 +262,7 @@ func (q *Queue) delete(msg []*SDK.DeleteMessageBatchRequestEntry) error {
 // Count left messages on the Queue
 func (q *Queue) CountMessage() (int, int, error) {
 	out, err := q.client.GetQueueAttributes(&SDK.GetQueueAttributesInput{
-		QueueURL: q.url,
+		QueueUrl: q.url,
 		AttributeNames: []*string{
 			String("ApproximateNumberOfMessages"),
 			String("ApproximateNumberOfMessagesNotVisible"),
@@ -281,7 +281,7 @@ func (q *Queue) CountMessage() (int, int, error) {
 // Delete all messages on the Queue
 func (q *Queue) Purge() error {
 	_, err := q.client.PurgeQueue(&SDK.PurgeQueueInput{
-		QueueURL: q.url,
+		QueueUrl: q.url,
 	})
 	if err != nil {
 		log.Error("[SQS] error on `PurgeQueue`, queue="+q.name, err.Error())
