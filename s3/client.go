@@ -50,7 +50,6 @@ func newClient(conf auth.Config) *AmazonS3 {
 	return s
 }
 
-
 // get bucket
 func (s *AmazonS3) GetBucket(bucket string) *Bucket {
 	prefix := config.GetConfigValue(s3ConfigSectionName, "prefix", defaultBucketPrefix)

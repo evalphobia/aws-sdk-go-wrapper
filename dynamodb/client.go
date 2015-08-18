@@ -136,7 +136,7 @@ func (d *AmazonDynamoDB) removeWriteTable(name string) {
 // execute put operation for all tables in write spool
 func (d *AmazonDynamoDB) PutAll() error {
 	var errs []string
-	for name, _ := range d.writeTables {
+	for name := range d.writeTables {
 		err := d.tables[name].Put()
 		if err != nil {
 			errs = append(errs, err.Error())

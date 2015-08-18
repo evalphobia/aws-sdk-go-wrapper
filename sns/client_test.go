@@ -166,7 +166,7 @@ func TestBulkPublish(t *testing.T) {
 	setTestConfig()
 	svc := NewClient()
 
-	tokens := map[string][]string{"android": []string{"token1", "token2"}, "ios": []string{"token3", "token4"}}
+	tokens := map[string][]string{"android": {"token1", "token2"}, "ios": {"token3", "token4"}}
 	err := svc.BulkPublish(tokens, "message")
 	assert.Nil(t, err)
 }
