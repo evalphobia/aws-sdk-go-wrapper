@@ -117,7 +117,7 @@ func main(){
     queue := svc.GetQueue("my-queue")
 
     // add message to spool
-    queue.AddMessage("my message)
+    queue.AddMessage("my message")
 
     // send messages in spool
     err := queue.Send()
