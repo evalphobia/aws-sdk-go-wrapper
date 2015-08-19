@@ -1,12 +1,12 @@
+# aws-sdk-go-wrapper
+
 [![Build Status](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/status.png)](https://drone.io/github.com/evalphobia/aws-sdk-go-wrapper/latest)
 (checked SDK version [aws-sdk-go](https://github.com/awslabs/aws-sdk-go/) :: [v0.9.0rc1](https://github.com/awslabs/aws-sdk-go/tree/v0.9.0rc1) 
 
 [![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=master)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=master)
 
-
-# aws-sdk-go-wrapper
-
 [![Join the chat at https://gitter.im/evalphobia/aws-sdk-go-wrapper](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/evalphobia/aws-sdk-go-wrapper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Simple wrapper for aws-sdk-go
 At this time, it suports services below,
 - `DynamoDB`
@@ -100,6 +100,57 @@ func main(){
 }
 ```
 
+
+### SQS
+
+```go
+
+import(
+    "fmt"
+
+    // import this
+    "github.com/evalphobia/aws-sdk-go-wrapper/sqs"
+)
+
+func main(){
+    svc := sqs.NewClient()
+    queue := svc.GetQueue("my-queue")
+
+    // add message to spool
+    queue.AddMessage("my message)
+
+    // send messages in spool
+    err := queue.Send()
+    if err != nil {
+        panic("error on sending sqs message")
+    }
+    
+    // count message in SQS Queue
+    num, _, _ := queue.CountMessage()
+    if num > 0 {
+        panic("message count must be sent")
+    }
+    
+    // fetch messages from SQS Queue
+    // maximum 10 message
+    messageList, err := queue.Fetch(10)
+    if err != nil {
+        panic("error on getting sqs message")
+    }
+    
+    for _, msg := messageList {
+        // shoe message content
+        fmt.Println(msg.Body())
+        
+        // delete message manually
+        // if set queue.AutoDelete(true), messages are delete on fetching process
+        queue.DeleteMessage(msg)
+    }
+    
+    // purge queue
+    queue.Purge()
+}
+```
 
 
 # License

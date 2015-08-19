@@ -10,22 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	setTestEnv()
+	createQueue("test")
+}
+
 // delete all messages from the Queue
 func cleanQueue(q *Queue) {
-	// purge has limitation for 60sec interval
-	q.AutoDelete(true)
-	time.Sleep(100 * time.Millisecond)
-	for {
-		num, num2, err := q.CountMessage()
-		num += num2
-		if num == 0 || err != nil {
-			q.AutoDelete(false)
-			time.Sleep(100 * time.Millisecond)
-			return
-		}
-		q.Fetch(10)
-		time.Sleep(500 * time.Millisecond)
-	}
+	time.Sleep(50 * time.Millisecond)
+	q.Purge()
+	time.Sleep(50 * time.Millisecond)
 }
 
 // add messages to the Queue
@@ -38,48 +32,40 @@ func addTestMessage(q *Queue, num int) {
 }
 
 func TestAutoDelete(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
-	assert.Equal(t, false, q.autoDel)
+	assert.Equal(false, q.autoDel)
 	q.AutoDelete(true)
-	assert.Equal(t, true, q.autoDel)
+	assert.Equal(true, q.autoDel)
 	q.AutoDelete(false)
-	assert.Equal(t, false, q.autoDel)
+	assert.Equal(false, q.autoDel)
 }
 
 func TestSetExpire(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
-	assert.Equal(t, defaultExpireSecond, q.expire)
+	assert.Equal(defaultExpireSecond, q.expire)
 	q.SetExpire(10)
-	assert.Equal(t, 10, q.expire)
+	assert.Equal(10, q.expire)
 }
 
 func TestAddMessage(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
 	q.AddMessage("foo msg")
-	assert.Equal(t, 1, len(q.messages))
+	assert.Equal(1, len(q.messages))
 	msg := *(q.messages[0].MessageBody)
-	assert.Equal(t, "foo msg", msg)
+	assert.Equal("foo msg", msg)
 }
 
 func TestAddMessageMap(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
@@ -89,147 +75,144 @@ func TestAddMessageMap(t *testing.T) {
 	jsonMsg := `{"number":99,"title":"foo title"}`
 
 	q.AddMessageMap(m)
-	assert.Equal(t, 1, len(q.messages))
+	assert.Equal(1, len(q.messages))
 	msg := *(q.messages[0].MessageBody)
-	assert.Equal(t, jsonMsg, msg)
+	assert.Equal(jsonMsg, msg)
 }
 
 func TestSend(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
 	q.AddMessage("foo send")
 	err := q.Send()
-	assert.Nil(t, err)
+	assert.Nil(err)
 }
 
 func TestFetch(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
 	// prepare
 	cleanQueue(q)
 	num, _, _ := q.CountMessage()
-	assert.Equal(t, 0, num)
+	assert.Equal(0, num)
 
 	// test this feature
 	q.AutoDelete(true)
 	addTestMessage(q, 3)
-	res, err := q.Fetch(10)
-	assert.Nil(t, err)
-	assert.Equal(t, true, len(res.Messages) > 0)
+	list, err := q.Fetch(10)
+	assert.Nil(err)
+	assert.Equal(true, len(list) > 0)
 
 	cleanQueue(q)
 }
 
 func TestFetchOne(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
 	// prepare
 	cleanQueue(q)
 	num, _, _ := q.CountMessage()
-	assert.Equal(t, 0, num)
+	assert.Equal(0, num)
 
 	// test empty
 	res, err := q.FetchOne()
-	assert.Nil(t, err)
-	assert.Nil(t, res)
+	assert.Nil(err)
+	assert.Nil(res)
 
 	// test this feature
 	addTestMessage(q, 3)
 	res, err = q.FetchOne()
-	assert.Nil(t, err)
-	assert.Contains(t, *res.Body, "addTestMessage")
+	assert.Nil(err)
+	assert.Contains(res.Body(), "addTestMessage")
 
 	cleanQueue(q)
 }
 
 func TestFetchBody(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
 	// prepare
 	cleanQueue(q)
 	num, _, _ := q.CountMessage()
-	assert.Equal(t, 0, num)
+	assert.Equal(0, num)
 
 	// test empty
 	res := q.FetchBody(10)
-	assert.Equal(t, 0, len(res))
+	assert.Equal(0, len(res))
 
 	// test this feature
 	q.AutoDelete(true)
 	addTestMessage(q, 3)
 	res = q.FetchBody(10)
-	assert.True(t, len(res) > 0)
-	assert.Contains(t, res[0], "addTestMessage")
+	assert.True(len(res) > 0)
+	assert.Contains(res[0], "addTestMessage")
 
 	cleanQueue(q)
 }
 
 func TestFetchBodyOne(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 
 	// prepare
 	cleanQueue(q)
 	num, _, _ := q.CountMessage()
-	assert.Equal(t, 0, num)
+	assert.Equal(0, num)
 
 	// test empty
 	res := q.FetchBodyOne()
-	assert.Contains(t, res, "")
+	assert.Contains(res, "")
 
 	// test this feature
 	addTestMessage(q, 3)
 	res = q.FetchBodyOne()
-	assert.Contains(t, res, "addTestMessage")
+	assert.Contains(res, "addTestMessage")
 
 	cleanQueue(q)
 }
 
 func TestAddDeleteList(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
-	assert.Equal(t, 0, len(q.delMessages))
+	assert.Equal(0, len(q.delMessages))
 
-	msg := &SDK.Message{
-		MessageId:     String(""),
-		ReceiptHandle: String(""),
+	sdkmsg := &SDK.Message{
+		MessageId:     String("id"),
+		ReceiptHandle: String("handle"),
 	}
+
+	// add single SDK.Message
+	q.AddDeleteList(sdkmsg)
+	assert.Equal(1, len(q.delMessages))
+
+	// add slice SDK.Message
+	q.AddDeleteList([]*SDK.Message{sdkmsg, sdkmsg})
+	assert.Equal(3, len(q.delMessages))
+
+	msg := &Message{sdkmsg}
 
 	// add single message
 	q.AddDeleteList(msg)
-	assert.Equal(t, 1, len(q.delMessages))
+	assert.Equal(4, len(q.delMessages))
 
 	// add slice message
-	q.AddDeleteList([]*SDK.Message{msg, msg})
-	assert.Equal(t, 3, len(q.delMessages))
+	q.AddDeleteList([]*Message{msg, msg, msg})
+	assert.Equal(7, len(q.delMessages))
+
 }
 
 func TestDeleteMessage(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 	cleanQueue(q)
@@ -237,19 +220,17 @@ func TestDeleteMessage(t *testing.T) {
 	// prepare messages
 	addTestMessage(q, 3)
 	msg, err := q.FetchOne()
-	assert.Nil(t, err)
+	assert.Nil(err)
 
 	// test this feature
 	err = q.DeleteMessage(msg)
-	assert.Nil(t, err)
+	assert.Nil(err)
 
 	cleanQueue(q)
 }
 
 func TestDeleteListItems(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 	cleanQueue(q)
@@ -261,15 +242,32 @@ func TestDeleteListItems(t *testing.T) {
 	// test this feature
 	q.AddDeleteList(res)
 	err := q.DeleteListItems()
-	assert.Nil(t, err)
+	assert.Nil(err)
+
+	cleanQueue(q)
+
+	// no message
+	err = q.DeleteListItems()
+	assert.Nil(err)
+
+	cleanQueue(q)
+
+	// over 10+ message
+	addTestMessage(q, 30)
+	var list []*Message
+	for len(list) < 20 {
+		res, _ := q.Fetch(10)
+		list = append(list, res...)
+	}
+	q.AddDeleteList(list)
+	err = q.DeleteListItems()
+	assert.Nil(err)
 
 	cleanQueue(q)
 }
 
 func TestCountMessage(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
 	q, _ := svc.GetQueue("test")
 	cleanQueue(q)
@@ -277,27 +275,22 @@ func TestCountMessage(t *testing.T) {
 
 	visible, invisible, err := q.CountMessage()
 	sum := visible + invisible
-	assert.Nil(t, err)
-	assert.True(t, sum > 0)
+	assert.Nil(err)
+	assert.True(sum > 0)
 
 	// test for increase
 	addTestMessage(q, 3)
 	visible2, invisible2, err := q.CountMessage()
 	sum2 := visible2 + invisible2
-	assert.Nil(t, err)
-	assert.True(t, sum2 > sum)
+	assert.Nil(err)
+	assert.True(sum2 > sum)
 
 	cleanQueue(q)
 }
 
 func TestPurge(t *testing.T) {
-	setTestEnv()
-	createQueue("test")
-
+	assert := assert.New(t)
 	svc := NewClient()
-	if svc.client.Endpoint == defaultEndpoint {
-		t.Skip("fakesqs does not implement Purge() yet.")
-	}
 
 	// prepare message
 	q, _ := svc.GetQueue("test")
@@ -309,11 +302,11 @@ func TestPurge(t *testing.T) {
 
 	// test this feature
 	err := q.Purge()
-	assert.Nil(t, err)
+	assert.Nil(err)
 
 	// make sure deleted
-	assert.NotEqual(t, 0, sum)
+	assert.NotEqual(0, sum)
 	visible2, invisible2, _ := q.CountMessage()
-	assert.Equal(t, 0, visible2)
-	assert.Equal(t, 0, invisible2)
+	assert.Equal(0, visible2)
+	assert.Equal(0, invisible2)
 }

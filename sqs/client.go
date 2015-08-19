@@ -14,7 +14,7 @@ const (
 	sqsConfigSectionName = "sqs"
 	defaultRegion        = "us-east-1"
 	defaultEndpoint      = "http://localhost:4568"
-	defaultQueuePrefix   = "devfs_"
+	defaultQueuePrefix   = "dev_"
 )
 
 type AmazonSQS struct {
@@ -74,6 +74,26 @@ func (svc *AmazonSQS) CreateQueueWithName(name string) error {
 	return svc.CreateQueue(&SDK.CreateQueueInput{
 		QueueName: String(GetQueuePrefix() + name),
 	})
+}
+
+// Create new SQS Queue
+func (svc *AmazonSQS) IsExistQueue(name string) (bool, error) {
+	name = GetQueuePrefix() + name
+	data, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
+		QueueName: String(name),
+	})
+
+	switch {
+	case err != nil:
+		log.Error("[SQS] Error on `GetQueueUrl` operation, queue="+name, err)
+		return false, err
+	case data == nil:
+		return false, nil
+	case *data.QueueUrl != "":
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 // Get the prefix for DynamoDB table

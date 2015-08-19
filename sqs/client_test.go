@@ -24,40 +24,77 @@ func createQueue(name string) {
 }
 
 func TestNewClient(t *testing.T) {
+	assert := assert.New(t)
 	setTestEnv()
 
 	svc := NewClient()
-	assert.NotNil(t, svc.client)
-	assert.Equal(t, "sqs", svc.client.ServiceName)
-	assert.Equal(t, defaultEndpoint, svc.client.Endpoint)
+	assert.NotNil(svc.client)
+	assert.Equal("sqs", svc.client.ServiceName)
+	assert.Equal(defaultEndpoint, svc.client.Endpoint)
 
 	region := "us-west-1"
 	os.Setenv("AWS_REGION", region)
 
 	c2 := NewClient()
 	endpoint := "https://sqs." + region + ".amazonaws.com"
-	assert.Equal(t, endpoint, c2.client.Endpoint)
+	assert.Equal(endpoint, c2.client.Endpoint)
 }
 
 func TestGetQueue(t *testing.T) {
+	assert := assert.New(t)
 	setTestEnv()
 	createQueue("test")
 
 	svc := NewClient()
 	q, err := svc.GetQueue("test")
-	assert.Nil(t, err)
-	assert.NotNil(t, q)
+	assert.Nil(err)
+	assert.NotNil(q)
 
 	q, err = svc.GetQueue("non_exist")
-	assert.NotNil(t, err)
-	assert.Nil(t, q)
+	assert.NotNil(err)
+	assert.Nil(q)
 
 	// cache
 	q, err = svc.GetQueue("test")
-	assert.Nil(t, err)
-	assert.NotNil(t, q)
+	assert.Nil(err)
+	assert.NotNil(q)
 }
 
 func TestGetQueuePrefix(t *testing.T) {
-	assert.Equal(t, defaultQueuePrefix, GetQueuePrefix())
+	assert := assert.New(t)
+	assert.Equal(defaultQueuePrefix, GetQueuePrefix())
+}
+
+func TestCreateQueueWithName(t *testing.T) {
+	assert := assert.New(t)
+	svc := NewClient()
+
+	// not exitst
+	has, err := svc.IsExistQueue("test2")
+	assert.NotNil(err)
+	assert.False(has)
+
+	// create
+	err = svc.CreateQueueWithName("test2")
+	assert.Nil(err)
+
+	// created
+	has, err = svc.IsExistQueue("test2")
+	assert.Nil(err)
+	assert.True(has)
+}
+
+func TestIsExistQueue(t *testing.T) {
+	assert := assert.New(t)
+	createQueue("test")
+
+	svc := NewClient()
+	has, err := svc.IsExistQueue("test")
+	assert.Nil(err)
+	assert.True(has)
+
+	// not exitst
+	has, err = svc.IsExistQueue("non-exitst-queue")
+	assert.NotNil(err)
+	assert.False(has)
 }
