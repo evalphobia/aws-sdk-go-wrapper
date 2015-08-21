@@ -5,10 +5,15 @@ import (
 	"testing"
 	"time"
 
-	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/stretchr/testify/assert"
 
 	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
+	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 )
+
+func init() {
+	setTestEnv()
+}
 
 func setTestEnv() {
 	os.Clearenv()
@@ -17,264 +22,286 @@ func setTestEnv() {
 }
 
 func TestNewClient(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
 
 	c := NewClient()
-	if c == nil || c.client == nil {
-		t.Errorf("error on NewClient, actual=%v", c)
-	}
-	if len(c.tables) != 0 || len(c.writeTables) != 0 {
-		t.Errorf("error on NewClient, actual=%v", c)
-	}
+	assert.NotNil(c)
+	assert.NotNil(c.client)
+	assert.Len(c.tables, 0)
+	assert.Len(c.writeTables, 0)
+}
+
+func TestNewClientWithKeys(t *testing.T) {
+	assert := assert.New(t)
+
+	c := NewClientWithKeys(auth.Keys{
+		AccessKey: "myAccessKey",
+		SecretKey: "mySecretKey",
+		Region: "ap-northeast-1",
+	})
+	assert.NotNil(c)
+	assert.NotNil(c.client)
+	assert.Len(c.tables, 0)
+	assert.Len(c.writeTables, 0)
 }
 
 func TestCreateTable(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	name := "foo_table"
 
 	c := NewClient()
-	name := "foo_table"
-	in := getCreateTableInput(name)
 	resetTable(c, name)
 
-	err := c.CreateTable(&in)
-	if err != nil {
-		t.Errorf("error on CreateTable, %s", err.Error())
-	}
+	in := NewCreateTableWithHashKeyN(name, "id")
+	in.AddRangeKeyN("time")
+	in.AddLSIS("lsi-index", "lsi_key")
+	in.AddGSINN("gsi-index", "time", "id")
+
+	err := c.CreateTable(in)
+	assert.Nil(err)
+	
+	// duplicate table
+	err = c.CreateTable(in)
+	assert.NotNil(err)
+
+	// empty request
+	empty := CreateTableInput{}
+	err = c.CreateTable(&empty)
+	assert.NotNil(err)
 }
 
 func TestDeleteTable(t *testing.T) {
-	setTestEnv()
-
-	c := NewClient()
+	assert := assert.New(t)
 	name := "foo_table_delete"
 
+	c := NewClient()
 	in := getCreateTableInput(name)
 	createTable(c, in)
 
-	err := c.DeleteTable(name)
-	if err != nil {
-		t.Errorf("error on DeleteTable, %s", err.Error())
-	}
+	err := c.DeleteTable(c.TablePrefix + name)
+	assert.Nil(err)
+	
+	// deleted table does not return error
+	err = c.DeleteTable(c.TablePrefix + name)
+	assert.Nil(err)
+}
+
+func TestDeleteTableWithPrefix(t *testing.T) {
+	assert := assert.New(t)
+	name := "foo_table_delete"
+
+	c := NewClient()
+	in := getCreateTableInput(name)
+	createTable(c, in)
+
+	err := c.DeleteTableWithPrefix(name)
+	assert.Nil(err)
+
+	// deleted table does not return error
+	err = c.DeleteTableWithPrefix(name)
+	assert.Nil(err)
 }
 
 func TestDescribeTable(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	name := "foo_table"
 
 	c := NewClient()
-	name := "foo_table"
 	resetTable(c, name)
 
 	in := getCreateTableInput(name)
 	createTable(c, in)
 
-	desc, err := c.DescribeTable(name)
-	if err != nil {
-		t.Errorf("error on DescribeTable, %s", err.Error())
-	}
-	if desc == nil || *desc.TableName != name {
-		t.Errorf("error on DescribeTable, %v", desc)
-	}
+	desc, err := c.DescribeTable(c.TablePrefix + name)
+	assert.Nil(err)
+	assert.NotNil(desc)
+	assert.Equal(c.TablePrefix+name, desc.GetTableName())
+}
+
+func TestDescribeTableWithPrefix(t *testing.T) {
+	assert := assert.New(t)
+	name := "foo_table"
+
+	c := NewClient()
+	resetTable(c, name)
+
+	in := getCreateTableInput(name)
+	createTable(c, in)
+
+	desc, err := c.DescribeTableWithPrefix(name)
+	assert.Nil(err)
+	assert.NotNil(desc)
+	assert.Equal(c.TablePrefix+name, desc.GetTableName())
 }
 
 func TestGetTable(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	origName := "foo_table"
 
 	c := NewClient()
-	origName := "foo_table"
-	name := c.TablePrefix + origName
-	resetTable(c, name)
+	resetTable(c, origName)
 
-	in := getCreateTableInput(name)
+	in := getCreateTableInput(origName)
 	createTable(c, in)
 
 	tbl, err := c.GetTable(origName)
-	if err != nil {
-		t.Errorf("error on GetTable, %s", err.Error())
-	}
-	if tbl == nil || tbl.table == nil {
-		t.Errorf("error on GetTable, %v", tbl)
-	}
-	if tbl.name != name || *tbl.table.TableName != name {
-		t.Errorf("error on GetTable, %v", tbl)
-	}
+	assert.Nil(err)
+	assert.NotNil(tbl)
+	assert.NotNil(tbl.table)
+
+	name := c.TablePrefix + origName
+	assert.Equal(name, tbl.name)
+	assert.Equal(name, *tbl.table.TableName)
+
+	// not exist table
+	tbl, err = c.GetTable("non-exist")
+	assert.NotNil(err)
+	assert.Nil(tbl)
+
+	// get from cache
+	tbl, err = c.GetTable(origName)
+	assert.Nil(err)
+	assert.NotNil(tbl)
 }
 
 func TestAddWriteTable(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	name := "foo_table"
 
 	c := NewClient()
-	name := "foo_table"
 	c.addWriteTable(name)
+
 	w, ok := c.writeTables[name]
-	if len(c.writeTables) != 1 || !ok {
-		t.Errorf("error on addWriteTable, %v", c)
-	}
-	if w != true {
-		t.Errorf("error on addWriteTable, %t", w)
-	}
+	assert.True(ok)
+	assert.Len(c.writeTables, 1)
+	assert.True(w)
 }
 
 func TestRemoveWriteTable(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	name := "foo_table"
 
 	c := NewClient()
-	name := "foo_table"
 	c.removeWriteTable(name)
+
 	w, ok := c.writeTables[name]
-	if len(c.writeTables) != 1 || !ok {
-		t.Errorf("error on removeWriteTable, %v", c)
-	}
-	if w != false {
-		t.Errorf("error on removeWriteTable, %t", w)
-	}
+	assert.True(ok)
+	assert.Len(c.writeTables, 1)
+	assert.False(w)
 }
 
 func TestListTables(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	name := "foo_table"
 
 	c := NewClient()
-	name := "foo_table"
 	resetTable(c, name)
 
 	tables1, err := c.ListTables()
-	if err != nil {
-		t.Errorf("error on ListTables, %s", err.Error())
-	}
+	assert.Nil(err)
 
 	in := getCreateTableInput(name)
 	createTable(c, in)
 
 	tables2, err := c.ListTables()
-	if err != nil {
-		t.Errorf("error on ListTables, %s", err.Error())
-	}
-	if len(tables1)+1 != len(tables2) {
-		t.Errorf("error on ListTables, %v, %v", tables1, tables2)
-	}
+	assert.Nil(err)
+	assert.Equal(len(tables1)+1, len(tables2))
 }
 
 func TestPutAll(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	name := "foo_table"
 
 	c := NewClient()
-	pfx := c.TablePrefix
-	name := "foo_table"
-	resetTable(c, pfx+name)
-	createTable(c, getCreateTableInput(pfx+name))
+	resetTable(c, name)
+	createTable(c, getCreateTableInput(name))
+
 	tbl, err := c.GetTable(name)
-	if err != nil || tbl == nil || len(tbl.writeItems) != 0 {
-		t.Errorf("error on GetTable, %v, %v", err, tbl)
-	}
+	assert.Nil(err)
+	assert.NotNil(tbl)
+	assert.Len(tbl.writeItems, 0)
+
+	// add 1 items to tbl
 	item := NewItem()
 	item.AddAttribute("id", 100)
 	item.AddAttribute("time", 1)
 	tbl.AddItem(item)
 
 	name2 := "foo_hashtable"
-	resetTable(c, pfx+name2)
-	createTable(c, getCreateHashTableInput(pfx+name2))
-	tbl2, err := c.GetTable(name2)
-	if err != nil || tbl2 == nil || len(tbl2.writeItems) != 0 {
-		t.Errorf("error on GetTable, %v, %v", err, tbl2)
-	}
-	item2 := NewItem()
-	item2.AddAttribute("id", 100)
-	item2.AddAttribute("time", 1)
-	tbl2.AddItem(item2)
+	resetTable(c, name2)
+	createTable(c, getCreateHashTableInput(name2))
 
+	tbl2, err := c.GetTable(name2)
+	assert.Nil(err)
+	assert.NotNil(tbl2)
+	assert.Len(tbl2.writeItems, 0)
+
+	// add 3 items to tbl2
+	item2a := NewItem()
+	item2a.AddAttribute("id", 100)
+	item2a.AddAttribute("time", 1)
+	item2b := NewItem()
+	item2b.AddAttribute("id", 101)
+	item2b.AddAttribute("time", 2)
+	item2c := NewItem()
+	item2c.AddAttribute("id", 102)
+	item2c.AddAttribute("time", 3)
+	tbl2.AddItem(item2a)
+	tbl2.AddItem(item2b)
+	tbl2.AddItem(item2c)
+
+	// check before put
 	results1, err1 := tbl.Scan()
 	results2, err2 := tbl2.Scan()
-
-	if err1 != nil || err2 != nil || len(results1) > 0 || len(results2) > 0 {
-		t.Errorf("error on Scan")
-	}
+	assert.Nil(err1)
+	assert.Nil(err2)
+	assert.Len(results1, 0)
+	assert.Len(results2, 0)
 
 	err = c.PutAll()
-	if err != nil {
-		t.Errorf("error on PutAll, %s", err.Error())
-	}
+	assert.Nil(err)
 
+	// check after put
 	results1, err1 = tbl.Scan()
 	results2, err2 = tbl2.Scan()
-	if err1 != nil || err2 != nil || len(results1) != 1 || len(results2) != 1 {
-		t.Errorf("error on PutAll")
-	}
+	assert.Nil(err1)
+	assert.Nil(err2)
+	assert.Len(results1, 1)
+	assert.Len(results2, 3)
 }
 
-func getCreateTableInput(name string) SDK.CreateTableInput {
-	pKey := NewKeySchema(
-		NewHashKeyElement("id"),
-		NewRangeKeyElement("time"))
-
-	attrs := NewAttributeDefinitions(
-		NewNumberAttribute("id"),
-		NewNumberAttribute("time"),
-		NewStringAttribute("lsi_key"))
-
-	lsi := NewLSI(
-		"lsi-index",
-		NewKeySchema(
-			NewHashKeyElement("id"),
-			NewRangeKeyElement("lsi_key"),
-		))
-
-	gsi := NewGSI(
-		"gsi-index",
-		NewKeySchema(
-			NewHashKeyElement("time"),
-			NewRangeKeyElement("id")),
-		NewProvisionedThroughput(1, 1))
-
-	return SDK.CreateTableInput{
-		TableName:              &name,
-		KeySchema:              pKey,
-		AttributeDefinitions:   attrs,
-		LocalSecondaryIndexes:  []*SDK.LocalSecondaryIndex{lsi},
-		GlobalSecondaryIndexes: []*SDK.GlobalSecondaryIndex{gsi},
-		ProvisionedThroughput:  NewProvisionedThroughput(1, 1),
-	}
+func getCreateTableInput(name string) *CreateTableInput {
+	in := NewCreateTableWithHashKeyN(name, "id")
+	in.AddRangeKeyN("time")
+	in.AddLSIS("lsi-index", "lsi_key")
+	in.AddGSINN("gsi-index", "time", "id")
+	return in
 }
 
-func getCreateHashTableInput(name string) SDK.CreateTableInput {
-	pKey := NewKeySchema(
-		NewHashKeyElement("id"))
-
-	attrs := NewAttributeDefinitions(
-		NewNumberAttribute("id"))
-	return SDK.CreateTableInput{
-		TableName:             &name,
-		KeySchema:             pKey,
-		AttributeDefinitions:  attrs,
-		ProvisionedThroughput: NewProvisionedThroughput(1, 1),
-	}
+func getCreateHashTableInput(name string) *CreateTableInput {
+	return NewCreateTableWithHashKeyN(name, "id")
 }
 
 func resetTable(c *AmazonDynamoDB, name string) {
-	desc, _ := c.client.DescribeTable(&SDK.DescribeTableInput{
-		TableName: &name,
-	})
-	if desc == nil || desc.Table == nil {
+	desc, _ := c.DescribeTableWithPrefix(name)
+	if desc == nil {
 		return
 	}
-	if *desc.Table.TableStatus == "ACTIVE" {
-		c.client.DeleteTable(&SDK.DeleteTableInput{
-			TableName: &name,
-		})
+	if desc.IsActive() {
+		c.DeleteTableWithPrefix(name)
 	}
 	time.Sleep(time.Millisecond * 100)
 	resetTable(c, name)
 }
 
-func createTable(c *AmazonDynamoDB, in SDK.CreateTableInput) {
-	desc, _ := c.client.DescribeTable(&SDK.DescribeTableInput{
-		TableName: in.TableName,
-	})
-	if desc == nil || desc.Table == nil {
-		c.client.CreateTable(&in)
+func createTable(c *AmazonDynamoDB, in *CreateTableInput) {
+	desc, _ := c.DescribeTableWithPrefix(in.Name)
+	if desc == nil {
+		c.CreateTable(in)
 		createTable(c, in)
 		return
 	}
-	if *desc.Table.TableStatus == "ACTIVE" {
+	if desc.IsActive() {
 		return
 	}
 	time.Sleep(time.Millisecond * 100)

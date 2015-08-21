@@ -3,9 +3,6 @@
 package dynamodb
 
 import (
-	"errors"
-	"strings"
-
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
@@ -57,13 +54,43 @@ func newClient(conf auth.Config) *AmazonDynamoDB {
 }
 
 // Create new DynamoDB table
-func (d *AmazonDynamoDB) CreateTable(in *SDK.CreateTableInput) error {
-	data, err := d.client.CreateTable(in)
-	if err != nil {
-		log.Error("[DynamoDB] Error on `CreateTable` operation, table="+*in.TableName, err)
+func (d *AmazonDynamoDB) CreateTable(ct *CreateTableInput) error {
+	if ct.HashKey == nil {
+		err := NewError("cannot find hashkey on CreateTableInput")
 		return err
 	}
-	log.Info("[DynamoDB] Complete CreateTable, table="+*in.TableName, data.TableDescription.TableStatus)
+
+	var keys []*SDK.KeySchemaElement
+	keys = append(keys, ct.HashKey)
+	if ct.HasRangeKey() {
+		keys = append(keys, ct.RangeKey)
+	}
+
+	tableName := d.TablePrefix + ct.Name
+	log.Error("hoge", tableName)
+
+	tp := NewProvisionedThroughput(ct.ReadCapacity, ct.WriteCapacity)
+	in := &SDK.CreateTableInput{
+		TableName:             String(tableName),
+		KeySchema:             keys,
+		AttributeDefinitions:  ct.Attributes,
+		ProvisionedThroughput: tp,
+	}
+
+	if ct.HasLSI() {
+		in.LocalSecondaryIndexes = ct.ListLSI()
+	}
+	if ct.HasGSI() {
+		in.GlobalSecondaryIndexes = ct.ListGSI()
+	}
+
+	out, err := d.client.CreateTable(in)
+	if err != nil {
+		log.Error("[DynamoDB] Error on `CreateTable` operation, table="+tableName, err)
+		return err
+	}
+	desc := TableDescription{out.TableDescription}
+	log.Info("[DynamoDB] Complete CreateTable, table="+tableName, desc.GetTableStatus())
 	return nil
 }
 
@@ -72,24 +99,36 @@ func (d *AmazonDynamoDB) DeleteTable(name string) error {
 	in := &SDK.DeleteTableInput{
 		TableName: String(name),
 	}
-	data, err := d.client.DeleteTable(in)
+	out, err := d.client.DeleteTable(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error on `DeleteTable` operation, table="+*in.TableName, err)
 		return err
 	}
-	log.Info("[DynamoDB] Complete DeleteTable, table="+*in.TableName, data.TableDescription.TableStatus)
+	desc := TableDescription{out.TableDescription}
+	log.Info("[DynamoDB] Complete DeleteTable, table="+*in.TableName, desc.GetTableStatus())
 	return nil
 }
 
+// Delete DynamoDB table
+func (d *AmazonDynamoDB) DeleteTableWithPrefix(name string) error {
+	return d.DeleteTable(d.TablePrefix + name)
+}
+
 // get infomation of the table
-func (d *AmazonDynamoDB) DescribeTable(name string) (*SDK.TableDescription, error) {
+func (d *AmazonDynamoDB) DescribeTable(name string) (*TableDescription, error) {
 	req, err := d.client.DescribeTable(&SDK.DescribeTableInput{
 		TableName: String(name),
 	})
 	if err != nil {
+		log.Info("debug", err)
 		return nil, err
 	}
-	return req.Table, nil
+	return &TableDescription{req.Table}, nil
+}
+
+// get infomation of the table
+func (d *AmazonDynamoDB) DescribeTableWithPrefix(name string) (*TableDescription, error) {
+	return d.DescribeTable(d.TablePrefix + name)
 }
 
 // get the DynamoDB table
@@ -135,17 +174,18 @@ func (d *AmazonDynamoDB) removeWriteTable(name string) {
 
 // execute put operation for all tables in write spool
 func (d *AmazonDynamoDB) PutAll() error {
-	var errs []string
+	err := DynamoError{}
 	for name := range d.writeTables {
-		err := d.tables[name].Put()
-		if err != nil {
-			errs = append(errs, err.Error())
+		e := d.tables[name].Put()
+		if e != nil {
+			err.AddMessage(e.Error())
 			log.Error("[DynamoDB] Error on `Put` operation, table="+name, err.Error())
 		}
 		d.removeWriteTable(name)
 	}
-	if len(errs) != 0 {
-		return errors.New(strings.Join(errs, "\n"))
+
+	if err.HasError() {
+		return err
 	}
 	return nil
 }

@@ -3,24 +3,25 @@
 package dynamodb
 
 import (
+	"errors"
+	"strings"
+
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 
-	"errors"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
-	"strings"
 )
 
 // DynamoTable is a wapper struct for DynamoDB table
 type DynamoTable struct {
 	db         *AmazonDynamoDB
-	table      *SDK.TableDescription
+	table      *TableDescription
 	name       string
 	indexes    map[string]*DynamoIndex
 	writeItems []*SDK.PutItemInput
 	errorItems []*SDK.PutItemInput
 }
 
-func (t *DynamoTable) Desc() (*SDK.TableDescription, error) {
+func (t *DynamoTable) Desc() (*TableDescription, error) {
 	req, err := t.db.client.DescribeTable(&SDK.DescribeTableInput{
 		TableName: String(t.name),
 	})
@@ -28,7 +29,7 @@ func (t *DynamoTable) Desc() (*SDK.TableDescription, error) {
 		log.Error("[DynamoDB] Error in `DescribeTable` operation, table="+t.name, err)
 		return nil, err
 	}
-	return req.Table, nil
+	return &TableDescription{req.Table}, nil
 }
 
 func (t *DynamoTable) UpdateThroughput(r int64, w int64) error {
@@ -65,15 +66,18 @@ func (t *DynamoTable) updateThroughput(in *SDK.UpdateTableInput) error {
 	if t.isSameThroughput(in) {
 		return nil
 	}
+
 	_, err := t.db.client.UpdateTable(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error in `UpdateTable` operation, table="+t.name, err)
 		return err
 	}
+
 	desc, err := t.Desc()
 	if err != nil {
 		return err
 	}
+
 	t.table = desc
 	return nil
 }
@@ -86,6 +90,7 @@ func (t *DynamoTable) isSameThroughput(in *SDK.UpdateTableInput) bool {
 	}
 	from := desc.ProvisionedThroughput
 	to := in.ProvisionedThroughput
+
 	switch {
 	case *from.ReadCapacityUnits != *to.ReadCapacityUnits:
 		return false
@@ -189,10 +194,14 @@ func (t *DynamoTable) getOneAsSlice(values []Any) ([]map[string]interface{}, err
 		item  map[string]interface{}
 		err   error
 	)
-	if len(values) > 1 {
-		item, err = t.GetOne(values[0], values[1])
-	} else {
+	switch len(values) {
+	case 0:
+		log.Error("[DynamoDB] empty values passed for Get()", t.name)
+		return items, nil
+	case 1:
 		item, err = t.GetOne(values[0])
+	default:
+		item, err = t.GetOne(values[0], values[1])
 	}
 
 	if err != nil {
@@ -206,7 +215,10 @@ func (t *DynamoTable) getOneAsSlice(values []Any) ([]map[string]interface{}, err
 
 // perform GetOne() or Query()
 func (t *DynamoTable) Get(values ...Any) ([]map[string]interface{}, error) {
-	if len(values) > 1 || t.GetRangeKeyName() == "" {
+	switch {
+	case len(values) > 1:
+		return t.getOneAsSlice(values)
+	case t.GetRangeKeyName() == "":
 		return t.getOneAsSlice(values)
 	}
 
@@ -239,6 +251,7 @@ func (t *DynamoTable) Scan() ([]map[string]interface{}, error) {
 		TableName: String(t.name),
 		Limit:     Long(1000),
 	}
+
 	req, err := t.db.client.Scan(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error in `Scan` operation, table="+t.name, err)
@@ -259,6 +272,7 @@ func (t *DynamoTable) Delete(values ...Any) error {
 		TableName: String(t.name),
 		Key:       key.data,
 	}
+
 	_, err := t.db.client.DeleteItem(in)
 	if err != nil {
 		log.Error("[DynamoDB] Error in `DeleteItem` operation, table="+t.name, err)
@@ -294,14 +308,17 @@ func (t *DynamoTable) GetRangeKeyName() string {
 func (t *DynamoTable) isExistPrimaryKeys(item *SDK.PutItemInput) bool {
 	hashKey := t.GetHashKeyName()
 	itemAttrs := item.Item
-	_, ok := itemAttrs[hashKey]
-	if !ok {
+	if _, ok := itemAttrs[hashKey]; !ok {
 		log.Warn("[DynamoDB] No HashKey, table="+t.name, hashKey)
 		return false
 	}
+
 	rangeKey := t.GetRangeKeyName()
-	_, ok = itemAttrs[rangeKey]
-	if rangeKey != "" && !ok {
+	if rangeKey == "" {
+		return true
+	}
+
+	if _, ok := itemAttrs[rangeKey]; !ok {
 		log.Warn("[DynamoDB] No RangeKey, table="+t.name, rangeKey)
 		return false
 	}
@@ -319,22 +336,23 @@ func (t *DynamoTable) DeleteAll() error {
 		return err
 	}
 
-	errStr := ""
+	errData := &DynamoError{}
 	for _, item := range result {
 		var e error
-		if rangekey != "" {
-			e = t.Delete(item[hashkey], item[rangekey])
-		} else {
+		switch rangekey {
+		case "":
 			e = t.Delete(item[hashkey])
+		default:
+			e = t.Delete(item[hashkey], item[rangekey])
 		}
+
 		if e != nil {
-			errStr = errStr + "," + e.Error()
+			errData.AddMessage(e.Error())
 		}
 	}
 
-	if errStr != "" {
-		err = errors.New(errStr)
+	if errData.HasError() {
+		return errData
 	}
-
-	return err
+	return nil
 }
