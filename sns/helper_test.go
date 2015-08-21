@@ -8,7 +8,7 @@ import (
 
 func TestComposeMessageGCM(t *testing.T) {
 	assert := assert.New(t)
-	
+
 	opt := make(map[string]interface{})
 	msg := composeMessageGCM("test", opt)
 	assert.Equal(`{"data":{"message":"test"}}`, msg)
@@ -26,7 +26,7 @@ func TestComposeMessageGCM(t *testing.T) {
 	opt["badge"] = 5
 	msg = composeMessageGCM("test", opt)
 	assert.Equal(`{"data":{"badge":5,"message":"test","sound":"jazz"}}`, msg)
-	
+
 	opt["x-option"] = "foo"
 	msg = composeMessageGCM("test", opt)
 	assert.Equal(`{"data":{"badge":5,"message":"test","sound":"jazz","x-option":"foo"}}`, msg)

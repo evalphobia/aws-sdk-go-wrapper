@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	gcmKeyMessage = "message"
+	gcmKeyMessage  = "message"
 	apnsKeyMessage = "alert"
-	apnsKeySound = "sound"
-	apnsKeyBadge = "badge"
+	apnsKeySound   = "sound"
+	apnsKeyBadge   = "badge"
 )
 
 // make sns message for Google Cloud Messaging
@@ -22,7 +22,7 @@ func composeMessageGCM(msg string, opt map[string]interface{}) string {
 	for k, v := range opt {
 		data[k] = v
 	}
-	
+
 	message := make(map[string]interface{})
 	message["data"] = data
 
