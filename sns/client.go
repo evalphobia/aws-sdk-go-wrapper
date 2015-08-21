@@ -154,7 +154,7 @@ func (svc *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}
 	msg = truncateMessage(msg)
 	m := make(map[string]string)
 	m["default"] = msg
-	m["GCM"] = composeMessageGCM(msg)
+	m["GCM"] = composeMessageGCM(msg, opt)
 	m["APNS"] = composeMessageAPNS(msg, opt)
 	m["APNS_SANDBOX"] = m["APNS"]
 	jsonString, _ := json.Marshal(m)
