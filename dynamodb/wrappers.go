@@ -43,6 +43,14 @@ func (d TableDescription) GetNumberOfDecreasesToday() int64 {
 	return *d.ProvisionedThroughput.NumberOfDecreasesToday
 }
 
+func (d TableDescription) GetKeyAttributes() map[string]string {
+	m := make(map[string]string)
+	for _, attr := range d.AttributeDefinitions {
+		m[*attr.AttributeName] = *attr.AttributeType
+	}
+	return m
+}
+
 // CreateTableInput is wrapper struct for CreateTable operation
 type CreateTableInput struct {
 	Name          string
@@ -52,13 +60,14 @@ type CreateTableInput struct {
 	GSI           []*SDK.GlobalSecondaryIndex
 	ReadCapacity  int64
 	WriteCapacity int64
-	Attributes    []*SDK.AttributeDefinition
+	Attributes    map[string]*SDK.AttributeDefinition
 }
 
 func newCreateTableWithHashKey(tableName, hashkeyName string) *CreateTableInput {
 	return &CreateTableInput{
 		Name:          tableName,
 		HashKey:       NewHashKeyElement(hashkeyName),
+		Attributes:    make(map[string]*SDK.AttributeDefinition),
 		ReadCapacity:  1,
 		WriteCapacity: 1,
 	}
@@ -67,25 +76,25 @@ func newCreateTableWithHashKey(tableName, hashkeyName string) *CreateTableInput 
 // NewCreateTableWithHashKeyS returns create table request data for string hashkey
 func NewCreateTableWithHashKeyS(tableName, keyName string) *CreateTableInput {
 	ct := newCreateTableWithHashKey(tableName, keyName)
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(keyName))
+	ct.Attributes[keyName] = NewStringAttribute(keyName)
 	return ct
 }
 
 // NewCreateTableWithHashKeyN returns create table request data for number hashkey
 func NewCreateTableWithHashKeyN(tableName, keyName string) *CreateTableInput {
 	ct := newCreateTableWithHashKey(tableName, keyName)
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(keyName))
+	ct.Attributes[keyName] = NewNumberAttribute(keyName)
 	return ct
 }
 
 func (ct *CreateTableInput) AddRangeKeyS(keyName string) {
 	ct.RangeKey = NewRangeKeyElement(keyName)
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(keyName))
+	ct.Attributes[keyName] = NewStringAttribute(keyName)
 }
 
 func (ct *CreateTableInput) AddRangeKeyN(keyName string) {
 	ct.RangeKey = NewRangeKeyElement(keyName)
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(keyName))
+	ct.Attributes[keyName] = NewNumberAttribute(keyName)
 }
 
 func (ct *CreateTableInput) HasRangeKey() bool {
@@ -109,14 +118,14 @@ func (ct *CreateTableInput) ListGSI() []*SDK.GlobalSecondaryIndex {
 }
 
 func (ct *CreateTableInput) AddLSIS(name, keyName string) {
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(keyName))
+	ct.Attributes[keyName] = NewStringAttribute(keyName)
 	schema := NewKeySchema(ct.HashKey, NewRangeKeyElement(keyName))
 	lsi := NewLSI(name, schema)
 	ct.LSI = append(ct.LSI, lsi)
 }
 
 func (ct *CreateTableInput) AddLSIN(name, keyName string) {
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(keyName))
+	ct.Attributes[keyName] = NewNumberAttribute(keyName)
 	schema := NewKeySchema(ct.HashKey, NewRangeKeyElement(keyName))
 	lsi := NewLSI(name, schema)
 	ct.LSI = append(ct.LSI, lsi)
@@ -130,27 +139,35 @@ func (ct *CreateTableInput) addGSI(name, hashKey, rangeKey string) {
 }
 
 func (ct *CreateTableInput) AddGSISS(name, hashKey, rangeKey string) {
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(hashKey))
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(rangeKey))
+	ct.Attributes[hashKey] = NewStringAttribute(hashKey)
+	ct.Attributes[rangeKey] = NewStringAttribute(rangeKey)
 	ct.addGSI(name, hashKey, rangeKey)
 }
 
 func (ct *CreateTableInput) AddGSISN(name, hashKey, rangeKey string) {
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(hashKey))
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(rangeKey))
+	ct.Attributes[hashKey] = NewStringAttribute(hashKey)
+	ct.Attributes[rangeKey] = NewNumberAttribute(rangeKey)
 	ct.addGSI(name, hashKey, rangeKey)
 }
 
 func (ct *CreateTableInput) AddGSINN(name, hashKey, rangeKey string) {
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(hashKey))
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(rangeKey))
+	ct.Attributes[hashKey] = NewNumberAttribute(hashKey)
+	ct.Attributes[rangeKey] = NewNumberAttribute(rangeKey)
 	ct.addGSI(name, hashKey, rangeKey)
 }
 
 func (ct *CreateTableInput) AddGSINS(name, hashKey, rangeKey string) {
-	ct.Attributes = append(ct.Attributes, NewNumberAttribute(hashKey))
-	ct.Attributes = append(ct.Attributes, NewStringAttribute(rangeKey))
+	ct.Attributes[hashKey] = NewNumberAttribute(hashKey)
+	ct.Attributes[rangeKey] = NewStringAttribute(rangeKey)
 	ct.addGSI(name, hashKey, rangeKey)
+}
+
+func (ct *CreateTableInput) AttributeList() []*SDK.AttributeDefinition {
+	var attrs []*SDK.AttributeDefinition
+	for _, v := range ct.Attributes {
+		attrs = append(attrs, v)
+	}
+	return attrs
 }
 
 func (ct *CreateTableInput) SetThroughput(r, w int64) {

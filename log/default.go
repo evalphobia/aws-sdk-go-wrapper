@@ -75,7 +75,7 @@ func (l *DefaultLogger) Info(label string, value Any) {
 }
 
 func (l *DefaultLogger) PrintLog(logger *log.Logger, label string, value Any) {
-	logger.Printf("label:%s\tvalue:%s\t", label, value)
+	logger.Printf("label:%s\tvalue:%v\t", label, value)
 }
 
 type Any interface{}

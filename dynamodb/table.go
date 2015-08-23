@@ -13,12 +13,13 @@ import (
 
 // DynamoTable is a wapper struct for DynamoDB table
 type DynamoTable struct {
-	db         *AmazonDynamoDB
-	table      *TableDescription
-	name       string
-	indexes    map[string]*DynamoIndex
-	writeItems []*SDK.PutItemInput
-	errorItems []*SDK.PutItemInput
+	db            *AmazonDynamoDB
+	table         *TableDescription
+	name          string
+	indexes       map[string]*DynamoIndex
+	writeItems    []*SDK.PutItemInput
+	errorItems    []*SDK.PutItemInput
+	keyAttributes map[string]string
 }
 
 func (t *DynamoTable) Desc() (*TableDescription, error) {
@@ -243,6 +244,13 @@ func (t *DynamoTable) Query(in *SDK.QueryInput) ([]map[string]interface{}, error
 		return nil, err
 	}
 	return t.convertItemsToMapArray(req.Items), nil
+}
+
+func (t *DynamoTable) NewQuery() *Query {
+	return &Query{
+		table:      t,
+		conditions: make(map[string]*queryCondition),
+	}
 }
 
 // get mapped-items with Scan operation

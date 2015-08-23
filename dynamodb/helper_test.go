@@ -145,6 +145,14 @@ func TestGetItemValue(t *testing.T) {
 		t.Errorf("error on createAttributeValue, actual=%+v", mValue)
 	}
 
+	var lData []map[string]interface{}
+	lData = append(lData, mData)
+	l := createAttributeValue(lData)
+	lValue := getItemValue(l).([]interface{})
+	iItem := lValue[0].(map[string]interface{})
+	if val, ok := iItem["id"]; !ok || val != 1 {
+		t.Errorf("error on createAttributeValue, actual=%+v", lValue)
+	}
 }
 
 // TestUnmarshal TODO: write test

@@ -73,7 +73,7 @@ func (d *AmazonDynamoDB) CreateTable(ct *CreateTableInput) error {
 	in := &SDK.CreateTableInput{
 		TableName:             String(tableName),
 		KeySchema:             keys,
-		AttributeDefinitions:  ct.Attributes,
+		AttributeDefinitions:  ct.AttributeList(),
 		ProvisionedThroughput: tp,
 	}
 
@@ -147,10 +147,11 @@ func (d *AmazonDynamoDB) GetTable(table string) (*DynamoTable, error) {
 		return nil, err
 	}
 	t = &DynamoTable{
-		db:      d,
-		table:   desc,
-		name:    tableName,
-		indexes: make(map[string]*DynamoIndex),
+		db:            d,
+		table:         desc,
+		name:          tableName,
+		keyAttributes: desc.GetKeyAttributes(),
+		indexes:       make(map[string]*DynamoIndex),
 	}
 	for _, idx := range desc.LocalSecondaryIndexes {
 		t.indexes[*idx.IndexName] = NewDynamoIndex(*idx.IndexName, indexTypeLSI, idx.KeySchema)

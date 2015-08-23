@@ -17,6 +17,94 @@ const (
 
 type Any interface{}
 
+func newAttributeValue(typ string, val interface{}) *SDK.AttributeValue {
+	switch typ {
+	case "S":
+		return newAttributeValueS(val)
+	case "N":
+		return newAttributeValueN(val)
+	case "B":
+		return newAttributeValueB(val)
+	case "BOOL":
+		return newAttributeValueBOOL(val)
+	case "SS":
+		return newAttributeValueSS(val)
+	case "NS":
+		return newAttributeValueNS(val)
+	case "L":
+		return newAttributeValueL(val)
+	case "M":
+		return newAttributeValueM(val)
+	}
+	return nil
+}
+
+func newAttributeValueS(val interface{}) *SDK.AttributeValue {
+	return &SDK.AttributeValue{S: String(fmt.Sprint(val))}
+}
+
+func newAttributeValueN(val interface{}) *SDK.AttributeValue {
+	return &SDK.AttributeValue{N: String(fmt.Sprint(val))}
+}
+
+func newAttributeValueB(val interface{}) *SDK.AttributeValue {
+	switch t := val.(type) {
+	case []byte:
+		return &SDK.AttributeValue{B: t}
+	}
+	return nil
+}
+
+func newAttributeValueBOOL(val interface{}) *SDK.AttributeValue {
+	switch t := val.(type) {
+	case bool:
+		return &SDK.AttributeValue{BOOL: Boolean(t)}
+	}
+	return nil
+}
+
+func newAttributeValueSS(val interface{}) *SDK.AttributeValue {
+	switch t := val.(type) {
+	case []string:
+		return &SDK.AttributeValue{SS: createPointerSliceString(t)}
+	}
+	return nil
+}
+
+func newAttributeValueNS(val interface{}) *SDK.AttributeValue {
+	return &SDK.AttributeValue{NS: MarshalStringSlice(val)}
+}
+
+func newAttributeValueBS(val interface{}) *SDK.AttributeValue {
+	switch t := val.(type) {
+	case [][]byte:
+		return &SDK.AttributeValue{BS: t}
+	}
+	return nil
+}
+
+func newAttributeValueM(val interface{}) *SDK.AttributeValue {
+	v, ok := val.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return &SDK.AttributeValue{M: Marshal(v)}
+}
+
+func newAttributeValueL(val interface{}) *SDK.AttributeValue {
+	// TODO: implement...
+	values, ok := val.([]interface{})
+	if !ok {
+		return nil
+	}
+
+	var list []*SDK.AttributeValue
+	for _, v := range values {
+		list = append(list, createAttributeValue(v))
+	}
+	return &SDK.AttributeValue{L: list}
+}
+
 // Create new AttributeValue from the type of value
 func createAttributeValue(v Any) *SDK.AttributeValue {
 	switch t := v.(type) {

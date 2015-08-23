@@ -337,7 +337,7 @@ func getTestTable() *DynamoTable {
 
 	c := NewClient()
 	name := "foo_table"
-	in := getCreateTableInput(c.TablePrefix + name)
+	in := getCreateTableInput(name)
 	createTable(c, in)
 	tbl, _ := c.GetTable(name)
 	return tbl
@@ -348,7 +348,7 @@ func getTestHashTable() *DynamoTable {
 
 	c := NewClient()
 	name := "foo_hashtable"
-	in := getCreateHashTableInput(c.TablePrefix + name)
+	in := getCreateHashTableInput(name)
 	createTable(c, in)
 	tbl, _ := c.GetTable(name)
 	return tbl

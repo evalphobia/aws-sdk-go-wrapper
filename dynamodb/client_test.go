@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
+	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
 func init() {
@@ -37,7 +37,7 @@ func TestNewClientWithKeys(t *testing.T) {
 	c := NewClientWithKeys(auth.Keys{
 		AccessKey: "myAccessKey",
 		SecretKey: "mySecretKey",
-		Region: "ap-northeast-1",
+		Region:    "ap-northeast-1",
 	})
 	assert.NotNil(c)
 	assert.NotNil(c.client)
@@ -59,7 +59,7 @@ func TestCreateTable(t *testing.T) {
 
 	err := c.CreateTable(in)
 	assert.Nil(err)
-	
+
 	// duplicate table
 	err = c.CreateTable(in)
 	assert.NotNil(err)
@@ -80,7 +80,7 @@ func TestDeleteTable(t *testing.T) {
 
 	err := c.DeleteTable(c.TablePrefix + name)
 	assert.Nil(err)
-	
+
 	// deleted table does not return error
 	err = c.DeleteTable(c.TablePrefix + name)
 	assert.Nil(err)
