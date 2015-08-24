@@ -4,6 +4,8 @@ package dynamodb
 
 import (
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )
 
 const (
@@ -131,11 +133,30 @@ func (ct *CreateTableInput) AddLSIN(name, keyName string) {
 	ct.LSI = append(ct.LSI, lsi)
 }
 
-func (ct *CreateTableInput) addGSI(name, hashKey, rangeKey string) {
-	schema := NewKeySchema(NewHashKeyElement(hashKey), NewRangeKeyElement(rangeKey))
+func (ct *CreateTableInput) addGSI(name string, key ...string) {
+	var schema []*SDK.KeySchemaElement
+	switch len(key) {
+	case 1:
+		schema = NewKeySchema(NewHashKeyElement(key[0]))
+	case 2:
+		schema = NewKeySchema(NewHashKeyElement(key[0]), NewRangeKeyElement(key[1]))
+	default:
+		log.Error("[DynamoDB] keys must have 1 or 2, name="+name, len(key))
+		return
+	}
 	tp := NewProvisionedThroughput(ct.ReadCapacity, ct.WriteCapacity)
 	gsi := NewGSI(name, schema, tp)
 	ct.GSI = append(ct.GSI, gsi)
+}
+
+func (ct *CreateTableInput) AddGSIS(name, hashKey string) {
+	ct.Attributes[hashKey] = NewStringAttribute(hashKey)
+	ct.addGSI(name, hashKey)
+}
+
+func (ct *CreateTableInput) AddGSIN(name, hashKey string) {
+	ct.Attributes[hashKey] = NewNumberAttribute(hashKey)
+	ct.addGSI(name, hashKey)
 }
 
 func (ct *CreateTableInput) AddGSISS(name, hashKey, rangeKey string) {

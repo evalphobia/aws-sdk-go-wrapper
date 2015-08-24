@@ -67,7 +67,6 @@ func (d *AmazonDynamoDB) CreateTable(ct *CreateTableInput) error {
 	}
 
 	tableName := d.TablePrefix + ct.Name
-	log.Error("hoge", tableName)
 
 	tp := NewProvisionedThroughput(ct.ReadCapacity, ct.WriteCapacity)
 	in := &SDK.CreateTableInput{
