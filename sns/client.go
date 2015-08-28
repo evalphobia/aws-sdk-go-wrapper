@@ -254,8 +254,7 @@ func (svc *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error 
 	return nil
 }
 
-// Register endpoint(device) to application
-func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
+func (svc *AmazonSNS) getApp(device string) (*SNSApp, error) {
 	var app *SNSApp
 	var err error
 	switch device {
@@ -264,13 +263,33 @@ func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, erro
 	case "android", "gcm":
 		app, err = svc.GetAppGCM()
 	default:
-		errMsg := "[SNS] Unsupported device, device=" + device
-		log.Error(errMsg, token)
-		return nil, errors.New(errMsg)
+		err = errors.New("[SNS] Unsupported device, device=" + device)
 	}
 	if err != nil {
 		return nil, err
 	}
+	return app, nil
+}
+
+// RegisterEndpoint creates endpoint(device) to application
+func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
+	app, err := svc.getApp(device)
+	if err != nil {
+		log.Error(err.Error(), token)
+		return nil, err
+	}
+
+	return app.CreateEndpoint(token)
+}
+
+// RegisterEndpointWithUserData creates endpoint(device) and CustomUserData to application
+func (svc *AmazonSNS) RegisterEndpointWithUserData(device, token, userData string) (*SNSEndpoint, error) {
+	app, err := svc.getApp(device)
+	if err != nil {
+		log.Error(err.Error(), token)
+		return nil, err
+	}
+	app.SetUserData(userData)
 	return app.CreateEndpoint(token)
 }
 

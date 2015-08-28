@@ -12,6 +12,13 @@ type SNSApp struct {
 	svc      *AmazonSNS
 	platform string
 	arn      string
+
+	userData string
+}
+
+// SetUserData sets CustomUserData
+func (a *SNSApp) SetUserData(userData string) {
+	a.userData = userData
 }
 
 // Create Endpoint(add device) and return `EndpointARN`
@@ -20,6 +27,10 @@ func (a *SNSApp) createEndpoint(token string) (string, error) {
 		PlatformApplicationArn: String(a.arn),
 		Token: String(token),
 	}
+	if a.userData != "" {
+		in.CustomUserData = String(a.userData)
+	}
+
 	resp, err := a.svc.Client.CreatePlatformEndpoint(in)
 	if err != nil {
 		log.Error("[SNS] error on `CreatePlatformEndpoint` operation, token="+token, err.Error())
