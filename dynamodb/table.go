@@ -155,7 +155,7 @@ func (t *DynamoTable) Query(in *SDK.QueryInput) ([]map[string]interface{}, error
 		log.Error("[DynamoDB] Error in `Query` operation, table="+t.name, err)
 		return nil, err
 	}
-	return t.convertItemsToMapArray(req.Items), nil
+	return t.ConvertItemsToMapArray(req.Items), nil
 }
 
 // get mapped-items with Scan operation
@@ -169,7 +169,7 @@ func (t *DynamoTable) Scan() ([]map[string]interface{}, error) {
 		log.Error("[DynamoDB] Error in `Scan` operation, table="+t.name, err)
 		return nil, err
 	}
-	return t.convertItemsToMapArray(req.Items), nil
+	return t.ConvertItemsToMapArray(req.Items), nil
 }
 
 // delete item
@@ -193,7 +193,7 @@ func (t *DynamoTable) Delete(values ...Any) error {
 }
 
 // convert from dynamodb values to map
-func (t *DynamoTable) convertItemsToMapArray(items []*map[string]*SDK.AttributeValue) []map[string]interface{} {
+func (t *DynamoTable) ConvertItemsToMapArray(items []*map[string]*SDK.AttributeValue) []map[string]interface{} {
 	var m []map[string]interface{}
 	for _, item := range items {
 		m = append(m, Unmarshal(item))
