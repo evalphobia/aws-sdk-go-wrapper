@@ -22,6 +22,11 @@ func (e *SNSEndpoint) Publish(msg string, badge int) error {
 	return e.svc.Publish(e.arn, msg, map[string]interface{}{"badge": badge})
 }
 
+// PublishWithOption sends push notification to the endpoint with optional params
+func (e *SNSEndpoint) PublishWithOption(msg string, opt map[string]interface{}) error {
+	return e.svc.Publish(e.arn, msg, opt)
+}
+
 // GetARN returns endpoint ARN
 func (e *SNSEndpoint) GetARN() string {
 	return e.arn
