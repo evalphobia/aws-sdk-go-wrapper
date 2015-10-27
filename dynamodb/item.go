@@ -25,6 +25,11 @@ func (item *DynamoItem) AddAttribute(name string, value Any) {
 	item.data[name] = createAttributeValue(value)
 }
 
+// Get a attribute from Item
+func (item *DynamoItem) GetAttribute(name string) Any {
+	return item.data[name]
+}
+
 // Add a EXIST condition for put
 func (item *DynamoItem) AddConditionExist(name string) {
 	cond := NewExpected()
