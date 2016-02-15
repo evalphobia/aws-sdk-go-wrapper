@@ -18,8 +18,9 @@ const (
 
 // wrapped struct for S3
 type AmazonS3 struct {
-	buckets map[string]*Bucket
-	client  *SDK.S3
+	buckets      map[string]*Bucket
+	client       *SDK.S3
+	bucketPrefix string
 }
 
 // Create new AmazonS3 struct
@@ -47,13 +48,19 @@ func newClient(conf auth.Config) *AmazonS3 {
 		awsConf.S3ForcePathStyle = Bool(true)
 	}
 	s.client = SDK.New(awsConf)
+
+	s.bucketPrefix = config.GetConfigValue(s3ConfigSectionName, "prefix", defaultBucketPrefix)
 	return s
+}
+
+// set bucket prefix
+func (s *AmazonS3) SetBucketPrefix(bucketPrefix string) {
+	s.bucketPrefix = bucketPrefix
 }
 
 // get bucket
 func (s *AmazonS3) GetBucket(bucket string) *Bucket {
-	prefix := config.GetConfigValue(s3ConfigSectionName, "prefix", defaultBucketPrefix)
-	bucketName := prefix + bucket
+	bucketName := s.bucketPrefix + bucket
 
 	// get the bucket from cache
 	b, ok := s.buckets[bucketName]
