@@ -40,4 +40,9 @@ func TestGetBucket(t *testing.T) {
 
 	b2 := s.GetBucket("test")
 	assert.Equal(t, b, b2)
+
+	s2 := NewClient()
+	s2.SetBucketPrefix("ass-")
+	b3 := s2.GetBucket("test")
+	assert.Equal(t, "ass-test", b3.name)
 }
