@@ -60,9 +60,14 @@ func TestGetQueue(t *testing.T) {
 	assert.NotNil(q)
 }
 
-func TestGetQueuePrefix(t *testing.T) {
+func TestSetQueuePrefix(t *testing.T) {
 	assert := assert.New(t)
-	assert.Equal(defaultQueuePrefix, GetQueuePrefix())
+	svc := NewClient()
+	assert.Equal(svc.queuePrefix, defaultQueuePrefix)
+
+	svc2 := NewClient()
+	svc2.SetQueuePrefix("test")
+	assert.Equal(svc2.queuePrefix, "test")
 }
 
 func TestCreateQueueWithName(t *testing.T) {
