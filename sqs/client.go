@@ -18,8 +18,9 @@ const (
 )
 
 type AmazonSQS struct {
-	queues map[string]*Queue
-	client *SDK.SQS
+	queues      map[string]*Queue
+	client      *SDK.SQS
+	queuePrefix string
 }
 
 // Create new AmazonSQS struct
@@ -31,12 +32,13 @@ func NewClient() *AmazonSQS {
 	conf := auth.NewConfig(region, endpoint)
 	conf.SetDefault(defaultRegion, defaultEndpoint)
 	svc.client = SDK.New(conf.Config)
+	svc.queuePrefix = config.GetConfigValue(sqsConfigSectionName, "prefix", defaultQueuePrefix)
 	return svc
 }
 
 // Get a queue
 func (svc *AmazonSQS) GetQueue(queue string) (*Queue, error) {
-	queueName := GetQueuePrefix() + queue
+	queueName := svc.queuePrefix + queue
 
 	// get the queue from cache
 	q, ok := svc.queues[queueName]
@@ -72,13 +74,13 @@ func (svc *AmazonSQS) CreateQueue(in *SDK.CreateQueueInput) error {
 // CreateQueueWithName creates new SQS Queue by the name
 func (svc *AmazonSQS) CreateQueueWithName(name string) error {
 	return svc.CreateQueue(&SDK.CreateQueueInput{
-		QueueName: String(GetQueuePrefix() + name),
+		QueueName: String(svc.queuePrefix + name),
 	})
 }
 
-// Create new SQS Queue
+// IsExistQueue check queue
 func (svc *AmazonSQS) IsExistQueue(name string) (bool, error) {
-	name = GetQueuePrefix() + name
+	name = svc.queuePrefix + name
 	data, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
 		QueueName: String(name),
 	})
@@ -96,7 +98,7 @@ func (svc *AmazonSQS) IsExistQueue(name string) (bool, error) {
 	}
 }
 
-// Get the prefix for DynamoDB table
-func GetQueuePrefix() string {
-	return config.GetConfigValue(sqsConfigSectionName, "prefix", defaultQueuePrefix)
+// SetQueuePrefix set queue prefix
+func (svc *AmazonSQS) SetQueuePrefix(queuePrefix string) {
+	svc.queuePrefix = queuePrefix
 }
