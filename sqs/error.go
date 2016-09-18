@@ -28,6 +28,10 @@ func (e SQSError) Error() string {
 	return errPrefix + strings.Join(e.errList, " || ")
 }
 
+func (e *SQSError) Add(err error) {
+	e.errList = append(e.errList, err.Error())
+}
+
 func (e *SQSError) AddMessage(msg string) {
 	e.errList = append(e.errList, msg)
 }

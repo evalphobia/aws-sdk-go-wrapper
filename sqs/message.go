@@ -6,27 +6,28 @@ import (
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 )
 
-// SQS Message wrapper struct
+// Message is SQS Message wrapper struct.
 type Message struct {
 	message *SDK.Message
 }
 
+// NewMessage returns initialized *Message.
 func NewMessage(msg *SDK.Message) *Message {
 	return &Message{msg}
 }
 
-func (m Message) String() string {
+func (m *Message) String() string {
 	return m.message.String()
 }
 
-func (m Message) Body() string {
+func (m *Message) Body() string {
 	return *m.message.Body
 }
 
-func (m Message) GetMessageID() *string {
+func (m *Message) GetMessageID() *string {
 	return m.message.MessageId
 }
 
-func (m Message) GetReceiptHandle() *string {
+func (m *Message) GetReceiptHandle() *string {
 	return m.message.ReceiptHandle
 }

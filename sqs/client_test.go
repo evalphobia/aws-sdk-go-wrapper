@@ -1,100 +1,113 @@
 package sqs
 
 import (
-	"os"
 	"testing"
 
+	SDK "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/assert"
 
-	SDK "github.com/aws/aws-sdk-go/service/sqs"
-	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
+	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 )
 
-func setTestEnv() {
-	os.Clearenv()
-	os.Setenv("AWS_ACCESS_KEY_ID", "access")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+func getTestConfig() config.Config {
+	return config.Config{
+		AccessKey: "access",
+		SecretKey: "secret",
+		Endpoint:  defaultEndpoint,
+	}
+}
+
+func getTestClient(t *testing.T) *SQS {
+	svc, err := New(getTestConfig())
+	if err != nil {
+		t.Errorf("error on create client; error=%s;", err.Error())
+		t.FailNow()
+	}
+	return svc
 }
 
 func createQueue(name string) {
-	svc := NewClient()
+	svc, _ := New(getTestConfig())
+	ok, _ := svc.IsExistQueue(name)
+	if ok {
+		return
+	}
+
 	svc.CreateQueue(&SDK.CreateQueueInput{
-		QueueName: String(defaultQueuePrefix + name),
+		QueueName: String(name),
 	})
 }
 
 func TestNewClient(t *testing.T) {
 	assert := assert.New(t)
-	setTestEnv()
 
-	svc := NewClient()
+	svc, err := New(getTestConfig())
+	assert.NoError(err)
 	assert.NotNil(svc.client)
 	assert.Equal("sqs", svc.client.ServiceName)
 	assert.Equal(defaultEndpoint, svc.client.Endpoint)
 
 	region := "us-west-1"
-	os.Setenv("AWS_REGION", region)
-
-	c2 := NewClient()
-	endpoint := "https://sqs." + region + ".amazonaws.com"
-	assert.Equal(endpoint, c2.client.Endpoint)
+	svc, err = New(config.Config{
+		Region: region,
+	})
+	assert.NoError(err)
+	expectedEndpoint := "https://sqs." + region + ".amazonaws.com"
+	assert.Equal(expectedEndpoint, svc.client.Endpoint)
 }
 
 func TestGetQueue(t *testing.T) {
 	assert := assert.New(t)
-	setTestEnv()
 	createQueue("test")
+	svc := getTestClient(t)
 
-	svc := NewClient()
 	q, err := svc.GetQueue("test")
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.NotNil(q)
 
+	svc.DeleteQueue("non_exist")
 	q, err = svc.GetQueue("non_exist")
-	assert.NotNil(err)
+	assert.Error(err)
 	assert.Nil(q)
 
 	// cache
-	q, err = svc.GetQueue("test")
-	assert.Nil(err)
+	svc.queues["non_exist"] = svc.queues["test"]
+	q, err = svc.GetQueue("non_exist")
+	assert.NoError(err)
 	assert.NotNil(q)
-}
-
-func TestGetQueuePrefix(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal(defaultQueuePrefix, GetQueuePrefix())
 }
 
 func TestCreateQueueWithName(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 
 	// not exitst
+	svc.DeleteQueue("test2")
 	has, err := svc.IsExistQueue("test2")
-	assert.NotNil(err)
+	assert.NoError(err)
 	assert.False(has)
 
 	// create
 	err = svc.CreateQueueWithName("test2")
-	assert.Nil(err)
+	assert.NoError(err)
 
 	// created
 	has, err = svc.IsExistQueue("test2")
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.True(has)
 }
 
 func TestIsExistQueue(t *testing.T) {
 	assert := assert.New(t)
 	createQueue("test")
+	svc := getTestClient(t)
 
-	svc := NewClient()
 	has, err := svc.IsExistQueue("test")
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.True(has)
 
 	// not exitst
 	has, err = svc.IsExistQueue("non-exitst-queue")
-	assert.NotNil(err)
+	assert.NoError(err)
 	assert.False(has)
 }

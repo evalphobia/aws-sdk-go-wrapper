@@ -7,10 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	AWS "github.com/aws/aws-sdk-go/aws"
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
-
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 )
 
 const (
@@ -18,92 +15,103 @@ const (
 	defaultExpireSecond    = 180
 )
 
-// SQS Queue wrapper struct
+// Queue is SQS Queue wrapper struct.
 type Queue struct {
+	service *SQS
+
 	name         string
 	url          *string
-	messages     []*SDK.SendMessageBatchRequestEntry
-	delMessages  []*SDK.DeleteMessageBatchRequestEntry
+	messageSpool []*SDK.SendMessageBatchRequestEntry
+	deleteSpool  []*SDK.DeleteMessageBatchRequestEntry
 	failedSend   []*SDK.BatchResultErrorEntry
 	failedDelete []*SDK.BatchResultErrorEntry
 
 	autoDel bool
 	expire  int
-	client  *SDK.SQS
 }
 
-func NewQueue(name string, url *string, cli *SDK.SQS) *Queue {
+// NewQueue returns initialized *Queue.
+func NewQueue(name string, url string, service *SQS) *Queue {
 	return &Queue{
 		name:    name,
-		url:     url,
-		client:  cli,
+		url:     String(url),
+		service: service,
 		autoDel: false,
 		expire:  defaultExpireSecond,
 	}
 }
 
-// Set auto delete flag to this queue
+// AutoDelete sets auto delete flag.
 func (q *Queue) AutoDelete(b bool) {
 	q.autoDel = b
 }
 
-// Set visibility timeout for message
+// SetExpire sets visibility timeout for message.
 func (q *Queue) SetExpire(sec int) {
 	q.expire = sec
 }
 
-// Add message to the send spool
+// AddMessage adds message to the send spool.
 func (q *Queue) AddMessage(message string) {
-	m := &SDK.SendMessageBatchRequestEntry{}
-	m.MessageBody = AWS.String(message)
-	num := fmt.Sprint(len(q.messages) + 1)
-	m.Id = AWS.String(defaultMessageIDPrefix + num) // serial numbering for convenience sake
-	q.messages = append(q.messages, m)
+	num := fmt.Sprint(len(q.messageSpool) + 1)
+	m := &SDK.SendMessageBatchRequestEntry{
+		MessageBody: String(message),
+		Id:          String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
+	}
+	q.messageSpool = append(q.messageSpool, m)
 }
 
-// Add message spool from map data
-func (q *Queue) AddMessageMap(message map[string]interface{}) error {
+// AddMessageJSONMarshal adds message to the send pool with encoding json data.
+func (q *Queue) AddMessageJSONMarshal(message interface{}) error {
 	msg, err := json.Marshal(message)
 	if err != nil {
-		log.Error("[SQS] error on `json.Marshal`, msg="+fmt.Sprint(msg), err.Error())
+		q.service.Errorf("error on Queue.AddMessageJSONMarshal `json.Marshal` message=%s; error=%s;", fmt.Sprint(msg), err.Error())
 		return err
 	}
+
 	q.AddMessage(string(msg))
 	return nil
 }
 
-// Send messages in the send spool
+// AddMessageMap adds message to the send pool from map data.
+func (q *Queue) AddMessageMap(message map[string]interface{}) error {
+	return q.AddMessageJSONMarshal(message)
+}
+
+// Send sends messages in the send spool
 func (q *Queue) Send() error {
-	// pack the messages ten each to meet the SQS restriction.
 	messages := make(map[int][]*SDK.SendMessageBatchRequestEntry)
-	if len(q.messages) > 10 {
-		for i, msg := range q.messages {
+	spool := q.messageSpool
+	switch {
+	case len(spool) > 10:
+		for i, msg := range spool {
 			v := (i + 1) / 10
 			messages[v] = append(messages[v], msg)
 		}
-	} else {
-		messages[0] = append(messages[0], q.messages...)
+	default:
+		// pack the messages ten each to follow the SQS restriction.
+		messages[0] = append(messages[0], spool...)
 	}
 
-	err := &SQSError{}
+	sqsError := &SQSError{}
 	// send message
 	for i := 0; i < len(messages); i++ {
-		e := q.send(messages[i])
-		if e != nil {
-			log.Error("[SQS] error on `SendMessageBatch` operation, queue="+q.name, e.Error())
-			err.AddMessage(e.Error())
+		err := q.send(messages[i])
+		if err != nil {
+			q.service.Errorf("error on `SendMessageBatch` operation; queue=%s; error=%s;", q.name, err.Error())
+			sqsError.Add(err)
 		}
 	}
 
-	if err.HasError() {
-		return err
+	if sqsError.HasError() {
+		return sqsError
 	}
 	return nil
 }
 
-// Send a packed message
+// send operates SendMessageBatchInput ands sends a packed message.
 func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
-	res, err := q.client.SendMessageBatch(&SDK.SendMessageBatchInput{
+	res, err := q.service.client.SendMessageBatch(&SDK.SendMessageBatchInput{
 		Entries:  msg,
 		QueueUrl: q.url,
 	})
@@ -111,28 +119,27 @@ func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 	return err
 }
 
-// Get message from the queue with limit
+// Fetch fetches message list from the queue with limit.
 func (q *Queue) Fetch(num int) ([]*Message, error) {
-	// use long-polling for 1sec when to get multiple messages
-	var wait int = 0
+	wait := 0
+
 	if num > 1 {
-		wait = 1
+		wait = 1 // use long-polling for 1sec when to get multiple messages
 	}
 
-	// receive message from server
-	resp, err := q.client.ReceiveMessage(&SDK.ReceiveMessageInput{
+	// receive message from AWS api
+	resp, err := q.service.client.ReceiveMessage(&SDK.ReceiveMessageInput{
 		QueueUrl:            q.url,
 		WaitTimeSeconds:     Long(wait),
 		MaxNumberOfMessages: Long(num),
 		VisibilityTimeout:   Long(defaultExpireSecond),
 	})
 	if err != nil {
-		log.Error("[SQS] error on `ReceiveMessage` operation, queue="+q.name, err.Error())
+		q.service.Errorf("error on `ReceiveMessage` operation; queue=%s; error=%s;", q.name, err.Error())
 	}
 
-	var list []*Message
 	if resp == nil || len(resp.Messages) == 0 {
-		return list, err
+		return nil, err
 	}
 
 	// delete messages automatically
@@ -141,14 +148,14 @@ func (q *Queue) Fetch(num int) ([]*Message, error) {
 		defer q.DeleteListItems()
 	}
 
-	for _, msg := range resp.Messages {
-		list = append(list, NewMessage(msg))
+	list := make([]*Message, len(resp.Messages))
+	for i, msg := range resp.Messages {
+		list[i] = NewMessage(msg)
 	}
-
 	return list, err
 }
 
-// Get a single message
+// FetchOne fetches a single message.
 func (q *Queue) FetchOne() (*Message, error) {
 	msgList, err := q.Fetch(1)
 	switch {
@@ -161,22 +168,20 @@ func (q *Queue) FetchOne() (*Message, error) {
 	return msgList[0], nil
 }
 
-// Get only the body of messages
+// FetchBody fetches only the body of messages.
 // ** cannot handle deletion manually as lack of MessageId and ReceiptHandle **
 func (q *Queue) FetchBody(num int) []string {
 	msgList, err := q.Fetch(num)
-
-	var bodies []string
 	switch {
 	case err != nil:
-		log.Error("[SQS] error on `FetchBody`, queue="+q.name, err.Error())
-		return bodies
+		return nil
 	case len(msgList) == 0:
-		return bodies
+		return nil
 	}
 
-	for _, msg := range msgList {
-		bodies = append(bodies, msg.Body())
+	bodies := make([]string, len(msgList))
+	for i, msg := range msgList {
+		bodies[i] = msg.Body()
 	}
 
 	q.AddDeleteList(msgList)
@@ -186,7 +191,7 @@ func (q *Queue) FetchBody(num int) []string {
 	return bodies
 }
 
-// Get the body of a single message
+// FetchBodyOne fetches the body of a single message.
 // ** cannot handle deletion manually as lack of MessageId and ReceiptHandle **
 func (q *Queue) FetchBodyOne() string {
 	bodies := q.FetchBody(1)
@@ -196,16 +201,16 @@ func (q *Queue) FetchBodyOne() string {
 	return bodies[0]
 }
 
-// Add a message to the delete spool
+// AddDeleteList adds a message to the delete spool.
 func (q *Queue) AddDeleteList(msg interface{}) {
 	switch v := msg.(type) {
 	case *SDK.Message:
-		q.delMessages = append(q.delMessages, &SDK.DeleteMessageBatchRequestEntry{
+		q.deleteSpool = append(q.deleteSpool, &SDK.DeleteMessageBatchRequestEntry{
 			Id:            v.MessageId,
 			ReceiptHandle: v.ReceiptHandle,
 		})
 	case *Message:
-		q.delMessages = append(q.delMessages, &SDK.DeleteMessageBatchRequestEntry{
+		q.deleteSpool = append(q.deleteSpool, &SDK.DeleteMessageBatchRequestEntry{
 			Id:            v.GetMessageID(),
 			ReceiptHandle: v.GetReceiptHandle(),
 		})
@@ -220,70 +225,74 @@ func (q *Queue) AddDeleteList(msg interface{}) {
 	}
 }
 
-// Delete a message from server
+// DeleteMessage sends the request to AWS api to delete the message.
 func (q *Queue) DeleteMessage(msg *Message) error {
-	_, err := q.client.DeleteMessage(&SDK.DeleteMessageInput{
+	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{
 		QueueUrl:      q.url,
 		ReceiptHandle: msg.GetReceiptHandle(),
 	})
 	if err != nil {
-		log.Error("[SQS] error on `DeleteMessage`, queue="+q.name, err.Error())
+		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.name, err.Error())
 	}
 	return err
 }
 
-// Execute delete operation in the delete spool
+// DeleteListItems executes delete operation in the delete spool.
 func (q *Queue) DeleteListItems() error {
 	// pack the messages ten each to meet the SQS restriction.
-	msgCount := len(q.delMessages)
+	spool := q.deleteSpool
+	msgCount := len(q.deleteSpool)
 	if msgCount == 0 {
 		return nil
 	}
+
 	messages := make(map[int][]*SDK.DeleteMessageBatchRequestEntry)
-	if msgCount > 10 {
-		for i, msg := range q.delMessages {
+	switch {
+	case msgCount > 10:
+		for i, msg := range spool {
 			v := (i + 1) / 10
 			messages[v] = append(messages[v], msg)
 		}
-	} else {
-		messages[0] = append(messages[0], q.delMessages...)
+	default:
+		messages[0] = append(messages[0], q.deleteSpool...)
 	}
 
-	err := &SQSError{}
-	// delete messages
+	// delete messages sequentially
+	sqsError := &SQSError{}
 	for i := 0; i < len(messages); i++ {
-		e := q.delete(messages[i])
-		if e != nil {
-			err.AddMessage(e.Error())
+		err := q.delete(messages[i])
+		if err != nil {
+			sqsError.Add(err)
 		}
 	}
 
-	if err.HasError() {
-		return err
+	if sqsError.HasError() {
+		return sqsError
 	}
 	return nil
 }
 
-// Delete a packed message
+// delete operates DeleteMessageBatchInput and deletes a packed message.
 func (q *Queue) delete(msg []*SDK.DeleteMessageBatchRequestEntry) error {
-	if len(msg) < 1 {
+	if len(msg) == 0 {
 		return nil
 	}
-	res, err := q.client.DeleteMessageBatch(&SDK.DeleteMessageBatchInput{
+
+	res, err := q.service.client.DeleteMessageBatch(&SDK.DeleteMessageBatchInput{
 		Entries:  msg,
 		QueueUrl: q.url,
 	})
 	if err != nil {
-		log.Error("[SQS] error on `DeleteMessageBatch`, queue="+q.name, err.Error())
+		q.service.Errorf("error on `DeleteMessageBatch`; queue=%s; error=%s;", q.name, err.Error())
 		q.failedDelete = append(q.failedDelete, res.Failed...)
 	}
 
 	return err
 }
 
-// Count left messages on the Queue
-func (q *Queue) CountMessage() (int, int, error) {
-	out, err := q.client.GetQueueAttributes(&SDK.GetQueueAttributesInput{
+// CountMessage sends request to AWS api to counts left messages in the Queue.
+func (q *Queue) CountMessage() (visible int, invisible int, err error) {
+	out, err := q.service.client.GetQueueAttributes(&SDK.GetQueueAttributesInput{
 		QueueUrl: q.url,
 		AttributeNames: []*string{
 			String("ApproximateNumberOfMessages"),
@@ -291,23 +300,26 @@ func (q *Queue) CountMessage() (int, int, error) {
 		},
 	})
 	if err != nil {
-		log.Error("[SQS] error on `GetQueueAttributes`, queue="+q.name, err.Error())
+		q.service.Errorf("error on `GetQueueAttributes`; queue=%s; error=%s;", q.name, err.Error())
 		return 0, 0, err
 	}
+
 	m := out.Attributes
-	visible, _ := strconv.Atoi(*m["ApproximateNumberOfMessages"])
-	invisible, _ := strconv.Atoi(*m["ApproximateNumberOfMessagesNotVisible"])
+	visible, _ = strconv.Atoi(*m["ApproximateNumberOfMessages"])
+	invisible, _ = strconv.Atoi(*m["ApproximateNumberOfMessagesNotVisible"])
 	return visible, invisible, nil
 }
 
-// Delete all messages on the Queue
+// Purge deletes all messages in the Queue.
 func (q *Queue) Purge() error {
-	_, err := q.client.PurgeQueue(&SDK.PurgeQueueInput{
+	_, err := q.service.client.PurgeQueue(&SDK.PurgeQueueInput{
 		QueueUrl: q.url,
 	})
 	if err != nil {
-		log.Error("[SQS] error on `PurgeQueue`, queue="+q.name, err.Error())
+		q.service.Errorf("error on `PurgeQueue` operation; queue=%s; error=%s;", q.name, err.Error())
 		return err
 	}
+
+	q.service.Infof("success on `PurgeQueue` operation; queue=%s;", q.name)
 	return nil
 }

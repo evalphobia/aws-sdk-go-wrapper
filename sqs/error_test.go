@@ -1,6 +1,7 @@
 package sqs
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,17 @@ func TestError(t *testing.T) {
 	assert.Equal("[SQS] e1 || e2 || e3", err.Error())
 }
 
+func TestErrorAdd(t *testing.T) {
+	assert := assert.New(t)
+
+	err := NewError("e0")
+	assert.Len(err.errList, 1)
+
+	err.Add(errors.New("e1"))
+	assert.Len(err.errList, 2)
+	assert.Equal("[SQS] e0 || e1", err.Error())
+}
+
 func TestErrorAddMessage(t *testing.T) {
 	assert := assert.New(t)
 
@@ -44,6 +56,7 @@ func TestErrorAddMessage(t *testing.T) {
 	assert.Len(err.errList, 2)
 	assert.Equal("[SQS] e0 || e1", err.Error())
 }
+
 func TestErrorHasError(t *testing.T) {
 	assert := assert.New(t)
 
