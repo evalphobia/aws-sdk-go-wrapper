@@ -1,17 +1,18 @@
-// S3 Bucket setting, Object manipuration
-
 package s3
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	SDK "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
+// ACL settings
 const (
 	ACLAuthenticatedRead = "authenticated-read"
 	ACLPrivate           = "private"
@@ -23,112 +24,153 @@ const (
 	defaultExpireSecond = 180
 )
 
-// struct for bucket
+// Bucket is S3 Bucket wrapper struct.
 type Bucket struct {
-	name    string
-	objects []*SDK.PutObjectInput
+	service *S3
 
-	client *SDK.S3
+	name         string
+	endpoint     string
+	expireSecond int
+
+	putSpoolMu sync.Mutex
+	putSpool   []*SDK.PutObjectInput
 }
 
-// add object to write spool (w/ public read access)
-func (b *Bucket) AddObject(obj *S3Object, path string) {
+// NewBucket returns initialized *Bucket.
+func NewBucket(name string, service *S3) *Bucket {
+	return &Bucket{
+		service:      service,
+		name:         name,
+		endpoint:     service.endpoint,
+		expireSecond: defaultExpireSecond,
+	}
+}
+
+// SetExpire sets default expire sec for ACL access.
+func (b *Bucket) SetExpire(sec int) {
+	b.expireSecond = sec
+}
+
+// AddObject adds object to write spool (w/ public read access).
+func (b *Bucket) AddObject(obj *PutObject, path string) {
 	b.addObject(obj, path, ACLPublicRead)
 }
 
-// add object to write spool (w/ ACL permission)
-func (b *Bucket) AddSecretObject(obj *S3Object, path string) {
+// AddSecretObject adds object to write spool (w/ ACL permission).
+func (b *Bucket) AddSecretObject(obj *PutObject, path string) {
 	b.addObject(obj, path, ACLAuthenticatedRead)
 }
 
-// add object to write spool
-func (b *Bucket) addObject(obj *S3Object, path, acl string) {
+// addObject adds object to write spool.
+func (b *Bucket) addObject(obj *PutObject, path, acl string) {
+	b.putSpoolMu.Lock()
+	defer b.putSpoolMu.Unlock()
+
 	size := obj.Size()
 	req := &SDK.PutObjectInput{
 		ACL:           &acl,
 		Bucket:        &b.name,
 		Body:          obj.data,
 		ContentLength: &size,
-		ContentType:   String(obj.FileType()),
-		Key:           String(path),
+		ContentType:   pointers.String(obj.FileType()),
+		Key:           pointers.String(path),
 	}
-	b.objects = append(b.objects, req)
+	b.putSpool = append(b.putSpool, req)
 }
 
-// put object to server
-func (b *Bucket) Put() error {
-	var err error = nil
-	errStr := ""
-	// save file
-	for _, obj := range b.objects {
-		_, e := b.client.PutObject(obj)
-		if e != nil {
-			log.Error("[S3] error on `PutObject` operation, bucket="+b.name, e.Error())
-			errStr = errStr + "," + e.Error()
+// PutAll executes PutObject operation in the put spool.
+func (b *Bucket) PutAll() error {
+	b.putSpoolMu.Lock()
+	defer b.putSpoolMu.Unlock()
+
+	errList := newErrors()
+	cli := b.service.client
+	for _, obj := range b.putSpool {
+		_, err := cli.PutObject(obj)
+		if err != nil {
+			b.service.Errorf("error on `PutObject` operation; bucket=%s; error=%s;", b.name, err.Error())
+			errList.Add(err)
 		}
 	}
-	if errStr != "" {
-		err = errors.New(errStr)
+	b.putSpool = nil
+
+	if errList.HasError() {
+		return errList
+	}
+	return nil
+}
+
+// PutOne executes PutObject operation in the put spool.
+func (b *Bucket) PutOne(obj *PutObject, path, acl string) error {
+	size := obj.Size()
+	req := &SDK.PutObjectInput{
+		ACL:           &acl,
+		Bucket:        &b.name,
+		Body:          obj.data,
+		ContentLength: &size,
+		ContentType:   pointers.String(obj.FileType()),
+		Key:           pointers.String(path),
+	}
+
+	_, err := b.service.client.PutObject(req)
+	if err != nil {
+		b.service.Errorf("error on `PutObject` operation; bucket=%s; error=%s;", b.name, err.Error())
 	}
 	return err
 }
 
-// fetch object from target S3 path
-func (b *Bucket) getObject(path string) (io.Reader, error) {
-	req := SDK.GetObjectInput{
-		Bucket: &b.name,
-		Key:    &path,
-	}
-	out, err := b.client.GetObject(&req)
-	if err != nil {
-		log.Error("[S3] error on `GetObject` operation, bucket="+b.name, err.Error())
-		return nil, err
-	}
-	return out.Body, err
-}
-
-// fetch bytes of object from target S3 path
+// GetObjectByte returns bytes of object from given S3 path.
 func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 	r, err := b.getObject(path)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r)
 	return buf.Bytes(), err
 }
 
-// fetch url of target S3 object
-func (b *Bucket) GetURL(path string) string {
-	if b.client == nil || b.client.Service == nil {
-		return ""
+// getObject fetches object from target S3 path
+func (b *Bucket) getObject(path string) (io.Reader, error) {
+	out, err := b.service.client.GetObject(&SDK.GetObjectInput{
+		Bucket: &b.name,
+		Key:    &path,
+	})
+	if err != nil {
+		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.name, err.Error())
+		return nil, err
 	}
-	return b.client.Service.Endpoint + "/" + b.name + "/" + path
+	return out.Body, nil
 }
 
-// fetch url of target S3 object w/ ACL permission (url expires in 3min)
+// GetURL fetches url of target S3 object.
+func (b *Bucket) GetURL(path string) string {
+	return fmt.Sprintf("%s/%s/%s", b.endpoint, b.name, path)
+}
+
+// GetSecretURL fetches a url of target S3 object w/ ACL permission.
 func (b *Bucket) GetSecretURL(path string) (string, error) {
-	return b.GetSecretURLWithExpire(path, defaultExpireSecond)
+	return b.GetSecretURLWithExpire(path, b.expireSecond)
 }
 
-// fetch url of target S3 object w/ ACL permission (url expires in `expire` value seconds)
+// GetSecretURLWithExpire fetches a url of target S3 object w/ ACL permission (url expires in `expire` value seconds)
 // ** this isn't work **
-func (b *Bucket) GetSecretURLWithExpire(path string, expire uint64) (string, error) {
-	req, _ := b.client.GetObjectRequest(&SDK.GetObjectInput{
-		Bucket: String(b.name),
-		Key:    String(path),
+func (b *Bucket) GetSecretURLWithExpire(path string, expire int) (string, error) {
+	req, _ := b.service.client.GetObjectRequest(&SDK.GetObjectInput{
+		Bucket: pointers.String(b.name),
+		Key:    pointers.String(path),
 	})
 	return req.Presign(time.Duration(expire) * time.Second)
 }
 
-// delete object of target path
+// DeleteObject deletees the object of target path.
 func (b *Bucket) DeleteObject(path string) error {
-	_, err := b.client.DeleteObject(&SDK.DeleteObjectInput{
-		Bucket: String(b.name),
-		Key:    String(path),
+	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
+		Bucket: pointers.String(b.name),
+		Key:    pointers.String(path),
 	})
 	if err != nil {
-		log.Error("[S3] error on `DeleteObject` operation, bucket="+b.name, err.Error())
+		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.name, err.Error())
 	}
 	return err
 }

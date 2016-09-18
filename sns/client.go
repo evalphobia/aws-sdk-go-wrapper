@@ -1,182 +1,203 @@
-// SNS client
-
 package sns
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
 
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
-	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
+// Application types
 const (
-	snsConfigSectionName = "sns"
-	defaultRegion        = "us-west-1"
-	defaultEndpoint      = "http://localhost:9292"
-	defaultPrefix        = "dev_"
-
-	AppTypeAPNS        = "apns"
-	AppTypeAPNSSandbox = "apns_sandbox"
-	AppTypeGCM         = "gcm"
-
-	topicMaxDeviceNumber = 10000
-	MessageBodyLimit     = 2000
+	AppTypeAPNS        = "APNS"
+	AppTypeAPNSSandbox = "APNS_SANDBOX"
+	AppTypeGCM         = "GCM"
 
 	ProtocolApplication = "application"
 )
 
-var isProduction bool
+const (
+	topicMaxDeviceNumber = 10000
+	messageBodyLimit     = 2000
+)
 
-type AmazonSNS struct {
-	apps   map[string]*SNSApp
-	topics map[string]*SNSTopic
-	Client *SDK.SNS
+// SNS is AWS SNS client and has platform application and topic list.
+type SNS struct {
+	client *SDK.SNS
+
+	logger       log.Logger
+	prefix       string
+	isProduction bool
+	appsMu       sync.RWMutex
+	apps         map[string]*PlatformApplication
+
+	platforms Platforms
 }
 
-// Create new AmazonSQS struct
-func NewClient() *AmazonSNS {
-	svc := &AmazonSNS{}
-	svc.apps = make(map[string]*SNSApp)
-	svc.topics = make(map[string]*SNSTopic)
-	region := config.GetConfigValue(snsConfigSectionName, "region", auth.EnvRegion())
-	endpoint := config.GetConfigValue(snsConfigSectionName, "endpoint", "")
-	conf := auth.NewConfig(region, endpoint)
-	conf.SetDefault(defaultRegion, defaultEndpoint)
-	svc.Client = SDK.New(conf.Config)
-	if config.GetConfigValue(snsConfigSectionName, "app.production", "false") != "false" {
-		isProduction = true
-	} else {
-		isProduction = false
+// New returns initialized *SNS.
+// use ARNs in given Platforms.
+func New(conf config.Config, pf Platforms) (*SNS, error) {
+	sess, err := conf.Session()
+	if err != nil {
+		return nil, err
 	}
-	return svc
+
+	svc := &SNS{
+		client:    SDK.New(sess),
+		logger:    log.DefaultLogger,
+		prefix:    conf.DefaultPrefix,
+		apps:      make(map[string]*PlatformApplication),
+		platforms: pf,
+	}
+	return svc, nil
 }
 
-func (svc *AmazonSNS) NewApp(arn, pf string) *SNSApp {
-	return &SNSApp{
+// SetLogger sets logger.
+func (svc *SNS) SetLogger(logger log.Logger) {
+	svc.logger = logger
+}
+
+// SetAsProduction sets productiom mode flag.
+func (svc *SNS) SetAsProduction() {
+	svc.platforms.Production = true
+}
+
+// ================================
+// PlatformApplication Operations
+// ================================
+
+// GetPlatformApplicationApple returns *PlatformApplication for iOS APNS.
+func (svc *SNS) GetPlatformApplicationApple() *PlatformApplication {
+	return svc.getPlatformApplicationByType(AppTypeAPNS)
+}
+
+// GetPlatformApplicationGoogle returns *PlatformApplication for Android GCM.
+func (svc *SNS) GetPlatformApplicationGoogle() *PlatformApplication {
+	return svc.getPlatformApplicationByType(AppTypeGCM)
+}
+
+// getPlatformApplicationByType returns *PlatformApplication.
+func (svc *SNS) getPlatformApplicationByType(typ string) *PlatformApplication {
+	typ = strings.ToUpper(typ)
+
+	// use apns sandbox when it's not in production env
+	if typ == AppTypeAPNS && !svc.isProduction {
+		typ = AppTypeAPNSSandbox
+	}
+
+	// get the app from cache
+	svc.appsMu.RLock()
+	app, ok := svc.apps[typ]
+	svc.appsMu.RUnlock()
+	if ok {
+		return app
+	}
+
+	app = svc.newPlatformApplication(svc.platforms.GetARNByType(typ), typ)
+	svc.appsMu.Lock()
+	svc.apps[typ] = app
+	svc.appsMu.Unlock()
+	return app
+}
+
+func (svc *SNS) newPlatformApplication(arn, pf string) *PlatformApplication {
+	return &PlatformApplication{
 		svc:      svc,
 		arn:      arn,
 		platform: pf,
 	}
 }
 
-func (svc *AmazonSNS) NewEndpoint(arn, protocol string) *SNSEndpoint {
-	return &SNSEndpoint{
-		svc:      svc,
-		arn:      arn,
-		protocol: protocol,
-	}
-}
+// ================================
+// Topic Operations
+// ================================
 
-func (svc *AmazonSNS) NewApplicationEndpoint(arn string) *SNSEndpoint {
-	return &SNSEndpoint{
-		svc:      svc,
-		arn:      arn,
-		protocol: ProtocolApplication,
-	}
-}
-
-func (svc *AmazonSNS) NewTopic(arn, name string) *SNSTopic {
-	return &SNSTopic{
-		svc:   svc,
-		arn:   arn,
-		name:  name,
-		sound: "default",
-	}
-}
-
-// Get SNSApp struct
-func (svc *AmazonSNS) GetApp(typ string) (*SNSApp, error) {
-	// get the app from cache
-	app, ok := svc.apps[typ]
-	if ok {
-		return app, nil
-	}
-	arn := config.GetConfigValue(snsConfigSectionName, "app."+typ, "")
-	if arn == "" {
-		errMsg := "[SNS] error, cannot find ARN setting"
-		log.Error(errMsg, typ)
-		return nil, errors.New(errMsg)
-	}
-	app = svc.NewApp(arn, typ)
-	svc.apps[typ] = app
-	return app, nil
-}
-
-// Get SNSApp struct of Apple Push Notification Service for iOS
-func (svc *AmazonSNS) GetAppAPNS() (*SNSApp, error) {
-	if isProduction {
-		return svc.GetApp(AppTypeAPNS)
-	} else {
-		return svc.GetApp(AppTypeAPNSSandbox)
-	}
-}
-
-// Get SNSApp struct for Google Cloud Messaging for Android
-func (svc *AmazonSNS) GetAppGCM() (*SNSApp, error) {
-	return svc.GetApp(AppTypeGCM)
-}
-
-// Create SNS Topic and return `TopicARN`
-func (svc *AmazonSNS) createTopic(name string) (string, error) {
-	prefix := config.GetConfigValue(snsConfigSectionName, "prefix", defaultPrefix)
-	in := &SDK.CreateTopicInput{
-		Name: String(prefix + name),
-	}
-	resp, err := svc.Client.CreateTopic(in)
+// CreateTopic creates Topic.
+func (svc *SNS) CreateTopic(name string) (*Topic, error) {
+	arn, err := svc.createTopic(name)
 	if err != nil {
-		log.Error("[SNS] error on `CreateTopic` operation, name="+name, err.Error())
+		return nil, err
+	}
+
+	topic := NewTopic(arn, name, svc)
+	return topic, nil
+}
+
+// createTopic operates CreateTopic and return `TopicARN`.
+func (svc *SNS) createTopic(name string) (topicARN string, err error) {
+	topicName := svc.prefix + name
+	in := &SDK.CreateTopicInput{
+		Name: pointers.String(topicName),
+	}
+	resp, err := svc.client.CreateTopic(in)
+	if err != nil {
+		svc.Errorf("error on `CreateTopic` operation; name=%s; error=%s;", name, err.Error())
 		return "", err
 	}
 	return *resp.TopicArn, nil
 }
 
-// Create SNS Topic and return `TopicARN`
-func (svc *AmazonSNS) CreateTopic(name string) (*SNSTopic, error) {
-	arn, err := svc.createTopic(name)
-	if err != nil {
-		return nil, err
-	}
-	topic := NewTopic(arn, name, svc)
-	return topic, nil
-}
-
-// Publish notification for arn(topic or endpoint)
-func (svc *AmazonSNS) Publish(arn string, msg string, opt map[string]interface{}) error {
+// Publish sends mobile notifications to the ARN (topic or endpoint).
+func (svc *SNS) Publish(arn string, msg string, options map[string]interface{}) error {
+	// trim message size
 	msg = truncateMessage(msg)
+
 	m := make(map[string]string)
 	m["default"] = msg
-	m["GCM"] = composeMessageGCM(msg, opt)
-	m["APNS"] = composeMessageAPNS(msg, opt)
-	m["APNS_SANDBOX"] = m["APNS"]
-	jsonString, _ := json.Marshal(m)
-	resp, err := svc.Client.Publish(&SDK.PublishInput{
-		TargetArn:        String(arn),
-		Message:          String(string(jsonString)),
-		MessageStructure: String("json"),
-	})
+
+	// GCM
+	var err error
+	m[AppTypeGCM], err = composeMessageGCM(msg, options)
 	if err != nil {
-		log.Error("[SNS] error on `Publish` operation, arn="+arn, err.Error())
+		svc.Errorf("error on composeMessageGCM; msg=%s; error=%s;", msg, err.Error())
 		return err
 	}
-	log.Info("[SNS] publish message", *resp.MessageId)
-	return nil
+
+	// APNS
+	switch {
+	case svc.platforms.Production:
+		m[AppTypeAPNS], err = composeMessageAPNS(msg, options)
+	default:
+		m[AppTypeAPNSSandbox], err = composeMessageAPNS(msg, options)
+	}
+	if err != nil {
+		svc.Errorf("error on composeMessageAPNS; msg=%s; error=%s;", msg, err.Error())
+		return err
+	}
+
+	jsonByte, err := json.Marshal(m)
+	if err != nil {
+		svc.Errorf("error on json.Marshal; arn=%s; error=%s;", arn, err.Error())
+		return err
+	}
+
+	_, err = svc.client.Publish(&SDK.PublishInput{
+		TargetArn:        pointers.String(arn),
+		Message:          pointers.String(string(jsonByte)),
+		MessageStructure: pointers.String("json"),
+	})
+	if err != nil {
+		svc.Errorf("error on `Publish` operation; arn=%s; error=%s;", arn, err.Error())
+	}
+	return err
 }
 
-// Limit message size to the allowed payload size
+// truncateMessage limits message size to the allowed payload size.
 func truncateMessage(msg string) string {
-	if len(msg) <= MessageBodyLimit {
+	if len(msg) <= messageBodyLimit {
 		return msg
 	}
-	runes := []rune(msg[:MessageBodyLimit])
+
+	runes := []rune(msg[:messageBodyLimit])
 	valid := len(runes)
 	// traverse runes from last string and detect invalid string
 	for i := valid; ; {
@@ -190,17 +211,17 @@ func truncateMessage(msg string) string {
 }
 
 // PublishAPNSByToken sends push message for iOS device by device token
-func (svc *AmazonSNS) PublishAPNSByToken(token string, msg string, badge int) error {
+func (svc *SNS) PublishAPNSByToken(token string, msg string, badge int) error {
 	return svc.PublishByToken(AppTypeAPNS, token, msg, badge)
 }
 
 // PublishGCMByToken sends push message for Android device by device token
-func (svc *AmazonSNS) PublishGCMByToken(token string, msg string, badge int) error {
+func (svc *SNS) PublishGCMByToken(token string, msg string, badge int) error {
 	return svc.PublishByToken(AppTypeGCM, token, msg, badge)
 }
 
 // PublishByToken sends push message by device token
-func (svc *AmazonSNS) PublishByToken(device, token string, msg string, badge int) error {
+func (svc *SNS) PublishByToken(device, token string, msg string, badge int) error {
 	ep, err := svc.RegisterEndpoint(device, token)
 	if err != nil {
 		return err
@@ -208,14 +229,15 @@ func (svc *AmazonSNS) PublishByToken(device, token string, msg string, badge int
 	return ep.Publish(msg, badge)
 }
 
-// Publish notification for many endpoints
+// BulkPublishByDevice sends mobile notification to many endpoints.
 // (supports single device only)
-func (svc *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg string) error {
+func (svc *SNS) BulkPublishByDevice(device string, tokens []string, msg string) error {
 	name := fmt.Sprintf("%d", time.Now().UnixNano()) + "_" + device
 	topic, err := svc.CreateTopic(name)
 	if err != nil {
 		return err
 	}
+
 	var wg sync.WaitGroup
 	for _, token := range tokens {
 		wg.Add(1)
@@ -225,7 +247,7 @@ func (svc *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg st
 				wg.Done()
 				return
 			}
-			topic.Subscribe(e)
+			topic.Subscribe(e.arn, e.protocol)
 			wg.Done()
 		}(token)
 	}
@@ -235,10 +257,10 @@ func (svc *AmazonSNS) BulkPublishByDevice(device string, tokens []string, msg st
 	return nil
 }
 
-// Publish notification for many endpoints
+// BulkPublish sends mobile notification for many endpoints.
 // tokens is map of string slices, each key stands for device, like "android"/"ios"
 // ex) tokens := map[string][]string{ "android": []string{"token1", "token2"}, "ios": []string{"token3", "token4"}}
-func (svc *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error {
+func (svc *SNS) BulkPublish(tokens map[string][]string, msg string) error {
 	for device, t := range tokens {
 		l := len(t)
 		max := (l-1)/topicMaxDeviceNumber + 1
@@ -254,62 +276,74 @@ func (svc *AmazonSNS) BulkPublish(tokens map[string][]string, msg string) error 
 	return nil
 }
 
-func (svc *AmazonSNS) getApp(device string) (*SNSApp, error) {
-	var app *SNSApp
-	var err error
+// RegisterEndpoint creates endpoint(device) to platform application.
+func (svc *SNS) RegisterEndpoint(device, token string) (*PlatformEndpoint, error) {
+	app, err := svc.getApp(device)
+	if err != nil {
+		return nil, err
+	}
+	return app.CreateEndpoint(token)
+}
+
+// RegisterEndpointWithUserData creates endpoint(device) and CustomUserData to platform application.
+func (svc *SNS) RegisterEndpointWithUserData(device, token, userData string) (*PlatformEndpoint, error) {
+	app, err := svc.getApp(device)
+	if err != nil {
+		return nil, err
+	}
+	return app.CreateEndpointWithUserData(token, userData)
+}
+
+func (svc *SNS) getApp(device string) (*PlatformApplication, error) {
+	device = strings.ToUpper(device)
+
 	switch device {
-	case "ios", "apns":
-		app, err = svc.GetAppAPNS()
-	case "android", "gcm":
-		app, err = svc.GetAppGCM()
-	default:
-		err = errors.New("[SNS] Unsupported device, device=" + device)
+	case AppTypeAPNS, "IOS", "APPLE":
+		return svc.GetPlatformApplicationApple(), nil
+	case AppTypeGCM, "ANDROID", "GOOGLE":
+		return svc.GetPlatformApplicationGoogle(), nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	return app, nil
+
+	err := fmt.Errorf("Unsupported device")
+	svc.Errorf("error getApp; device=%s; error=%s;", device, err.Error())
+	return nil, err
 }
 
-// RegisterEndpoint creates endpoint(device) to application
-func (svc *AmazonSNS) RegisterEndpoint(device, token string) (*SNSEndpoint, error) {
-	app, err := svc.getApp(device)
-	if err != nil {
-		log.Error(err.Error(), token)
-		return nil, err
-	}
-
-	return app.CreateEndpoint(token)
-}
-
-// RegisterEndpointWithUserData creates endpoint(device) and CustomUserData to application
-func (svc *AmazonSNS) RegisterEndpointWithUserData(device, token, userData string) (*SNSEndpoint, error) {
-	app, err := svc.getApp(device)
-	if err != nil {
-		log.Error(err.Error(), token)
-		return nil, err
-	}
-	app.SetUserData(userData)
-	return app.CreateEndpoint(token)
-}
-
-// GetEndpoint
-func (svc *AmazonSNS) GetEndpoint(arn string) (*SNSEndpoint, error) {
+// GetEndpoint gets *PlatformEndpoint by ARN.
+func (svc *SNS) GetEndpoint(arn string) (*PlatformEndpoint, error) {
 	in := &SDK.GetEndpointAttributesInput{
-		EndpointArn: String(arn),
+		EndpointArn: pointers.String(arn),
 	}
-	resp, err := svc.Client.GetEndpointAttributes(in)
+	resp, err := svc.client.GetEndpointAttributes(in)
 	if err != nil {
-		log.Error("[SNS] error on `GetEndpointAttributes` operation, arn="+arn, err.Error())
+		svc.Errorf("error on `GetEndpointAttributes` operation; arn=%s; error=%s;", arn, err.Error())
 		return nil, err
 	}
+
 	attr := resp.Attributes
-	ep := svc.NewApplicationEndpoint(arn)
+	ep := svc.newApplicationEndpoint(arn)
 	ep.token = *attr["Token"]
 	ep.enable, err = strconv.ParseBool(*attr["Enabled"])
 	if err != nil {
-		log.Error("[SNS] error on `Endpoint Attributes` Enabled="+*attr["Enabled"], err.Error())
-		ep.enable = false
+		svc.Errorf("error ParseBool(endpoint.Enabled); arn=%s; Enabled=%s; error=%s;", arn, *attr["Enabled"], err.Error())
 	}
 	return ep, err
+}
+
+func (svc *SNS) newApplicationEndpoint(arn string) *PlatformEndpoint {
+	return &PlatformEndpoint{
+		svc:      svc,
+		arn:      arn,
+		protocol: ProtocolApplication,
+	}
+}
+
+// Infof logging information.
+func (svc *SNS) Infof(format string, v ...interface{}) {
+	svc.logger.Infof("SNS", format, v...)
+}
+
+// Errorf logging error information.
+func (svc *SNS) Errorf(format string, v ...interface{}) {
+	svc.logger.Errorf("SNS", format, v...)
 }

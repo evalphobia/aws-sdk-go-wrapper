@@ -1,9 +1,0 @@
-[aws]
-
-[aws.auth]
-access_key = "testKey"
-secret_key = "testSecret"
-
-[aws.sqs]
-prefix = "dev_"
-endpoint = "http://localhost:4568/"

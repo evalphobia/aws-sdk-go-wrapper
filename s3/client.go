@@ -1,76 +1,159 @@
-// S3 client setting
-
 package s3
 
 import (
+	"strings"
+	"sync"
+
 	SDK "github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
+	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/errors"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const (
-	s3ConfigSectionName = "s3"
-	defaultRegion       = "us-east-1"
-	defaultEndpoint     = "http://localhost:4567"
-	defaultBucketPrefix = "dev-"
+	serviceName = "s3"
 )
 
-// wrapped struct for S3
-type AmazonS3 struct {
-	buckets      map[string]*Bucket
-	client       *SDK.S3
-	bucketPrefix string
+// S3 has S3 client and bucket list.
+type S3 struct {
+	client   *SDK.S3
+	endpoint string
+
+	logger log.Logger
+	prefix string
+
+	bucketsMu sync.RWMutex
+	buckets   map[string]*Bucket
 }
 
-// Create new AmazonS3 struct
-func NewClient() *AmazonS3 {
-	region := config.GetConfigValue(s3ConfigSectionName, "region", "")
-	endpoint := config.GetConfigValue(s3ConfigSectionName, "endpoint", "")
-	conf := auth.NewConfig(region, endpoint)
-	return newClient(conf)
-}
-
-// Create new AmazonS3 struct
-func NewClientWithKeys(k auth.Keys) *AmazonS3 {
-	conf := auth.NewConfigWithKeys(k)
-	return newClient(conf)
-}
-
-// Create new AmazonS3 struct
-func newClient(conf auth.Config) *AmazonS3 {
-	s := &AmazonS3{}
-	s.buckets = make(map[string]*Bucket)
-
-	conf.SetDefault(defaultRegion, defaultEndpoint)
-	awsConf := conf.Config
-	if *awsConf.Endpoint != "" {
-		awsConf.S3ForcePathStyle = Bool(true)
+// New returns initialized *S4.
+func New(conf config.Config) (*S3, error) {
+	sess, err := conf.Session()
+	if err != nil {
+		return nil, err
 	}
-	s.client = SDK.New(awsConf)
 
-	s.bucketPrefix = config.GetConfigValue(s3ConfigSectionName, "prefix", defaultBucketPrefix)
-	return s
+	cli := SDK.New(sess)
+	svc := &S3{
+		client:   cli,
+		endpoint: cli.ClientInfo.Endpoint,
+		logger:   log.DefaultLogger,
+		prefix:   conf.DefaultPrefix,
+		buckets:  make(map[string]*Bucket),
+	}
+	return svc, nil
 }
 
-// set bucket prefix
-func (s *AmazonS3) SetBucketPrefix(bucketPrefix string) {
-	s.bucketPrefix = bucketPrefix
+// SetLogger sets logger.
+func (svc *S3) SetLogger(logger log.Logger) {
+	svc.logger = logger
 }
 
-// get bucket
-func (s *AmazonS3) GetBucket(bucket string) *Bucket {
-	bucketName := s.bucketPrefix + bucket
+// GetBucket gets S3 bucket.
+func (svc *S3) GetBucket(bucket string) (*Bucket, error) {
+	bucketName := svc.prefix + bucket
 
 	// get the bucket from cache
-	b, ok := s.buckets[bucketName]
+	svc.bucketsMu.RLock()
+	b, ok := svc.buckets[bucketName]
+	svc.bucketsMu.RUnlock()
 	if ok {
-		return b
+		return b, nil
 	}
 
-	b = &Bucket{}
-	b.client = s.client
-	b.name = bucketName
-	s.buckets[bucketName] = b
-	return b
+	// get the bucket from AWS api.
+	_, err := svc.client.GetBucketLocation(&SDK.GetBucketLocationInput{
+		Bucket: pointers.String(bucketName),
+	})
+	if err != nil {
+		svc.Errorf("error on `GetQueueURL` operation; bueckt=%s; error=%s;", bucketName, err.Error())
+		return nil, err
+	}
+
+	b = NewBucket(bucketName, svc)
+	svc.bucketsMu.Lock()
+	svc.buckets[bucketName] = b
+	svc.bucketsMu.Unlock()
+	return b, nil
+}
+
+// IsExistBucket checks if the Bucket already exists or not.
+func (svc *S3) IsExistBucket(name string) (bool, error) {
+	bucketName := svc.prefix + name
+	// get the bucket from AWS api.
+	data, err := svc.client.GetBucketLocation(&SDK.GetBucketLocationInput{
+		Bucket: pointers.String(bucketName),
+	})
+
+	switch {
+	case isNonSuchBucketError(err):
+		return false, nil
+	case err != nil:
+		svc.Errorf("error on `GetQueueUrl` operation; queue=%s; error=%s", name, err.Error())
+		return false, err
+	case data != nil:
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
+func isNonSuchBucketError(err error) bool {
+	const errNonSuchBucket = "NoSuchBucket: "
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), errNonSuchBucket)
+}
+
+// CreateBucket creates new S3 bucket.
+func (svc *S3) CreateBucket(in *SDK.CreateBucketInput) error {
+	data, err := svc.client.CreateBucket(in)
+	if err != nil {
+		svc.Errorf("error on `CreateBucket` operation; bucket=%s; error=%s;", *in.Bucket, err.Error())
+		return err
+	}
+
+	svc.Infof("success on `CreateBucket` operation; bucket=%s; data=%s;", *in.Bucket, data.String())
+	return nil
+}
+
+// CreateBucketWithName creates new S3 bucket by given name.
+func (svc *S3) CreateBucketWithName(name string) error {
+	bucketName := svc.prefix + name
+	return svc.CreateBucket(&SDK.CreateBucketInput{
+		Bucket: pointers.String(bucketName),
+	})
+}
+
+// ForceDeleteBucket deletes S3 bucket by given name.
+func (svc *S3) ForceDeleteBucket(name string) error {
+	bucketName := svc.prefix + name
+	_, err := svc.client.DeleteBucket(&SDK.DeleteBucketInput{
+		Bucket: pointers.String(bucketName),
+	})
+	if err != nil {
+		svc.Errorf("error on `DeleteBucket` operation; bucket=%s; error=%s;", name, err.Error())
+		return err
+	}
+
+	svc.Infof("success on `DeleteBucket` operation; bucket=%s;", name)
+	return nil
+}
+
+// Infof logging information.
+func (svc *S3) Infof(format string, v ...interface{}) {
+	svc.logger.Infof(serviceName, format, v...)
+}
+
+// Errorf logging error information.
+func (svc *S3) Errorf(format string, v ...interface{}) {
+	svc.logger.Errorf(serviceName, format, v...)
+}
+
+func newErrors() *errors.Errors {
+	return errors.NewErrors(serviceName)
 }

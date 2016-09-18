@@ -6,14 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	setTestEnv()
-	createQueue("test")
-}
-
 func TestMessageString(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
+
 	q, _ := svc.GetQueue("test")
 
 	cleanQueue(q)

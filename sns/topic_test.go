@@ -7,38 +7,40 @@ import (
 )
 
 func TestNewTopic(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
-	svc := NewClient()
 	tp := NewTopic("arn", "name", svc)
-	assert.NotNil(t, tp)
-	assert.Equal(t, "arn", tp.arn)
-	assert.Equal(t, "name", tp.name)
-	assert.Equal(t, svc, tp.svc)
+	assert.NotNil(tp)
+	assert.Equal("arn", tp.arn)
+	assert.Equal("name", tp.name)
+	assert.Equal(svc, tp.svc)
 }
 
 func TestSubscribe(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
 	topicName := "fooTopic"
-	svc := NewClient()
 	topic, _ := svc.CreateTopic(topicName)
 
-	e := svc.NewApplicationEndpoint("arn")
-	res, err := topic.Subscribe(e)
-	assert.Nil(t, err)
-	assert.Contains(t, res, "arn:aws:sns:")
-	assert.Contains(t, res, topicName)
+	e := svc.newApplicationEndpoint("arn")
+	res, err := topic.Subscribe(e.arn, e.protocol)
+	assert.NoError(err)
+	assert.Contains(res, "arn:aws:sns:")
+	assert.Contains(res, topicName)
 }
 
 func TestTopicPublish(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
+	svc := getTestClient(t)
+
+	if svc.client.Endpoint == defaultEndpoint {
+		t.Skip("fakesns does not implement Publish() yet.")
+	}
 
 	topicName := "fooTopic"
-	svc := NewClient()
 	topic, _ := svc.CreateTopic(topicName)
 	err := topic.Publish("foo")
-
-	t.Skip("fakesns does not implement Publish() yet.")
-	_ = err
+	assert.NoError(err)
 }

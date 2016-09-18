@@ -3,100 +3,162 @@
 package sqs
 
 import (
+	"strings"
+	"sync"
+
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 
-	"github.com/evalphobia/aws-sdk-go-wrapper/auth"
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/errors"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const (
-	sqsConfigSectionName = "sqs"
-	defaultRegion        = "us-east-1"
-	defaultEndpoint      = "http://localhost:4568"
-	defaultQueuePrefix   = "dev_"
+	serviceName = "SQS"
 )
 
-type AmazonSQS struct {
-	queues map[string]*Queue
+// SQS has SQS client and Queue list.
+type SQS struct {
 	client *SDK.SQS
+
+	logger log.Logger
+	prefix string
+
+	queuesMu sync.RWMutex
+	queues   map[string]*Queue
 }
 
-// Create new AmazonSQS struct
-func NewClient() *AmazonSQS {
-	svc := &AmazonSQS{}
-	svc.queues = make(map[string]*Queue)
-	region := config.GetConfigValue(sqsConfigSectionName, "region", auth.EnvRegion())
-	endpoint := config.GetConfigValue(sqsConfigSectionName, "endpoint", "")
-	conf := auth.NewConfig(region, endpoint)
-	conf.SetDefault(defaultRegion, defaultEndpoint)
-	svc.client = SDK.New(conf.Config)
-	return svc
+// New returns initialized *SQS.
+func New(conf config.Config) (*SQS, error) {
+	sess, err := conf.Session()
+	if err != nil {
+		return nil, err
+	}
+
+	svc := &SQS{
+		client: SDK.New(sess),
+		logger: log.DefaultLogger,
+		prefix: conf.DefaultPrefix,
+		queues: make(map[string]*Queue),
+	}
+	return svc, nil
 }
 
-// Get a queue
-func (svc *AmazonSQS) GetQueue(queue string) (*Queue, error) {
-	queueName := GetQueuePrefix() + queue
+// SetLogger sets logger.
+func (svc *SQS) SetLogger(logger log.Logger) {
+	svc.logger = logger
+}
+
+// GetQueue gets SQS Queue.
+func (svc *SQS) GetQueue(name string) (*Queue, error) {
+	queueName := svc.prefix + name
 
 	// get the queue from cache
+	svc.queuesMu.RLock()
 	q, ok := svc.queues[queueName]
+	svc.queuesMu.RUnlock()
 	if ok {
 		return q, nil
 	}
 
-	// get the queue from server
+	// get the queue from AWS api.
 	url, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
-		QueueName:              String(queueName),
+		QueueName:              pointers.String(queueName),
 		QueueOwnerAWSAccountId: nil,
 	})
 	if err != nil {
-		log.Error("[SQS] error on `GetQueueURL` operation, queue="+queueName, err.Error())
+		svc.Errorf("error on `GetQueueURL` operation; queue=%s; error=%s;", queueName, err.Error())
 		return nil, err
 	}
-	q = NewQueue(queueName, url.QueueUrl, svc.client)
+
+	q = NewQueue(queueName, *url.QueueUrl, svc)
+	svc.queuesMu.Lock()
 	svc.queues[queueName] = q
+	svc.queuesMu.Unlock()
 	return q, nil
 }
 
-// Create new SQS Queue
-func (svc *AmazonSQS) CreateQueue(in *SDK.CreateQueueInput) error {
+// CreateQueue creates new SQS Queue.
+func (svc *SQS) CreateQueue(in *SDK.CreateQueueInput) error {
 	data, err := svc.client.CreateQueue(in)
 	if err != nil {
-		log.Error("[SQS] Error on `CreateQueue` operation, queue="+*in.QueueName, err)
+		svc.Errorf("error on `CreateQueue` operation; queue=%s; error=%s;", *in.QueueName, err.Error())
 		return err
 	}
-	log.Info("[SQS] Complete CreateQueue, queue="+*in.QueueName, *(data.QueueUrl))
+
+	svc.Infof("success on `CreateQueue` operation; queue=%s; url=%s;", *in.QueueName, *(data.QueueUrl))
 	return nil
 }
 
-// CreateQueueWithName creates new SQS Queue by the name
-func (svc *AmazonSQS) CreateQueueWithName(name string) error {
+// CreateQueueWithName creates new SQS Queue by given name
+func (svc *SQS) CreateQueueWithName(name string) error {
+	queueName := svc.prefix + name
 	return svc.CreateQueue(&SDK.CreateQueueInput{
-		QueueName: String(GetQueuePrefix() + name),
+		QueueName: pointers.String(queueName),
 	})
 }
 
-// Create new SQS Queue
-func (svc *AmazonSQS) IsExistQueue(name string) (bool, error) {
-	name = GetQueuePrefix() + name
+// IsExistQueue checks if the Queue already exists or not.
+func (svc *SQS) IsExistQueue(name string) (bool, error) {
+	queueName := svc.prefix + name
 	data, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
-		QueueName: String(name),
+		QueueName: pointers.String(queueName),
 	})
 
 	switch {
+	case isNonExistentQueueError(err):
+		return false, nil
 	case err != nil:
-		log.Error("[SQS] Error on `GetQueueUrl` operation, queue="+name, err)
+		svc.Errorf("error on `GetQueueUrl` operation; queue=%s; error=%s", name, err.Error())
 		return false, err
 	case data == nil:
 		return false, nil
-	case *data.QueueUrl != "":
+	case *data.QueueUrl != "": // queue exists
 		return true, nil
 	default:
 		return false, nil
 	}
 }
 
-// Get the prefix for DynamoDB table
-func GetQueuePrefix() string {
-	return config.GetConfigValue(sqsConfigSectionName, "prefix", defaultQueuePrefix)
+// DeleteQueue detes the SQS Queue.
+func (svc *SQS) DeleteQueue(name string) error {
+	q, err := svc.GetQueue(name)
+	if err != nil {
+		return err
+	}
+
+	_, err = svc.client.DeleteQueue(&SDK.DeleteQueueInput{
+		QueueUrl: q.url,
+	})
+	if err != nil {
+		svc.Errorf("error on `DeleteQueue` operation; queue=%s; error=%s;", name, err.Error())
+		return err
+	}
+
+	svc.Infof("success on `DeleteQueue` operation; queue=%s; url=%s;", name, *q.url)
+	return nil
+}
+
+func isNonExistentQueueError(err error) bool {
+	const errNonExistentQueue = "NonExistentQueue: "
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), errNonExistentQueue)
+}
+
+// Infof logging information.
+func (svc *SQS) Infof(format string, v ...interface{}) {
+	svc.logger.Infof(serviceName, format, v...)
+}
+
+// Errorf logging error information.
+func (svc *SQS) Errorf(format string, v ...interface{}) {
+	svc.logger.Errorf(serviceName, format, v...)
+}
+
+func newErrors() *errors.Errors {
+	return errors.NewErrors(serviceName)
 }
