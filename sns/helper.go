@@ -2,11 +2,7 @@
 
 package sns
 
-import (
-	"encoding/json"
-
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
-)
+import "encoding/json"
 
 const (
 	gcmKeyMessage  = "message"
@@ -15,8 +11,8 @@ const (
 	apnsKeyBadge   = "badge"
 )
 
-// make sns message for Google Cloud Messaging
-func composeMessageGCM(msg string, opt map[string]interface{}) string {
+// make sns message for Google Cloud Messaging.
+func composeMessageGCM(msg string, opt map[string]interface{}) (payload string, err error) {
 	data := make(map[string]interface{})
 	data[gcmKeyMessage] = msg
 	for k, v := range opt {
@@ -26,15 +22,12 @@ func composeMessageGCM(msg string, opt map[string]interface{}) string {
 	message := make(map[string]interface{})
 	message["data"] = data
 
-	payload, err := json.Marshal(message)
-	if err != nil {
-		log.Error("[SNS] error on json.Marshal", err.Error())
-	}
-	return string(payload)
+	b, err := json.Marshal(message)
+	return string(b), err
 }
 
-// make sns message for Apple Push Notification Service
-func composeMessageAPNS(msg string, opt map[string]interface{}) string {
+// make sns message for Apple Push Notification Service.
+func composeMessageAPNS(msg string, opt map[string]interface{}) (payload string, err error) {
 	aps := make(map[string]interface{})
 	aps[apnsKeyMessage] = msg
 
@@ -60,9 +53,6 @@ func composeMessageAPNS(msg string, opt map[string]interface{}) string {
 		}
 	}
 
-	payload, err := json.Marshal(message)
-	if err != nil {
-		log.Error("[SNS] error on json.Marshal", err.Error())
-	}
-	return string(payload)
+	b, err := json.Marshal(message)
+	return string(b), err
 }

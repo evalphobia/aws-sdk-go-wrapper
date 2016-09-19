@@ -1,151 +1,157 @@
 package sns
 
 import (
-	"os"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
-	_ "github.com/evalphobia/aws-sdk-go-wrapper/config/json"
 )
 
-type testConfig struct {
-	config map[string]interface{}
-}
+const (
+	testAppleARN  = "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_apns"
+	testGoogleARN = "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_gcm"
+)
 
-func (c *testConfig) LoadFile(string) error {
-	return nil
-}
-
-func (c *testConfig) SetValues(map[string]interface{}) {}
-
-func (c *testConfig) GetConfigValue(sec, key, df string) string {
-	v, ok := c.config[key]
-	if !ok {
-		return ""
+func getTestConfig() config.Config {
+	return config.Config{
+		AccessKey: "access",
+		SecretKey: "secret",
+		Endpoint:  defaultEndpoint,
 	}
-	return config.ParseToString(v)
 }
 
-func setTestConfig() {
-	conf := make(map[string]interface{})
-	conf["app.gcm"] = "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_gcm"
-	conf["app.apns"] = "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_apns"
-	conf["app.apns_sandbox"] = "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_apns"
-	conf["app.production"] = false
-	c := &testConfig{conf}
-	config.SetConfig(c)
-}
-
-func setTestEnv() {
-	os.Clearenv()
-	os.Setenv("AWS_ACCESS_KEY_ID", "access")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+func getTestClient(t *testing.T) *SNS {
+	svc, err := New(getTestConfig(), Platforms{
+		Production: false,
+		Apple:      testAppleARN,
+		Google:     testGoogleARN,
+	})
+	if err != nil {
+		t.Errorf("error on create client; error=%s;", err.Error())
+		t.FailNow()
+	}
+	return svc
 }
 
 func TestNewClient(t *testing.T) {
-	setTestEnv()
+	assert := assert.New(t)
 
-	svc := NewClient()
-	assert.NotNil(t, svc.Client)
-	assert.Equal(t, "sns", svc.Client.ServiceName)
-	assert.Equal(t, defaultEndpoint, svc.Client.Endpoint)
+	pf := Platforms{
+		Production: false,
+		Apple:      "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_apns",
+		Google:     "arn:aws:sns:us-east-1:0000000000:app/GCM/foo_gcm",
+	}
+
+	svc, err := New(getTestConfig(), pf)
+	assert.NoError(err)
+	assert.NotNil(svc.client)
+	assert.Equal("sns", svc.client.ServiceName)
+	assert.Equal(defaultEndpoint, svc.client.Endpoint)
 
 	region := "us-west-1"
-	os.Setenv("AWS_REGION", region)
-	svc2 := NewClient()
-	endpoint := "https://sns." + region + ".amazonaws.com"
-	assert.Equal(t, endpoint, svc2.Client.Endpoint)
+	svc, err = New(config.Config{
+		Region: region,
+	}, pf)
+	assert.NoError(err)
+	expectedEndpoint := "https://sns." + region + ".amazonaws.com"
+	assert.Equal(expectedEndpoint, svc.client.Endpoint)
 }
 
 func TestGetApp(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
+	assert := assert.New(t)
 
-	svc := NewClient()
-	app, err := svc.GetApp("gcm")
-	assert.Nil(t, err)
-	assert.NotNil(t, app)
+	tests := []struct {
+		typ              string
+		expectedPlatform string
+		expectedARN      string
+	}{
+		{"apns", AppTypeAPNSSandbox, testAppleARN},
+		{"apns_sandbox", AppTypeAPNSSandbox, testAppleARN},
+		{"gcm", AppTypeGCM, testGoogleARN},
+		{"foo", "FOO", ""},
+	}
 
-	app, err = svc.GetApp("apns")
-	assert.Nil(t, err)
-	assert.NotNil(t, app)
+	svc := getTestClient(t)
+	for _, tt := range tests {
+		target := fmt.Sprintf("%+v", tt)
 
-	app, err = svc.GetApp("apns_sandbox")
-	assert.Nil(t, err)
-	assert.NotNil(t, app)
-
-	app, err = svc.GetApp("foo")
-	assert.NotNil(t, err)
-	assert.Nil(t, app)
+		app := svc.getPlatformApplicationByType(tt.typ)
+		assert.NotNil(app, target)
+		assert.Equal(tt.expectedPlatform, app.platform, target)
+		assert.Equal(tt.expectedARN, app.arn, target)
+	}
 }
 
-func TestGetAppAPNS(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
+func TestGetPlatformApplicationApple(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
-	svc := NewClient()
-	app, err := svc.GetAppAPNS()
-	assert.Nil(t, err)
-	assert.NotNil(t, app)
+	app := svc.GetPlatformApplicationApple()
+	assert.NotNil(app)
+	assert.Equal(AppTypeAPNSSandbox, app.platform)
+	assert.Equal(testAppleARN, app.arn)
 }
 
-func TestGetAppGCM(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
+func TestGetPlatformApplicationGoogle(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
-	svc := NewClient()
-	app, err := svc.GetAppGCM()
-	assert.Nil(t, err)
-	assert.NotNil(t, app)
+	app := svc.GetPlatformApplicationGoogle()
+	assert.NotNil(app)
+	assert.Equal(AppTypeGCM, app.platform)
+	assert.Equal(testGoogleARN, app.arn)
 }
 
 func TestCreateTopic(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
-	svc := NewClient()
-	app, err := svc.CreateTopic("fooTopic")
-	assert.Nil(t, err)
-	assert.NotNil(t, app)
+	topic, err := svc.CreateTopic("fooTopic")
+	assert.Nil(err)
+	assert.NotNil(topic)
+	assert.Equal("fooTopic", topic.name)
+	assert.Equal("default", topic.sound)
 }
 
 func TestPublish(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
-	svc := NewClient()
+	if svc.client.Endpoint == defaultEndpoint {
+		t.Skip("fakesns does not implement Publish() yet.")
+	}
+
 	opt := make(map[string]interface{})
 	topic, _ := svc.CreateTopic("fooTopic")
 	err := svc.Publish(topic.arn, "message", opt)
-
-	t.Skip("fakesns does not implement Publish() yet.")
-	_ = err
+	assert.NoError(err)
 }
 
 func TestTruncateMessage(t *testing.T) {
+	assert := assert.New(t)
+
 	str := "foobar"
 	msg := truncateMessage(str)
-	assert.Equal(t, str, msg)
+	assert.Equal(str, msg)
 
 	var bigStr string
 	for i := 0; i < 3000; i++ {
 		bigStr = bigStr + "a"
 	}
 	msg = truncateMessage(bigStr)
-	assert.NotEqual(t, bigStr, msg)
-	assert.Equal(t, 2000, len(msg))
+	assert.NotEqual(bigStr, msg)
+	assert.Equal(2000, len(msg))
 }
 
 func TestRegisterEndpoint(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
-	svc := NewClient()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
 	ep, err := svc.RegisterEndpoint("foo", "token")
-	assert.NotNil(t, err)
-	assert.Nil(t, ep)
+	assert.NotNil(err)
+	assert.Nil(ep)
 
 	ep, err = svc.RegisterEndpoint("apns", "token")
 	ep, err = svc.RegisterEndpoint("gcm", "token")
@@ -153,20 +159,18 @@ func TestRegisterEndpoint(t *testing.T) {
 }
 
 func TestBulkPublishByDevice(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
-	svc := NewClient()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
 	err := svc.BulkPublishByDevice("ios", []string{"fooEndpoint"}, "message")
-	assert.Nil(t, err)
+	assert.Nil(err)
 }
 
 func TestBulkPublish(t *testing.T) {
-	setTestEnv()
-	setTestConfig()
-	svc := NewClient()
+	assert := assert.New(t)
+	svc := getTestClient(t)
 
 	tokens := map[string][]string{"android": {"token1", "token2"}, "ios": {"token3", "token4"}}
 	err := svc.BulkPublish(tokens, "message")
-	assert.Nil(t, err)
+	assert.Nil(err)
 }
