@@ -53,8 +53,8 @@ func TestAddMessage(t *testing.T) {
 	q, _ := svc.GetQueue("test")
 
 	q.AddMessage("foo msg")
-	assert.Equal(1, len(q.messageSpool))
-	msg := *(q.messageSpool[0].MessageBody)
+	assert.Equal(1, len(q.sendSpool))
+	msg := *(q.sendSpool[0].MessageBody)
 	assert.Equal("foo msg", msg)
 }
 
@@ -69,8 +69,8 @@ func TestAddMessageMap(t *testing.T) {
 	jsonMsg := `{"number":99,"title":"foo title"}`
 
 	q.AddMessageMap(m)
-	assert.Equal(1, len(q.messageSpool))
-	msg := *(q.messageSpool[0].MessageBody)
+	assert.Equal(1, len(q.sendSpool))
+	msg := *(q.sendSpool[0].MessageBody)
 	assert.Equal(jsonMsg, msg)
 }
 

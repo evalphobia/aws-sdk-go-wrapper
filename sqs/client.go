@@ -4,6 +4,7 @@ package sqs
 
 import (
 	"strings"
+	"sync"
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 
@@ -22,7 +23,9 @@ type SQS struct {
 
 	logger log.Logger
 	prefix string
-	queues map[string]*Queue
+
+	queuesMu sync.RWMutex
+	queues   map[string]*Queue
 }
 
 // New returns initialized *SQS.
@@ -51,7 +54,9 @@ func (svc *SQS) GetQueue(name string) (*Queue, error) {
 	queueName := svc.prefix + name
 
 	// get the queue from cache
+	svc.queuesMu.RLock()
 	q, ok := svc.queues[queueName]
+	svc.queuesMu.RUnlock()
 	if ok {
 		return q, nil
 	}
@@ -67,7 +72,9 @@ func (svc *SQS) GetQueue(name string) (*Queue, error) {
 	}
 
 	q = NewQueue(queueName, *url.QueueUrl, svc)
+	svc.queuesMu.Lock()
 	svc.queues[queueName] = q
+	svc.queuesMu.Unlock()
 	return q, nil
 }
 

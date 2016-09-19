@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 )
@@ -19,12 +20,16 @@ const (
 type Queue struct {
 	service *SQS
 
-	name         string
-	url          *string
-	messageSpool []*SDK.SendMessageBatchRequestEntry
-	deleteSpool  []*SDK.DeleteMessageBatchRequestEntry
-	failedSend   []*SDK.BatchResultErrorEntry
-	failedDelete []*SDK.BatchResultErrorEntry
+	name string
+	url  *string
+
+	sendSpoolMu sync.Mutex
+	sendSpool   []*SDK.SendMessageBatchRequestEntry
+	failedSend  []*SDK.BatchResultErrorEntry
+
+	deleteSpoolMu sync.Mutex
+	deleteSpool   []*SDK.DeleteMessageBatchRequestEntry
+	failedDelete  []*SDK.BatchResultErrorEntry
 
 	autoDel bool
 	expire  int
@@ -53,12 +58,15 @@ func (q *Queue) SetExpire(sec int) {
 
 // AddMessage adds message to the send spool.
 func (q *Queue) AddMessage(message string) {
-	num := fmt.Sprint(len(q.messageSpool) + 1)
+	q.sendSpoolMu.Lock()
+	defer q.sendSpoolMu.Unlock()
+
+	num := fmt.Sprint(len(q.sendSpool) + 1)
 	m := &SDK.SendMessageBatchRequestEntry{
 		MessageBody: String(message),
 		Id:          String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
 	}
-	q.messageSpool = append(q.messageSpool, m)
+	q.sendSpool = append(q.sendSpool, m)
 }
 
 // AddMessageJSONMarshal adds message to the send pool with encoding json data.
@@ -80,8 +88,11 @@ func (q *Queue) AddMessageMap(message map[string]interface{}) error {
 
 // Send sends messages in the send spool
 func (q *Queue) Send() error {
+	q.sendSpoolMu.Lock()
+	defer q.sendSpoolMu.Unlock()
+
 	messages := make(map[int][]*SDK.SendMessageBatchRequestEntry)
-	spool := q.messageSpool
+	spool := q.sendSpool
 	switch {
 	case len(spool) > 10:
 		for i, msg := range spool {
@@ -102,6 +113,7 @@ func (q *Queue) Send() error {
 			sqsError.Add(err)
 		}
 	}
+	q.sendSpool = nil
 
 	if sqsError.HasError() {
 		return sqsError
@@ -205,11 +217,15 @@ func (q *Queue) FetchBodyOne() string {
 func (q *Queue) AddDeleteList(msg interface{}) {
 	switch v := msg.(type) {
 	case *SDK.Message:
+		q.deleteSpoolMu.Lock()
+		defer q.deleteSpoolMu.Unlock()
 		q.deleteSpool = append(q.deleteSpool, &SDK.DeleteMessageBatchRequestEntry{
 			Id:            v.MessageId,
 			ReceiptHandle: v.ReceiptHandle,
 		})
 	case *Message:
+		q.deleteSpoolMu.Lock()
+		defer q.deleteSpoolMu.Unlock()
 		q.deleteSpool = append(q.deleteSpool, &SDK.DeleteMessageBatchRequestEntry{
 			Id:            v.GetMessageID(),
 			ReceiptHandle: v.GetReceiptHandle(),
@@ -239,6 +255,9 @@ func (q *Queue) DeleteMessage(msg *Message) error {
 
 // DeleteListItems executes delete operation in the delete spool.
 func (q *Queue) DeleteListItems() error {
+	q.deleteSpoolMu.Lock()
+	defer q.deleteSpoolMu.Unlock()
+
 	// pack the messages ten each to meet the SQS restriction.
 	spool := q.deleteSpool
 	msgCount := len(q.deleteSpool)
@@ -265,6 +284,7 @@ func (q *Queue) DeleteListItems() error {
 			sqsError.Add(err)
 		}
 	}
+	q.deleteSpool = nil
 
 	if sqsError.HasError() {
 		return sqsError
