@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
   s3:
-    image: evalphobia/fake_s3:1.0.0
+    image: evalphobia/fake-s3:1.0.0
     ports:
       - "4567:4567"
   sqs:
