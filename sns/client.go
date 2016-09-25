@@ -1,5 +1,3 @@
-// SNS client
-
 package sns
 
 import (
@@ -15,6 +13,7 @@ import (
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 // Application types
@@ -142,7 +141,7 @@ func (svc *SNS) CreateTopic(name string) (*Topic, error) {
 func (svc *SNS) createTopic(name string) (topicARN string, err error) {
 	topicName := svc.prefix + name
 	in := &SDK.CreateTopicInput{
-		Name: String(topicName),
+		Name: pointers.String(topicName),
 	}
 	resp, err := svc.client.CreateTopic(in)
 	if err != nil {
@@ -187,9 +186,9 @@ func (svc *SNS) Publish(arn string, msg string, options map[string]interface{}) 
 	}
 
 	_, err = svc.client.Publish(&SDK.PublishInput{
-		TargetArn:        String(arn),
-		Message:          String(string(jsonByte)),
-		MessageStructure: String("json"),
+		TargetArn:        pointers.String(arn),
+		Message:          pointers.String(string(jsonByte)),
+		MessageStructure: pointers.String("json"),
 	})
 	if err != nil {
 		svc.Errorf("error on `Publish` operation; arn=%s; error=%s;", arn, err.Error())
@@ -318,7 +317,7 @@ func (svc *SNS) getApp(device string) (*PlatformApplication, error) {
 // GetEndpoint gets *PlatformEndpoint by ARN.
 func (svc *SNS) GetEndpoint(arn string) (*PlatformEndpoint, error) {
 	in := &SDK.GetEndpointAttributesInput{
-		EndpointArn: String(arn),
+		EndpointArn: pointers.String(arn),
 	}
 	resp, err := svc.client.GetEndpointAttributes(in)
 	if err != nil {

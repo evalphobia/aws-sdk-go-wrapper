@@ -4,6 +4,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const defaultRegion = "us-east-1"
@@ -22,6 +24,9 @@ type Config struct {
 	// DefaultPrefix is used for service resource prefix
 	// e.g.) DynamoDB table, S3 bucket, SQS Queue
 	DefaultPrefix string
+
+	// Specific sevice's options
+	S3ForcePathStyle bool
 }
 
 // Session creates AWS session from the Config values.
@@ -34,12 +39,16 @@ func (c Config) AWSConfig() *aws.Config {
 	cred := c.awsCredentials()
 	awsConf := &aws.Config{
 		Credentials: cred,
-		Region:      stringPtr(c.getRegion()),
+		Region:      pointers.String(c.getRegion()),
 	}
 
 	ep := c.getEndpoint()
 	if ep != "" {
 		awsConf.Endpoint = &ep
+	}
+
+	if c.S3ForcePathStyle {
+		awsConf.S3ForcePathStyle = pointers.Bool(true)
 	}
 
 	return awsConf
@@ -84,8 +93,4 @@ func (c Config) getEndpoint() string {
 		return ep
 	}
 	return ""
-}
-
-func stringPtr(s string) *string {
-	return &s
 }

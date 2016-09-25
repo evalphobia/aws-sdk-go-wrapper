@@ -10,11 +10,12 @@ import (
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/errors"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const (
-	sqsConfigSectionName = "sqs"
-	defaultEndpoint      = "http://localhost:4568"
+	serviceName = "SQS"
 )
 
 // SQS has SQS client and Queue list.
@@ -63,7 +64,7 @@ func (svc *SQS) GetQueue(name string) (*Queue, error) {
 
 	// get the queue from AWS api.
 	url, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
-		QueueName:              String(queueName),
+		QueueName:              pointers.String(queueName),
 		QueueOwnerAWSAccountId: nil,
 	})
 	if err != nil {
@@ -94,7 +95,7 @@ func (svc *SQS) CreateQueue(in *SDK.CreateQueueInput) error {
 func (svc *SQS) CreateQueueWithName(name string) error {
 	queueName := svc.prefix + name
 	return svc.CreateQueue(&SDK.CreateQueueInput{
-		QueueName: String(queueName),
+		QueueName: pointers.String(queueName),
 	})
 }
 
@@ -102,7 +103,7 @@ func (svc *SQS) CreateQueueWithName(name string) error {
 func (svc *SQS) IsExistQueue(name string) (bool, error) {
 	queueName := svc.prefix + name
 	data, err := svc.client.GetQueueUrl(&SDK.GetQueueUrlInput{
-		QueueName: String(queueName),
+		QueueName: pointers.String(queueName),
 	})
 
 	switch {
@@ -150,10 +151,14 @@ func isNonExistentQueueError(err error) bool {
 
 // Infof logging information.
 func (svc *SQS) Infof(format string, v ...interface{}) {
-	svc.logger.Infof("SQS", format, v...)
+	svc.logger.Infof(serviceName, format, v...)
 }
 
 // Errorf logging error information.
 func (svc *SQS) Errorf(format string, v ...interface{}) {
-	svc.logger.Errorf("SQS", format, v...)
+	svc.logger.Errorf(serviceName, format, v...)
+}
+
+func newErrors() *errors.Errors {
+	return errors.NewErrors(serviceName)
 }

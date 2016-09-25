@@ -3,11 +3,12 @@ package sqs
 import (
 	"testing"
 
-	SDK "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 )
+
+const defaultEndpoint = "http://localhost:4568"
 
 func getTestConfig() config.Config {
 	return config.Config{
@@ -33,9 +34,7 @@ func createQueue(name string) {
 		return
 	}
 
-	svc.CreateQueue(&SDK.CreateQueueInput{
-		QueueName: String(name),
-	})
+	svc.CreateQueueWithName(name)
 }
 
 func TestNewClient(t *testing.T) {

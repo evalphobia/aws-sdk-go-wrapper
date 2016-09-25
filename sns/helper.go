@@ -1,5 +1,3 @@
-// SNS client
-
 package sns
 
 import "encoding/json"

@@ -1,8 +1,10 @@
-// SNS App
-
 package sns
 
-import SDK "github.com/aws/aws-sdk-go/service/sns"
+import (
+	SDK "github.com/aws/aws-sdk-go/service/sns"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
+)
 
 // PlatformApplication is struct for Platform Application.
 type PlatformApplication struct {
@@ -30,7 +32,7 @@ func (a *PlatformApplication) CreateEndpoint(token string) (*PlatformEndpoint, e
 
 // CreateEndpointWithUserData creates Endpoint(add device) with CustomUserData.
 func (a *PlatformApplication) CreateEndpointWithUserData(token, userData string) (*PlatformEndpoint, error) {
-	arn, err := a.createEndpoint(token, String(userData))
+	arn, err := a.createEndpoint(token, pointers.String(userData))
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +43,8 @@ func (a *PlatformApplication) CreateEndpointWithUserData(token, userData string)
 // createEndpoint creates Endpoint(add device) and return `EndpointARN`.
 func (a *PlatformApplication) createEndpoint(token string, userData *string) (endpointARN string, err error) {
 	in := &SDK.CreatePlatformEndpointInput{
-		PlatformApplicationArn: String(a.arn),
-		Token:          String(token),
+		PlatformApplicationArn: pointers.String(a.arn),
+		Token:          pointers.String(token),
 		CustomUserData: userData,
 	}
 

@@ -9,6 +9,8 @@ import (
 	"sync"
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const (
@@ -39,7 +41,7 @@ type Queue struct {
 func NewQueue(name string, url string, service *SQS) *Queue {
 	return &Queue{
 		name:    name,
-		url:     String(url),
+		url:     pointers.String(url),
 		service: service,
 		autoDel: false,
 		expire:  defaultExpireSecond,
@@ -63,8 +65,8 @@ func (q *Queue) AddMessage(message string) {
 
 	num := fmt.Sprint(len(q.sendSpool) + 1)
 	m := &SDK.SendMessageBatchRequestEntry{
-		MessageBody: String(message),
-		Id:          String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
+		MessageBody: pointers.String(message),
+		Id:          pointers.String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
 	}
 	q.sendSpool = append(q.sendSpool, m)
 }
@@ -104,19 +106,19 @@ func (q *Queue) Send() error {
 		messages[0] = append(messages[0], spool...)
 	}
 
-	sqsError := &SQSError{}
+	errList := newErrors()
 	// send message
 	for i := 0; i < len(messages); i++ {
 		err := q.send(messages[i])
 		if err != nil {
 			q.service.Errorf("error on `SendMessageBatch` operation; queue=%s; error=%s;", q.name, err.Error())
-			sqsError.Add(err)
+			errList.Add(err)
 		}
 	}
 	q.sendSpool = nil
 
-	if sqsError.HasError() {
-		return sqsError
+	if errList.HasError() {
+		return errList
 	}
 	return nil
 }
@@ -142,9 +144,9 @@ func (q *Queue) Fetch(num int) ([]*Message, error) {
 	// receive message from AWS api
 	resp, err := q.service.client.ReceiveMessage(&SDK.ReceiveMessageInput{
 		QueueUrl:            q.url,
-		WaitTimeSeconds:     Long(wait),
-		MaxNumberOfMessages: Long(num),
-		VisibilityTimeout:   Long(defaultExpireSecond),
+		WaitTimeSeconds:     pointers.Long(wait),
+		MaxNumberOfMessages: pointers.Long(num),
+		VisibilityTimeout:   pointers.Long(defaultExpireSecond),
 	})
 	if err != nil {
 		q.service.Errorf("error on `ReceiveMessage` operation; queue=%s; error=%s;", q.name, err.Error())
@@ -277,17 +279,17 @@ func (q *Queue) DeleteListItems() error {
 	}
 
 	// delete messages sequentially
-	sqsError := &SQSError{}
+	errList := newErrors()
 	for i := 0; i < len(messages); i++ {
 		err := q.delete(messages[i])
 		if err != nil {
-			sqsError.Add(err)
+			errList.Add(err)
 		}
 	}
 	q.deleteSpool = nil
 
-	if sqsError.HasError() {
-		return sqsError
+	if errList.HasError() {
+		return errList
 	}
 	return nil
 }
@@ -315,8 +317,8 @@ func (q *Queue) CountMessage() (visible int, invisible int, err error) {
 	out, err := q.service.client.GetQueueAttributes(&SDK.GetQueueAttributesInput{
 		QueueUrl: q.url,
 		AttributeNames: []*string{
-			String("ApproximateNumberOfMessages"),
-			String("ApproximateNumberOfMessagesNotVisible"),
+			pointers.String("ApproximateNumberOfMessages"),
+			pointers.String("ApproximateNumberOfMessagesNotVisible"),
 		},
 	})
 	if err != nil {

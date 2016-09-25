@@ -7,6 +7,8 @@ import (
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 // delete all messages from the Queue
@@ -181,8 +183,8 @@ func TestAddDeleteList(t *testing.T) {
 	assert.Equal(0, len(q.deleteSpool))
 
 	sdkmsg := &SDK.Message{
-		MessageId:     String("id"),
-		ReceiptHandle: String("handle"),
+		MessageId:     pointers.String("id"),
+		ReceiptHandle: pointers.String("handle"),
 	}
 
 	// add single SDK.Message

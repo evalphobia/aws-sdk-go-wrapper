@@ -1,11 +1,11 @@
-// SNS endpoint
-
 package sns
 
 import (
 	"strconv"
 
 	SDK "github.com/aws/aws-sdk-go/service/sns"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 // PlatformEndpoint is struct for Platform Endpoint.
@@ -57,10 +57,10 @@ func (e *PlatformEndpoint) UpdateAsDisable() error {
 // updateToken updates endpoint attributes.
 func (e *PlatformEndpoint) updateToken(token string, isEnable bool) error {
 	in := &SDK.SetEndpointAttributesInput{
-		EndpointArn: String(e.arn),
+		EndpointArn: pointers.String(e.arn),
 		Attributes: map[string]*string{
-			"Enabled": String(strconv.FormatBool(isEnable)),
-			"Token":   String(token),
+			"Enabled": pointers.String(strconv.FormatBool(isEnable)),
+			"Token":   pointers.String(token),
 		},
 	}
 	_, err := e.svc.client.SetEndpointAttributes(in)
