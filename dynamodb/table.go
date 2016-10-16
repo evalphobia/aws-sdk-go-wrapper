@@ -1,351 +1,327 @@
-// DynamoDB Table operation/manipuration
-
 package dynamodb
 
 import (
-	"errors"
-	"strings"
+	"fmt"
 
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
-// DynamoTable is a wapper struct for DynamoDB table
-type DynamoTable struct {
-	db            *AmazonDynamoDB
-	table         *TableDescription
-	name          string
-	indexes       map[string]*DynamoIndex
-	writeItems    []*SDK.PutItemInput
-	errorItems    []*SDK.PutItemInput
-	keyAttributes map[string]string
+// Table is a wapper struct for DynamoDB table
+type Table struct {
+	service *DynamoDB
+	name    string
+	design  *TableDesign
+
+	putSpool   []*SDK.PutItemInput
+	errorItems []*SDK.PutItemInput
 }
 
-func (t *DynamoTable) Desc() (*TableDescription, error) {
-	req, err := t.db.client.DescribeTable(&SDK.DescribeTableInput{
-		TableName: String(t.name),
+// ---------------------------------
+// table
+// ---------------------------------
+
+// NewTable returns initialized *Table.
+func NewTable(svc *DynamoDB, name string) (*Table, error) {
+	tableName := svc.prefix + name
+	req, err := svc.client.DescribeTable(&SDK.DescribeTableInput{
+		TableName: pointers.String(tableName),
 	})
 	if err != nil {
-		log.Error("[DynamoDB] Error in `DescribeTable` operation, table="+t.name, err)
+		svc.Errorf("error on `DescribeTable` operation; table=%s; error=%s;", name, err.Error())
 		return nil, err
 	}
-	return &TableDescription{req.Table}, nil
+
+	design := newTableDesignFromDescription(req.Table)
+	return &Table{
+		service: svc,
+		name:    name,
+		design:  design,
+	}, nil
 }
 
-func (t *DynamoTable) UpdateThroughput(r int64, w int64) error {
-	th := t.table.ProvisionedThroughput
-	th.ReadCapacityUnits = Long(r)
-	th.WriteCapacityUnits = Long(w)
-	return t.updateThroughput(t.toProvisionedThroughput(th))
-}
-
-func (t *DynamoTable) UpdateWriteThroughput(v int64) error {
-	th := t.table.ProvisionedThroughput
-	th.WriteCapacityUnits = Long(v)
-	return t.updateThroughput(t.toProvisionedThroughput(th))
-}
-
-func (t *DynamoTable) UpdateReadThroughput(v int64) error {
-	th := t.table.ProvisionedThroughput
-	th.ReadCapacityUnits = Long(v)
-	return t.updateThroughput(t.toProvisionedThroughput(th))
-}
-
-func (t *DynamoTable) toProvisionedThroughput(in *SDK.ProvisionedThroughputDescription) *SDK.UpdateTableInput {
-	return &SDK.UpdateTableInput{
-		TableName: String(t.name),
-		ProvisionedThroughput: &SDK.ProvisionedThroughput{
-			ReadCapacityUnits:  in.ReadCapacityUnits,
-			WriteCapacityUnits: in.WriteCapacityUnits,
-		},
+// Design returns table design.
+func (t *Table) Design() (*TableDesign, error) {
+	req, err := t.service.client.DescribeTable(&SDK.DescribeTableInput{
+		TableName: pointers.String(t.name),
+	})
+	if err != nil {
+		t.service.Errorf("error on `DescribeTable` operation; table=%s; error=%s", t.name, err.Error())
+		return nil, err
 	}
+
+	t.design = newTableDesignFromDescription(req.Table)
+	return t.design, nil
+}
+
+// UpdateThroughput updates the r/w ProvisionedThroughput.
+func (t *Table) UpdateThroughput(r int64, w int64) error {
+	t.design.SetThroughput(r, w)
+	return t.updateThroughput()
+}
+
+// UpdateWriteThroughput updates the write ProvisionedThroughput.
+func (t *Table) UpdateWriteThroughput(w int64) error {
+	t.design.SetThroughput(t.design.readCapacity, w)
+	return t.updateThroughput()
+}
+
+// UpdateReadThroughput updates the read ProvisionedThroughput.
+func (t *Table) UpdateReadThroughput(r int64) error {
+	t.design.SetThroughput(r, t.design.writeCapacity)
+	return t.updateThroughput()
 }
 
 // updateThroughput updates dynamodb table provisioned throughput
-func (t *DynamoTable) updateThroughput(in *SDK.UpdateTableInput) error {
-	if t.isSameThroughput(in) {
-		return nil
-	}
-
-	_, err := t.db.client.UpdateTable(in)
+func (t *Table) updateThroughput() error {
+	_, err := t.service.client.UpdateTable(&SDK.UpdateTableInput{
+		TableName: pointers.String(t.name),
+		ProvisionedThroughput: &SDK.ProvisionedThroughput{
+			ReadCapacityUnits:  pointers.Long64(t.design.readCapacity),
+			WriteCapacityUnits: pointers.Long64(t.design.writeCapacity),
+		},
+	})
 	if err != nil {
-		log.Error("[DynamoDB] Error in `UpdateTable` operation, table="+t.name, err)
+		t.service.Errorf("error on `UpdateTable` operation; table=%s; error=%s", t.name, err.Error())
 		return err
 	}
 
-	desc, err := t.Desc()
+	// refresh table information
+	design, err := t.Design()
 	if err != nil {
 		return err
 	}
-
-	t.table = desc
+	t.design = design
 	return nil
 }
 
-// isSameThroughput checks if the given throughput is same as current table throughput or not
-func (t *DynamoTable) isSameThroughput(in *SDK.UpdateTableInput) bool {
-	desc, err := t.Desc()
-	if err != nil {
-		return false
-	}
-	from := desc.ProvisionedThroughput
-	to := in.ProvisionedThroughput
-
-	switch {
-	case *from.ReadCapacityUnits != *to.ReadCapacityUnits:
-		return false
-	case *from.WriteCapacityUnits != *to.WriteCapacityUnits:
-		return false
-	}
-	return true
-}
+// ---------------------------------
+// Put
+// ---------------------------------
 
 // AddItem adds an item to the write-waiting list (writeItem)
-func (t *DynamoTable) AddItem(item *DynamoItem) {
-	w := &SDK.PutItemInput{}
-	w.TableName = String(t.name)
-	w.ReturnConsumedCapacity = String("TOTAL")
-	w.Item = item.data
-	w.Expected = item.conditions
-	t.writeItems = append(t.writeItems, w)
-	t.db.addWriteTable(t.name)
+func (t *Table) AddItem(item *PutItem) {
+	w := &SDK.PutItemInput{
+		TableName:              pointers.String(t.name),
+		ReturnConsumedCapacity: pointers.String("TOTAL"),
+		Item:     item.data,
+		Expected: item.conditions,
+	}
+	t.putSpool = append(t.putSpool, w)
+	t.service.addWriteTable(t.name)
 }
 
-// excecute write operation in the write-waiting list (writeItem)
-func (t *DynamoTable) Put() error {
-	var err error = nil
-	var errs []string
+// Put excecutes put operation from the write-waiting list (writeItem)
+func (t *Table) Put() error {
+	errList := newErrors()
 	// アイテムの保存処理
-	for _, item := range t.writeItems {
-		if !t.isExistPrimaryKeys(item) {
-			msg := "[DynamoDB] Cannot find primary key, table=" + t.name
-			errs = append(errs, msg)
-			log.Error(msg, item)
+	for _, item := range t.putSpool {
+		err := t.validatePutItem(item)
+		if err != nil {
+			errList.Add(err)
 			continue
 		}
-		_, e := t.db.client.PutItem(item)
-		if e != nil {
-			errs = append(errs, e.Error())
+
+		_, err = t.service.client.PutItem(item)
+		if err != nil {
+			errList.Add(err)
 			t.errorItems = append(t.errorItems, item)
 		}
 	}
-	t.writeItems = []*SDK.PutItemInput{}
-	if len(errs) != 0 {
-		err = errors.New(strings.Join(errs, "\n"))
+
+	t.putSpool = nil
+	if errList.HasError() {
+		t.service.Errorf("errors on `Put` operations; table=%s; errors=[%s];", t.name, errList.Error())
+		return errList
 	}
-	return err
+	return nil
 }
+
+// check if exists all primary keys in the item to write it.
+func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
+	hashKey := t.design.GetHashKeyName()
+	itemAttrs := item.Item
+	if _, ok := itemAttrs[hashKey]; !ok {
+		return fmt.Errorf("error on `validatePutItem`; No such hash key; table=%s; hashkey=%s", t.name, hashKey)
+	}
+
+	rangeKey := t.design.GetRangeKeyName()
+	if rangeKey == "" {
+		return nil
+	}
+
+	if _, ok := itemAttrs[rangeKey]; !ok {
+		return fmt.Errorf("error on `validatePutItem`; No such range key; table=%s; rangekey=%s", t.name, rangeKey)
+	}
+	return nil
+}
+
+// ---------------------------------
+// Scan
+// ---------------------------------
+
+// Scan executes Scan operation.
+func (t *Table) Scan() (*QueryResult, error) {
+	cond := t.NewConditionList()
+	cond.SetLimit(1000)
+	return t.scan(cond, &SDK.ScanInput{})
+}
+
+// ScanWithCondition executes Scan operation with given condition.
+func (t *Table) ScanWithCondition(cond *ConditionList) (*QueryResult, error) {
+	return t.scan(cond, &SDK.ScanInput{})
+}
+
+// scan executes Scan operation.
+func (t *Table) scan(cond *ConditionList, in *SDK.ScanInput) (*QueryResult, error) {
+	if cond.HasFilter() {
+		in.FilterExpression = cond.FormatFilter()
+		in.ExpressionAttributeValues = cond.FormatValues()
+		in.ExpressionAttributeNames = cond.FormatNames()
+	}
+
+	if cond.HasIndex() {
+		in.IndexName = pointers.String(cond.index)
+	}
+	if cond.HasLimit() {
+		in.Limit = pointers.Long64(cond.limit)
+	}
+	if cond.isConsistent {
+		in.ConsistentRead = pointers.Bool(cond.isConsistent)
+	}
+
+	in.ExclusiveStartKey = cond.startKey
+	in.TableName = pointers.String(t.name)
+	req, err := t.service.client.Scan(in)
+	if err != nil {
+		t.service.Errorf("error on `Scan` operation; table=%s; error=%s;", t.name, err.Error())
+		return nil, err
+	}
+
+	res := &QueryResult{
+		Items:            req.Items,
+		LastEvaluatedKey: req.LastEvaluatedKey,
+		Count:            *req.Count,
+		ScannedCount:     *req.ScannedCount,
+	}
+	return res, nil
+}
+
+// ---------------------------------
+// Query
+// ---------------------------------
+
+// Query executes Query operation.
+func (t *Table) Query(cond *ConditionList) (*QueryResult, error) {
+	return t.query(cond, &SDK.QueryInput{})
+}
+
+// Count executes Query operation and get Count.
+func (t *Table) Count(cond *ConditionList) (*QueryResult, error) {
+	return t.query(cond, &SDK.QueryInput{
+		Select: pointers.String("COUNT"),
+	})
+}
+
+func (t *Table) query(cond *ConditionList, in *SDK.QueryInput) (*QueryResult, error) {
+	if !cond.HasCondition() {
+		err := fmt.Errorf("condition is missing, you must specify at least one condition")
+		t.service.Errorf("error on `query`; table=%s; error=%s", t.name, err.Error())
+		return nil, err
+	}
+
+	in.KeyConditionExpression = cond.FormatCondition()
+	in.FilterExpression = cond.FormatFilter()
+	in.ExpressionAttributeValues = cond.FormatValues()
+	in.ExpressionAttributeNames = cond.FormatNames()
+
+	if cond.HasIndex() {
+		in.IndexName = pointers.String(cond.index)
+	}
+	if cond.HasLimit() {
+		in.Limit = pointers.Long64(cond.limit)
+	}
+	if cond.isConsistent {
+		in.ConsistentRead = pointers.Bool(cond.isConsistent)
+	}
+
+	in.TableName = pointers.String(t.name)
+	req, err := t.service.client.Query(in)
+	if err != nil {
+		t.service.Errorf("error on `Query` operation; table=%s; error=%s", t.name, err.Error())
+		return nil, err
+	}
+
+	res := &QueryResult{
+		Items:            req.Items,
+		LastEvaluatedKey: req.LastEvaluatedKey,
+		Count:            *req.Count,
+		ScannedCount:     *req.ScannedCount,
+	}
+	return res, nil
+}
+
+// NewConditionList returns initialized *ConditionList.
+func (t *Table) NewConditionList() *ConditionList {
+	return NewConditionList(t.design.GetKeyAttributes())
+}
+
+// ---------------------------------
+// Get
+// ---------------------------------
 
 // GetOne retrieves a single item by GetOne(HashKey [, RangeKey])
-func (t *DynamoTable) GetOne(values ...Any) (map[string]interface{}, error) {
-	key := NewItem()
-	key.AddAttribute(t.GetHashKeyName(), values[0])
-	if len(values) > 1 && t.GetRangeKeyName() != "" {
-		key.AddAttribute(t.GetRangeKeyName(), values[1])
-	}
-
+func (t *Table) GetOne(hashValue interface{}, rangeValue ...interface{}) (map[string]interface{}, error) {
 	in := &SDK.GetItemInput{
-		TableName: String(t.name),
-		Key:       key.data,
+		TableName: pointers.String(t.name),
+		Key:       t.design.keyAttributeValue(hashValue, rangeValue...),
 	}
-	req, err := t.db.client.GetItem(in)
-	if err != nil {
-		log.Error("[DynamoDB] Error in `GetItem` operation, table="+t.name, err)
-		return nil, err
-	}
-	return Unmarshal(req.Item), nil
-}
-
-// query using LSI or GSI
-func (t *DynamoTable) GetByIndex(idx string, values ...Any) ([]map[string]interface{}, error) {
-	index, ok := t.indexes[idx]
-	if !ok {
-		log.Error("[DynamoDB] Cannot find the index name, table="+t.name, idx)
-		log.Error("[DynamoDB] indexes on table="+t.name, t.indexes)
-	}
-
-	hashKey := index.GetHashKeyName()
-	rangeKey := index.GetRangeKeyName()
-
-	keys := make(map[string]*SDK.Condition)
-	keys[hashKey] = &SDK.Condition{
-		AttributeValueList: []*SDK.AttributeValue{createAttributeValue(values[0])},
-		ComparisonOperator: String(ComparisonOperatorEQ),
-	}
-	if len(values) > 1 && rangeKey != "" {
-		keys[rangeKey] = &SDK.Condition{
-			AttributeValueList: []*SDK.AttributeValue{createAttributeValue(values[1])},
-			ComparisonOperator: String(ComparisonOperatorEQ),
-		}
-	}
-
-	in := &SDK.QueryInput{
-		TableName:     String(t.name),
-		KeyConditions: keys,
-		IndexName:     &idx,
-	}
-	return t.Query(in)
-}
-
-// perform GetOne() and return slice value with single item
-func (t *DynamoTable) getOneAsSlice(values []Any) ([]map[string]interface{}, error) {
-	var (
-		items []map[string]interface{}
-		item  map[string]interface{}
-		err   error
-	)
-	switch len(values) {
-	case 0:
-		log.Error("[DynamoDB] empty values passed for Get()", t.name)
-		return items, nil
-	case 1:
-		item, err = t.GetOne(values[0])
-	default:
-		item, err = t.GetOne(values[0], values[1])
-	}
-
-	if err != nil {
-		return items, err
-	}
-	if len(item) == 0 {
-		return items, nil
-	}
-	return append(items, item), nil
-}
-
-// perform GetOne() or Query()
-func (t *DynamoTable) Get(values ...Any) ([]map[string]interface{}, error) {
+	req, err := t.service.client.GetItem(in)
 	switch {
-	case len(values) > 1:
-		return t.getOneAsSlice(values)
-	case t.GetRangeKeyName() == "":
-		return t.getOneAsSlice(values)
-	}
-
-	keys := make(map[string]*SDK.Condition)
-	keys[t.GetHashKeyName()] = &SDK.Condition{
-		AttributeValueList: []*SDK.AttributeValue{createAttributeValue(values[0])},
-		ComparisonOperator: String(ComparisonOperatorEQ),
-	}
-
-	in := &SDK.QueryInput{
-		TableName:     String(t.name),
-		KeyConditions: keys,
-	}
-	return t.Query(in)
-}
-
-// get mapped-items with Query operation
-func (t *DynamoTable) Query(in *SDK.QueryInput) ([]map[string]interface{}, error) {
-	req, err := t.db.client.Query(in)
-	if err != nil {
-		log.Error("[DynamoDB] Error in `Query` operation, table="+t.name, err)
+	case err != nil:
+		t.service.Errorf("error on `GetItem` operation; table=%s; error=%s", t.name, err.Error())
 		return nil, err
+	case req.Item == nil:
+		return nil, nil
 	}
-	return t.convertItemsToMapArray(req.Items), nil
+
+	return UnmarshalAttributeValue(req.Item), nil
 }
 
-func (t *DynamoTable) NewQuery() *Query {
-	return &Query{
-		table:      t,
-		conditions: make(map[string]*queryCondition),
-	}
-}
+// ---------------------------------
+// Delete
+// ---------------------------------
 
-// get mapped-items with Scan operation
-func (t *DynamoTable) Scan() ([]map[string]interface{}, error) {
-	in := &SDK.ScanInput{
-		TableName: String(t.name),
-		Limit:     Long(1000),
-	}
-
-	req, err := t.db.client.Scan(in)
-	if err != nil {
-		log.Error("[DynamoDB] Error in `Scan` operation, table="+t.name, err)
-		return nil, err
-	}
-	return t.convertItemsToMapArray(req.Items), nil
-}
-
-// delete item
-func (t *DynamoTable) Delete(values ...Any) error {
-	key := NewItem()
-	key.AddAttribute(t.GetHashKeyName(), values[0])
-	if len(values) > 1 && t.GetRangeKeyName() != "" {
-		key.AddAttribute(t.GetRangeKeyName(), values[1])
-	}
-
+// Delete deletes the item.
+func (t *Table) Delete(hashValue interface{}, rangeValue ...interface{}) error {
 	in := &SDK.DeleteItemInput{
-		TableName: String(t.name),
-		Key:       key.data,
+		TableName: pointers.String(t.name),
+		Key:       t.design.keyAttributeValue(hashValue, rangeValue...),
 	}
 
-	_, err := t.db.client.DeleteItem(in)
+	fmt.Printf("hashValue: %v, rangeValue: %v, Delete: %+v\n", hashValue, rangeValue, in)
+	_, err := t.service.client.DeleteItem(in)
 	if err != nil {
-		log.Error("[DynamoDB] Error in `DeleteItem` operation, table="+t.name, err)
+		t.service.Errorf("error on `DeleteItem` operation; table=%s; error=%s", t.name, err.Error())
 		return err
 	}
 	return nil
 }
 
-// convert from dynamodb values to map
-func (t *DynamoTable) convertItemsToMapArray(items []map[string]*SDK.AttributeValue) []map[string]interface{} {
-	var m []map[string]interface{}
-	for _, item := range items {
-		m = append(m, Unmarshal(item))
-	}
-	return m
-}
-
-// get the name of hash key
-func (t *DynamoTable) GetHashKeyName() string {
-	return *t.table.KeySchema[0].AttributeName
-}
-
-// get the name of range key if exist
-func (t *DynamoTable) GetRangeKeyName() string {
-	if len(t.table.KeySchema) > 1 {
-		return *t.table.KeySchema[1].AttributeName
-	} else {
-		return ""
-	}
-}
-
-// check if exists all primary keys in the item to write it.
-func (t *DynamoTable) isExistPrimaryKeys(item *SDK.PutItemInput) bool {
-	hashKey := t.GetHashKeyName()
-	itemAttrs := item.Item
-	if _, ok := itemAttrs[hashKey]; !ok {
-		log.Warn("[DynamoDB] No HashKey, table="+t.name, hashKey)
-		return false
-	}
-
-	rangeKey := t.GetRangeKeyName()
-	if rangeKey == "" {
-		return true
-	}
-
-	if _, ok := itemAttrs[rangeKey]; !ok {
-		log.Warn("[DynamoDB] No RangeKey, table="+t.name, rangeKey)
-		return false
-	}
-	return true
-}
-
-// [CAUTION]
-// only used this for developing, this performs scan all item and delete it each one by one
-func (t *DynamoTable) DeleteAll() error {
-	hashkey := t.GetHashKeyName()
-	rangekey := t.GetRangeKeyName()
+// ForceDeleteAll deltes all data in the table.
+// This performs scan all item and delete it each one by one.
+func (t *Table) ForceDeleteAll() error {
+	hashkey := t.design.GetHashKeyName()
+	rangekey := t.design.GetRangeKeyName()
 
 	result, err := t.Scan()
 	if err != nil {
 		return err
 	}
 
-	errData := &DynamoError{}
-	for _, item := range result {
+	errData := newErrors()
+	for _, item := range result.ToSliceMap() {
 		var e error
 		switch rangekey {
 		case "":
@@ -355,7 +331,7 @@ func (t *DynamoTable) DeleteAll() error {
 		}
 
 		if e != nil {
-			errData.AddMessage(e.Error())
+			errData.Add(e)
 		}
 	}
 

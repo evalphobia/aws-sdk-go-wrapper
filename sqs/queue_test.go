@@ -6,14 +6,10 @@ import (
 	"time"
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
-
 	"github.com/stretchr/testify/assert"
-)
 
-func init() {
-	setTestEnv()
-	createQueue("test")
-}
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
+)
 
 // delete all messages from the Queue
 func cleanQueue(q *Queue) {
@@ -33,7 +29,7 @@ func addTestMessage(q *Queue, num int) {
 
 func TestAutoDelete(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	assert.Equal(false, q.autoDel)
@@ -45,7 +41,7 @@ func TestAutoDelete(t *testing.T) {
 
 func TestSetExpire(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	assert.Equal(defaultExpireSecond, q.expire)
@@ -55,18 +51,18 @@ func TestSetExpire(t *testing.T) {
 
 func TestAddMessage(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	q.AddMessage("foo msg")
-	assert.Equal(1, len(q.messages))
-	msg := *(q.messages[0].MessageBody)
+	assert.Equal(1, len(q.sendSpool))
+	msg := *(q.sendSpool[0].MessageBody)
 	assert.Equal("foo msg", msg)
 }
 
 func TestAddMessageMap(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	m := make(map[string]interface{})
@@ -75,14 +71,14 @@ func TestAddMessageMap(t *testing.T) {
 	jsonMsg := `{"number":99,"title":"foo title"}`
 
 	q.AddMessageMap(m)
-	assert.Equal(1, len(q.messages))
-	msg := *(q.messages[0].MessageBody)
+	assert.Equal(1, len(q.sendSpool))
+	msg := *(q.sendSpool[0].MessageBody)
 	assert.Equal(jsonMsg, msg)
 }
 
 func TestSend(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	q.AddMessage("foo send")
@@ -92,7 +88,7 @@ func TestSend(t *testing.T) {
 
 func TestFetch(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	// prepare
@@ -112,7 +108,7 @@ func TestFetch(t *testing.T) {
 
 func TestFetchOne(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	// prepare
@@ -136,7 +132,7 @@ func TestFetchOne(t *testing.T) {
 
 func TestFetchBody(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	// prepare
@@ -160,7 +156,7 @@ func TestFetchBody(t *testing.T) {
 
 func TestFetchBodyOne(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	// prepare
@@ -182,38 +178,38 @@ func TestFetchBodyOne(t *testing.T) {
 
 func TestAddDeleteList(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
-	assert.Equal(0, len(q.delMessages))
+	assert.Equal(0, len(q.deleteSpool))
 
 	sdkmsg := &SDK.Message{
-		MessageId:     String("id"),
-		ReceiptHandle: String("handle"),
+		MessageId:     pointers.String("id"),
+		ReceiptHandle: pointers.String("handle"),
 	}
 
 	// add single SDK.Message
 	q.AddDeleteList(sdkmsg)
-	assert.Equal(1, len(q.delMessages))
+	assert.Equal(1, len(q.deleteSpool))
 
 	// add slice SDK.Message
 	q.AddDeleteList([]*SDK.Message{sdkmsg, sdkmsg})
-	assert.Equal(3, len(q.delMessages))
+	assert.Equal(3, len(q.deleteSpool))
 
 	msg := &Message{sdkmsg}
 
 	// add single message
 	q.AddDeleteList(msg)
-	assert.Equal(4, len(q.delMessages))
+	assert.Equal(4, len(q.deleteSpool))
 
 	// add slice message
 	q.AddDeleteList([]*Message{msg, msg, msg})
-	assert.Equal(7, len(q.delMessages))
+	assert.Equal(7, len(q.deleteSpool))
 
 }
 
 func TestDeleteMessage(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 	cleanQueue(q)
 
@@ -231,7 +227,7 @@ func TestDeleteMessage(t *testing.T) {
 
 func TestDeleteListItems(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 	cleanQueue(q)
 
@@ -268,7 +264,7 @@ func TestDeleteListItems(t *testing.T) {
 
 func TestCountMessage(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 	cleanQueue(q)
 	addTestMessage(q, 3)
@@ -290,7 +286,7 @@ func TestCountMessage(t *testing.T) {
 
 func TestPurge(t *testing.T) {
 	assert := assert.New(t)
-	svc := NewClient()
+	svc := getTestClient(t)
 
 	// prepare message
 	q, _ := svc.GetQueue("test")

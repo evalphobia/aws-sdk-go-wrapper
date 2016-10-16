@@ -1,22 +1,22 @@
-// SNS topic
-
 package sns
 
 import (
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
-	"github.com/evalphobia/aws-sdk-go-wrapper/log"
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
-type SNSTopic struct {
-	svc   *AmazonSNS
+// Topic is struct for Topic.
+type Topic struct {
+	svc   *SNS
 	name  string
 	arn   string
 	sound string
 }
 
-func NewTopic(arn, name string, svc *AmazonSNS) *SNSTopic {
-	return &SNSTopic{
+// NewTopic returns initialized *Topic.
+func NewTopic(arn, name string, svc *SNS) *Topic {
+	return &Topic{
 		arn:   arn,
 		name:  name,
 		sound: "default",
@@ -24,29 +24,32 @@ func NewTopic(arn, name string, svc *AmazonSNS) *SNSTopic {
 	}
 }
 
-// Subscribe
-func (t *SNSTopic) Subscribe(endpoint *SNSEndpoint) (string, error) {
-	resp, err := t.svc.Client.Subscribe(&SDK.SubscribeInput{
-		Endpoint: String(endpoint.arn),
-		Protocol: String(endpoint.protocol),
-		TopicArn: String(t.arn),
+// Subscribe operates `Subscribe` and returns `SubscriptionArn`.
+func (t *Topic) Subscribe(endpointARN, protocol string) (subscriptionARN string, err error) {
+	resp, err := t.svc.client.Subscribe(&SDK.SubscribeInput{
+		Endpoint: pointers.String(endpointARN),
+		Protocol: pointers.String(protocol),
+		TopicArn: pointers.String(t.arn),
 	})
 	if err != nil {
-		log.Error("[SNS] error on `Subscribe` operation, topic="+t.arn, err.Error())
+		t.svc.Errorf("error on `Subscribe` operation; name=%s; error=%s;", t.name, err.Error())
 		return "", err
 	}
 	return *resp.SubscriptionArn, nil
 }
 
-// Publish notification to the topic
-func (t *SNSTopic) Publish(msg string) error {
+// Publish sends notification to the topic.
+func (t *Topic) Publish(msg string) error {
 	return t.svc.Publish(t.arn, msg, nil)
 }
 
-// Delete topic
-func (t *SNSTopic) Delete() error {
-	_, err := t.svc.Client.DeleteTopic(&SDK.DeleteTopicInput{
-		TopicArn: String(t.arn),
+// Delete deltes the topic.
+func (t *Topic) Delete() error {
+	_, err := t.svc.client.DeleteTopic(&SDK.DeleteTopicInput{
+		TopicArn: pointers.String(t.arn),
 	})
+	if err != nil {
+		t.svc.Errorf("error on `DeleteTopic` operation; name=%s; error=%s;", t.name, err.Error())
+	}
 	return err
 }

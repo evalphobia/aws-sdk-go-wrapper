@@ -1,355 +1,276 @@
 package dynamodb
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDesc(t *testing.T) {
+func TestDesign(t *testing.T) {
 	assert := assert.New(t)
-	tbl := getTestTable()
+	tbl := getTestTable(t)
 
-	desc, err := tbl.Desc()
-	assert.Nil(err)
-	assert.Equal(tbl.table, desc)
+	design, err := tbl.Design()
+	assert.NoError(err)
+	assert.Equal(tbl.design, design)
 }
 
 func TestUpdateThroughput(t *testing.T) {
 	assert := assert.New(t)
-	tbl := getTestTable()
+	tbl := getTestTable(t)
 
 	var r, w int64
 	r = 10
 	w = 20
 	err := tbl.UpdateThroughput(r, w)
-	assert.Nil(err)
+	assert.NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
-	desc, _ := tbl.Desc()
-	th := desc.ProvisionedThroughput
-	assert.Equal(r, *th.ReadCapacityUnits)
-	assert.Equal(w, *th.WriteCapacityUnits)
+	design, _ := tbl.Design()
+	assert.Equal(r, design.readCapacity)
+	assert.Equal(w, design.writeCapacity)
 }
 
 func TestUpdateReadThroughput(t *testing.T) {
 	assert := assert.New(t)
-	tbl := getTestTable()
+	tbl := getTestTable(t)
 
 	var r int64
 	r = 50
 	err := tbl.UpdateReadThroughput(r)
-	assert.Nil(err)
+	assert.NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
-	desc, _ := tbl.Desc()
-	th := desc.ProvisionedThroughput
-	assert.Equal(r, *th.ReadCapacityUnits)
-	assert.Equal(*tbl.table.ProvisionedThroughput.WriteCapacityUnits, *th.WriteCapacityUnits)
+	design, _ := tbl.Design()
+	assert.Equal(r, design.readCapacity)
 }
 
 func TestUpdateWriteThroughput(t *testing.T) {
 	assert := assert.New(t)
-	tbl := getTestTable()
+	tbl := getTestTable(t)
 
 	var w int64
 	w = 30
 	err := tbl.UpdateWriteThroughput(w)
-	assert.Nil(err)
+	assert.NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
-	desc, _ := tbl.Desc()
-	th := desc.ProvisionedThroughput
-	assert.Equal(w, *th.WriteCapacityUnits)
-	assert.Equal(*tbl.table.ProvisionedThroughput.ReadCapacityUnits, *th.ReadCapacityUnits)
+	design, _ := tbl.Design()
+	assert.Equal(w, design.writeCapacity)
 }
 
 func TestAddItem(t *testing.T) {
-	tbl := getTestTable()
-	if tbl == nil || len(tbl.writeItems) != 0 {
-		t.Errorf("error on GetTable, %v", tbl)
-	}
+	assert := assert.New(t)
 
-	item := NewItem()
+	tbl := getTestTable(t)
+	item := NewPutItem()
 	item.AddAttribute("attr1", 99)
 	item.AddConditionEQ("cond1", 5)
 	tbl.AddItem(item)
-	if len(tbl.writeItems) != 1 {
-		t.Errorf("error on AddItem, %v", tbl)
-	}
-	items := tbl.writeItems[0]
+	assert.Len(tbl.putSpool, 1)
 
+	items := tbl.putSpool[0]
 	it, ok := items.Item["attr1"]
-	if !ok || *it.N != "99" {
-		t.Errorf("error on AddItem, %s", it)
-	}
+	assert.True(ok)
+	assert.Equal("99", *it.N)
 
 	cond, ok := items.Expected["cond1"]
-	if !ok || cond.Value == nil {
-		t.Errorf("error on AddItem, %s", cond)
-	}
-	if cond.Value.N == nil || *cond.Value.N != "5" {
-		t.Errorf("error on AddItem, %s", *cond.Value)
-	}
+	assert.True(ok)
+	assert.Equal("5", *cond.Value.N)
 }
 
 func TestPut(t *testing.T) {
-	tbl := getTestTable()
-	if tbl == nil || len(tbl.writeItems) != 0 {
-		t.Errorf("error on GetTable, %v", tbl)
-	}
+	assert := assert.New(t)
 
-	item := NewItem()
+	tbl := getTestTable(t)
+
+	item := NewPutItem()
 	item.AddAttribute("id", 100)
 	item.AddAttribute("time", 1)
 	tbl.AddItem(item)
-	err := tbl.Put()
-	if err != nil {
-		t.Errorf("error on Put, %s", err.Error())
-	}
 
-	item = NewItem()
+	err := tbl.Put()
+	assert.NoError(err)
+
+	item = NewPutItem()
 	item.AddAttribute("id", 100)
 	tbl.AddItem(item)
 	err = tbl.Put()
-	if err == nil {
-		t.Errorf("error on Put, %s", err.Error())
-	}
+	assert.Error(err)
 }
 
 func TestGetOne(t *testing.T) {
-	tbl := getTestTable()
+	assert := assert.New(t)
+
+	tbl := getTestTable(t)
 	putTestTable(tbl, 100, 1)
 
 	result, err := tbl.GetOne(100, 1)
-	if err != nil {
-		t.Errorf("error on GetOne, %s", err.Error())
-	}
-	if result == nil || result["id"] != 100 || result["time"] != 1 {
-		t.Errorf("error on GetOne, %s", result)
-	}
-}
-
-func TestGetByIndex(t *testing.T) {
-	tbl := getTestTable()
-	putTestTable(tbl, 100, 1)
-
-	results, err := tbl.GetByIndex("lsi-index", 100, "lsi_value")
-	if err != nil {
-		t.Errorf("error on GetByIndex, %s", err.Error())
-	}
-	if len(results) != 1 {
-		t.Errorf("error on GetByIndex, %s", results)
-	}
-	result := results[0]
-	if result == nil || result["id"] != 100 || result["time"] != 1 {
-		t.Errorf("error on GetByIndex, %s", result)
-	}
-
-	results, err = tbl.GetByIndex("gsi-index", 1)
-	if err != nil {
-		t.Errorf("error on GetByIndex, %s", err.Error())
-	}
-	if len(results) != 1 {
-		t.Errorf("error on GetByIndex, %s", results)
-	}
-	result = results[0]
-	if result == nil || result["id"] != 100 || result["time"] != 1 {
-		t.Errorf("error on GetByIndex, %s", result)
-	}
-}
-
-func TestGet(t *testing.T) {
-	// for hashkey+rangekey table
-	tbl := getTestTable()
-	putTestTable(tbl, 100, 1)
-	results, err := tbl.Get(100, 1)
-	if err != nil {
-		t.Errorf("error on Get, %s", err.Error())
-	}
-	if len(results) != 1 {
-		t.Errorf("error on Get, %s", results)
-	}
-	result := results[0]
-	if result == nil || result["id"] != 100 || result["time"] != 1 {
-		t.Errorf("error on Get, %s", result)
-	}
-
-	// for hashkey+rangekey table by hashkey condtion
-	results, err = tbl.Get(100)
-	if err != nil {
-		t.Errorf("error on Get, %s", err.Error())
-	}
-	if len(results) != 1 {
-		t.Errorf("error on Get, %s", results)
-	}
-	result = results[0]
-	if result == nil || result["id"] != 100 || result["time"] != 1 {
-		t.Errorf("error on Get, %s", result)
-	}
-
-	// for hashkey table
-	tbl2 := getTestHashTable()
-	item := NewItem()
-	item.AddAttribute("id", 100)
-	tbl2.AddItem(item)
-	err = tbl2.Put()
-	if err != nil {
-		t.Errorf("error on Put, %s", err.Error())
-	}
-
-	results, err = tbl2.Get(100)
-	if err != nil {
-		t.Errorf("error on Get, %s", err.Error())
-	}
-	if len(results) != 1 {
-		t.Errorf("error on Get, %s", results)
-	}
-	result = results[0]
-	if result == nil || result["id"] != 100 {
-		t.Errorf("error on Get, %s", result)
-	}
+	assert.NoError(err)
+	assert.Equal(100, result["id"])
+	assert.Equal(1, result["time"])
 }
 
 func TestScan(t *testing.T) {
-	tbl := getTestTable()
+	assert := assert.New(t)
+	resetTestTable(t)
+	tbl := getTestTable(t)
 	putTestTable(tbl, 100, 1)
+
 	results, err := tbl.Scan()
-	if err != nil {
-		t.Errorf("error on Query, %s", err.Error())
+	assert.NoError(err)
+	assert.Len(results.Items, 1)
+
+	result := results.Items[0]
+	assert.Equal("100", *result["id"].N)
+	assert.Equal("1", *result["time"].N)
+}
+
+func TestScanWithCondition(t *testing.T) {
+	assert := assert.New(t)
+
+	tests := []struct {
+		limit                int
+		filter               int
+		expectedCount        int
+		expectedScannedCount int
+	}{
+		{1, 100, 1, 1},
+		{1, 101, 1, 1},
+		{1, 102, 1, 1},
+		{1, 99, 0, 1},
+		{2, 100, 2, 2},
+		{3, 100, 3, 3},
+		{10, 100, 10, 10},
+		{10, 101, 10, 10},
+		{10, 102, 10, 10},
+		{10, 99, 0, 10},
+		{500, 100, 200, 200},
 	}
-	if len(results) != 1 {
-		t.Errorf("error on Query, %s", results)
+
+	resetTestTable(t)
+	tbl := getTestTable(t)
+	for i := 0; i < 100; i++ {
+		putTestTable(tbl, 100, i)
+		if i%2 == 0 {
+			putTestTable(tbl, 101, i)
+		} else {
+			putTestTable(tbl, 102, i)
+		}
 	}
-	result := results[0]
-	if result == nil || result["id"] != 100 || result["time"] != 1 {
-		t.Errorf("error on Query, %s", result)
+
+	for _, tt := range tests {
+		target := fmt.Sprintf("%+v", tt)
+
+		cond := tbl.NewConditionList()
+		cond.SetLimit(int64(tt.limit))
+		if tt.filter != 0 {
+			cond.FilterEQ("id", tt.filter)
+		}
+
+		results, err := tbl.ScanWithCondition(cond)
+		assert.NoError(err, target)
+
+		switch {
+		case tt.filter == 0:
+			assert.Len(results.Items, tt.expectedCount, target)
+			assert.Equal(tt.expectedCount, int(results.Count), target)
+		default:
+			assert.True(len(results.Items) <= tt.expectedCount, target)
+			assert.True(int(results.Count) <= tt.expectedCount, target)
+		}
+		assert.EqualValues(tt.expectedScannedCount, results.ScannedCount, target)
+
+		for _, item := range results.ToSliceMap() {
+			assert.Equal(tt.filter, item["id"], target)
+		}
 	}
 }
 
 func TestDelete(t *testing.T) {
-	tbl := getTestTable()
+	assert := assert.New(t)
+	resetTestTable(t)
+	tbl := getTestTable(t)
 	putTestTable(tbl, 100, 1)
 
-	results, err := tbl.Get(100)
-	if err != nil {
-		t.Errorf("error on Get, %s", err.Error())
-	}
-	if len(results) != 1 {
-		t.Errorf("error on Get, %s", results)
-	}
+	result, err := tbl.GetOne(100, 1)
+	assert.NoError(err)
+	assert.Equal(100, result["id"])
+	assert.Equal(1, result["time"])
 
-	result := results[0]
-	tbl.Delete(result["id"], result["time"])
-	results, err = tbl.Get(100)
-	if err != nil {
-		t.Errorf("error on Delete, %s", err.Error())
-	}
-	if len(results) != 0 {
-		t.Errorf("error on Delete, %s", results)
-	}
+	err = tbl.Delete(result["id"], result["time"])
+	assert.NoError(err)
+
+	result, err = tbl.GetOne(100, 1)
+	assert.NoError(err)
+	assert.Nil(result)
 }
 
-func TestDeleteAll(t *testing.T) {
-	tbl := getTestTable()
+func TestForceDeleteAll(t *testing.T) {
+	assert := assert.New(t)
+
+	tbl := getTestTable(t)
 	putTestTable(tbl, 100, 1)
 
-	item := NewItem()
+	item := NewPutItem()
 	item.AddAttribute("id", 100)
 	item.AddAttribute("time", 2)
 	tbl.AddItem(item)
 	err := tbl.Put()
-	if err != nil {
-		t.Errorf("error on Put, %s", err.Error())
-	}
+	assert.NoError(err)
 
-	results, err := tbl.Get(100)
-	if err != nil {
-		t.Errorf("error on Get, %s", err.Error())
-	}
-	if len(results) != 2 {
-		t.Errorf("error on Get, %s", results)
-	}
+	result, err := tbl.GetOne(100, 1)
+	assert.NoError(err)
+	assert.Equal(100, result["id"])
+	assert.Equal(1, result["time"])
 
-	tbl.DeleteAll()
-	results, err = tbl.Get(100)
-	if err != nil {
-		t.Errorf("error on DeleteAll, %s", err.Error())
-	}
-	if len(results) != 0 {
-		t.Errorf("error on DeleteAll, %s", results)
-	}
+	err = tbl.ForceDeleteAll()
+	assert.NoError(err)
+	result, err = tbl.GetOne(100, 1)
+	assert.NoError(err)
+	assert.Nil(result)
 
-	tbl2 := getTestHashTable()
+	tbl2 := getTestHashTable(t)
 	tbl2.AddItem(item)
 	err = tbl2.Put()
-	if err != nil {
-		t.Errorf("error on Put, %s", err.Error())
-	}
-	tbl2.DeleteAll()
-	results, err = tbl2.Get(100)
-	if err != nil {
-		t.Errorf("error on DeleteAll, %s", err.Error())
-	}
-	if len(results) != 0 {
-		t.Errorf("error on DeleteAll, %s", results[0])
-	}
+	assert.NoError(err)
+
+	err = tbl2.ForceDeleteAll()
+	assert.NoError(err)
+	result, err = tbl2.GetOne(100)
+	assert.NoError(err)
+	assert.Nil(result)
 }
 
 func TestIsExistPrimaryKeys(t *testing.T) {
-	tbl := getTestTable()
+	assert := assert.New(t)
+
+	tbl := getTestTable(t)
 	putTestTable(tbl, 100, 1)
 
-	item := NewItem()
+	item := NewPutItem()
 	tbl.AddItem(item)
-	b1 := tbl.isExistPrimaryKeys(tbl.writeItems[0])
-	if b1 != false {
-		t.Errorf("error on isExistPrimaryKeys, %t", b1)
-	}
+	err := tbl.validatePutItem(tbl.putSpool[0])
+	assert.Error(err)
 
 	item.AddAttribute("id", 100)
 	tbl.AddItem(item)
-	b2 := tbl.isExistPrimaryKeys(tbl.writeItems[1])
-	if b2 != false {
-		t.Errorf("error on isExistPrimaryKeys, %t", b2)
-	}
+	err = tbl.validatePutItem(tbl.putSpool[1])
+	assert.Error(err)
 
 	item.AddAttribute("time", 1)
 	tbl.AddItem(item)
-	b3 := tbl.isExistPrimaryKeys(tbl.writeItems[2])
-	if b3 != true {
-		t.Errorf("error on isExistPrimaryKeys, %t", b3)
-	}
+	err = tbl.validatePutItem(tbl.putSpool[2])
+	assert.NoError(err)
 }
 
-func putTestTable(tbl *DynamoTable, hValue, rValue Any) error {
-	item := NewItem()
+func putTestTable(tbl *Table, hValue, rValue interface{}) error {
+	item := NewPutItem()
 	item.AddAttribute("id", hValue)
 	item.AddAttribute("time", rValue)
 	item.AddAttribute("lsi_key", "lsi_value")
 	tbl.AddItem(item)
 	return tbl.Put()
-}
-
-func getTestTable() *DynamoTable {
-	setTestEnv()
-
-	c := NewClient()
-	name := "foo_table"
-	in := getCreateTableInput(name)
-	createTable(c, in)
-	tbl, _ := c.GetTable(name)
-	return tbl
-}
-
-func getTestHashTable() *DynamoTable {
-	setTestEnv()
-
-	c := NewClient()
-	name := "foo_hashtable"
-	in := getCreateHashTableInput(name)
-	createTable(c, in)
-	tbl, _ := c.GetTable(name)
-	return tbl
 }

@@ -2,103 +2,56 @@ package dynamodb
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNewDynamoIndex(t *testing.T) {
-	hashkey := NewHashKeyElement("foo")
-	idx := NewDynamoIndex("name", "local", NewKeySchema(hashkey))
-	keys := idx.KeySchema
-	if idx.Name != "name" || idx.IndexType != "local" || len(keys) != 1 {
-		t.Errorf("error on NewDynamoIndex, actual=%v", idx)
-	}
-	if *keys[0].AttributeName != "foo" {
-		t.Errorf("error on NewDynamoIndex.KeySchema, actual=%v", keys)
-	}
-
-	rangekey := NewRangeKeyElement("bar")
-	idx2 := NewDynamoIndex("name", "local", NewKeySchema(hashkey, rangekey))
-	keys = idx2.KeySchema
-	if idx.Name != "name" || idx.IndexType != "local" || len(keys) != 2 {
-		t.Errorf("error on NewDynamoIndex, actual=%v", idx)
-	}
-	if *keys[0].AttributeName != "foo" || *keys[1].AttributeName != "bar" {
-		t.Errorf("error on NewDynamoIndex.KeySchema, actual=%v", keys)
-	}
-
-}
-
-func TestGetHashKeyName(t *testing.T) {
-	hashkey := NewHashKeyElement("foo")
-	rangekey := NewRangeKeyElement("bar")
-	idx := NewDynamoIndex("name", "local", NewKeySchema(hashkey, rangekey))
-	hashName := idx.GetHashKeyName()
-	if hashName != "foo" {
-		t.Errorf("error on GetHashKeyName, actual=%v", hashName)
-	}
-}
-
-func TestGetRangeKeyName(t *testing.T) {
-	hashkey := NewHashKeyElement("foo")
-	rangekey := NewRangeKeyElement("bar")
-	idx := NewDynamoIndex("name", "local", NewKeySchema(hashkey, rangekey))
-	rangeName := idx.GetRangeKeyName()
-	if rangeName != "bar" {
-		t.Errorf("error on GetHashKeyName, actual=%v", rangeName)
-	}
-
-	idx2 := NewDynamoIndex("name", "local", NewKeySchema(hashkey))
-	rangeName = idx2.GetRangeKeyName()
-	if rangeName != "" {
-		t.Errorf("error on GetHashKeyName, actual=%v", rangeName)
-	}
-}
-
 func TestNewLSI(t *testing.T) {
+	assert := assert.New(t)
+
 	keys := NewKeySchema(NewHashKeyElement("foo"))
 	lsi := NewLSI("name", keys)
-	if *lsi.IndexName != "name" || *lsi.Projection.ProjectionType != ProjectionTypeAll {
-		t.Errorf("error on NewLSI, actual=%v", lsi)
-	}
+	assert.Equal("name", *lsi.IndexName)
+	assert.Equal(ProjectionTypeAll, *lsi.Projection.ProjectionType)
+
 	k := lsi.KeySchema
-	if len(k) != 1 || *k[0].AttributeName != "foo" {
-		t.Errorf("error on NewLSI, actual=%v", lsi)
-	}
+	assert.Len(k, 1)
+	assert.Equal("foo", *k[0].AttributeName)
 
 	lsi2 := NewLSI("name", keys, ProjectionTypeKeysOnly)
-	if *lsi2.IndexName != "name" || *lsi2.Projection.ProjectionType != ProjectionTypeKeysOnly {
-		t.Errorf("error on NewLSI, actual=%v", lsi2)
-	}
+	assert.Equal("name", *lsi2.IndexName)
+	assert.Equal(ProjectionTypeKeysOnly, *lsi2.Projection.ProjectionType)
+
 	k = lsi2.KeySchema
-	if len(k) != 1 || *k[0].AttributeName != "foo" {
-		t.Errorf("error on NewLSI, actual=%v", lsi2)
-	}
+	assert.Len(k, 1)
+	assert.Equal("foo", *k[0].AttributeName)
 }
 
 func TestNewGSI(t *testing.T) {
-	keys := NewKeySchema(NewHashKeyElement("foo"))
-	gsi := NewGSI("name", keys, NewProvisionedThroughput(5, 8))
-	if *gsi.IndexName != "name" || *gsi.Projection.ProjectionType != ProjectionTypeAll {
-		t.Errorf("error on NewGSI, actual=%v", gsi)
-	}
-	k := gsi.KeySchema
-	if len(k) != 1 || *k[0].AttributeName != "foo" {
-		t.Errorf("error on NewGSI, actual=%v", gsi)
-	}
-	tp := gsi.ProvisionedThroughput
-	if *tp.ReadCapacityUnits != 5 || *tp.WriteCapacityUnits != 8 {
-		t.Errorf("error on NewGSI, actual=%v", gsi)
-	}
+	assert := assert.New(t)
 
-	gsi2 := NewGSI("name", keys, NewProvisionedThroughput(5, 8), ProjectionTypeKeysOnly)
-	if *gsi2.IndexName != "name" || *gsi2.Projection.ProjectionType != ProjectionTypeKeysOnly {
-		t.Errorf("error on NewGSI, actual=%v", gsi)
-	}
+	keys := NewKeySchema(NewHashKeyElement("foo"))
+	gsi := NewGSI("name", keys, newProvisionedThroughput(5, 8))
+	assert.Equal("name", *gsi.IndexName)
+	assert.Equal(ProjectionTypeAll, *gsi.Projection.ProjectionType)
+
+	k := gsi.KeySchema
+	assert.Len(k, 1)
+	assert.Equal("foo", *k[0].AttributeName)
+
+	tp := gsi.ProvisionedThroughput
+	assert.EqualValues(5, *tp.ReadCapacityUnits)
+	assert.EqualValues(8, *tp.WriteCapacityUnits)
+
+	gsi2 := NewGSI("name", keys, newProvisionedThroughput(5, 8), ProjectionTypeKeysOnly)
+	assert.Equal("name", *gsi2.IndexName)
+	assert.Equal(ProjectionTypeKeysOnly, *gsi2.Projection.ProjectionType)
+
 	k = gsi2.KeySchema
-	if len(k) != 1 || *k[0].AttributeName != "foo" {
-		t.Errorf("error on NewGSI, actual=%v", gsi2)
-	}
+	assert.Len(k, 1)
+	assert.Equal("foo", *k[0].AttributeName)
+
 	tp = gsi2.ProvisionedThroughput
-	if *tp.ReadCapacityUnits != 5 || *tp.WriteCapacityUnits != 8 {
-		t.Errorf("error on NewGSI, actual=%v", gsi2)
-	}
+	assert.EqualValues(5, *tp.ReadCapacityUnits)
+	assert.EqualValues(8, *tp.WriteCapacityUnits)
 }

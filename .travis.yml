@@ -1,0 +1,38 @@
+sudo: required
+language: go
+go:
+  - 1.5
+  - 1.6
+  - 1.7
+  - tip
+matrix:
+  allow_failures:
+    - go: tip
+
+services:
+  - docker
+before_install:
+  - mkdir -p ./.local/s3_data
+  - chmod 777 ./.local/s3_data
+  - docker-compose up -d
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/modocache/gover
+  - go get github.com/mattn/goveralls
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/stretchr/testify/assert
+  - go get -v ./...
+before_script:
+  - go vet ./... 2>&1 | grep -v "\(in Errorf call\|exit status 1\)" > vet.log ; test ! -s vet.log
+  - gofmt -s -l .
+script:
+  - go test ./config -coverprofile="config.coverprofile"
+  - go test ./dynamodb -coverprofile="dynamodb.coverprofile"
+  - go test ./s3 -coverprofile="s3.coverprofile"
+  - go test ./sns -coverprofile="sns.coverprofile"
+  - go test ./sqs -coverprofile="sqs.coverprofile"
+
+after_success:
+  - gover
+  - cp gover.coverprofile coverage.txt
+  - bash <(curl -s https://codecov.io/bash)
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.txt -service=travis-ci

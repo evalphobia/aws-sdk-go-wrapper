@@ -1,57 +1,96 @@
 package config
 
 import (
-	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+
+	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
-// section key name
-const (
-	AWSConfigFileName = "aws"
-)
+const defaultRegion = "us-east-1"
 
-var (
-	_config Config
-)
+// Config has AWS settings.
+type Config struct {
+	AccessKey string
+	SecretKey string
+	Region    string
+	Endpoint  string
 
-// Config is interface for config data
-type Config interface {
-	// params(filename, section, key)
-	GetConfigValue(string, string, string) string
+	// Filename and Profile are used for file credentials
+	Filename string
+	Profile  string
 
-	// adds config parameter
-	SetValues(map[string]interface{})
+	// DefaultPrefix is used for service resource prefix
+	// e.g.) DynamoDB table, S3 bucket, SQS Queue
+	DefaultPrefix string
 
-	// load config parameter from file
-	LoadFile(string) error
+	// Specific sevice's options
+	S3ForcePathStyle bool
 }
 
-// SetConfig sets new Config
-func SetConfig(conf Config) {
-	_config = conf
+// Session creates AWS session from the Config values.
+func (c Config) Session() (*session.Session, error) {
+	return session.NewSession(c.AWSConfig())
 }
 
-// GetConfigValue gets value from laoded config
-func GetConfigValue(section, key, df string) string {
-	if _config == nil {
-		return df
+// AWSConfig creates *aws.Config object from the fields.
+func (c Config) AWSConfig() *aws.Config {
+	cred := c.awsCredentials()
+	awsConf := &aws.Config{
+		Credentials: cred,
+		Region:      pointers.String(c.getRegion()),
 	}
-	return _config.GetConfigValue(section, key, df)
+
+	ep := c.getEndpoint()
+	if ep != "" {
+		awsConf.Endpoint = &ep
+	}
+
+	if c.S3ForcePathStyle {
+		awsConf.S3ForcePathStyle = pointers.Bool(true)
+	}
+
+	return awsConf
 }
 
-// ParseToString converts value to string
-func ParseToString(v interface{}) string {
-	switch t := v.(type) {
-	case string:
-		return t
-	case int, int32, int64, uint, uint32, uint64:
-		return fmt.Sprintf("%d", t)
-	case float32, float64:
-		return fmt.Sprintf("%f", t)
-	case bool:
-		return fmt.Sprintf("%t", t)
-	case nil:
-		return "<nil>"
-	default:
-		return fmt.Sprintf("%+v", t)
+func (c Config) awsCredentials() *credentials.Credentials {
+	// from env
+	cred := credentials.NewEnvCredentials()
+	_, err := cred.Get()
+	if err == nil {
+		return cred
 	}
+
+	// from param
+	cred = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
+	_, err = cred.Get()
+	if err == nil {
+		return cred
+	}
+
+	// from local file
+	return credentials.NewSharedCredentials(c.Filename, c.Profile)
+}
+
+func (c Config) getRegion() string {
+	if c.Region != "" {
+		return c.Region
+	}
+	reg := EnvRegion()
+	if reg != "" {
+		return reg
+	}
+	return defaultRegion
+}
+
+func (c Config) getEndpoint() string {
+	if c.Endpoint != "" {
+		return c.Endpoint
+	}
+	ep := EnvEndpoint()
+	if ep != "" {
+		return ep
+	}
+	return ""
 }
