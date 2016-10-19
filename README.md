@@ -19,6 +19,11 @@ At this time, it suports services below,
     - GetItem
     - PutItem
     - DeleteItem
+- [`Kinesis`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/kinesis)
+    - DescribeStream
+    - CreateStream
+    - GetShardIterator
+    - PutRecord
 - [`S3`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/s3)
     - GetObject
     - PutObject
@@ -127,6 +132,72 @@ func main() {
 
     if len(list) == int(result.Count) {
         fmt.Println("success to get items")
+    }
+}
+```
+
+### Kinesis
+
+```go
+import(
+    "encoding/json"
+
+    "github.com/evalphobia/aws-sdk-go-wrapper/config"
+    "github.com/evalphobia/aws-sdk-go-wrapper/kinesis"
+)
+
+func main(){
+    // Create Kinesis service
+    svc, err := kinesis.New(config.Config{
+        AccessKey: "access key",
+        SecretKey: "access key",
+        Region: "ap-north-east1",
+    })
+    if err != nil {
+        panic("error on creating client")
+    }
+
+    // Get Kinesis Stream
+    stream, err := svc.GetStream("my-stream")
+    if err != nil {
+        panic("error on getting stream")
+    }
+
+    // Get ShardID list of the stream
+    shardIDs, err := stream.GetShardIDs()
+    if err != nil {
+        panic("error on getting shard id")
+    }
+
+    // get records from all of the shards
+    for _, shardID := range shardIDs {
+        // get records
+        result, err := stream.GetRecords(kinesis.GetCondition{
+            ShardID:           shardID,
+            ShardIteratorType: kinesis.IteratorTypeLatest,
+        })
+        if err != nil {
+            panic("error on getting records")
+        }
+
+        // get next records from the last result.
+        result, err = stream.GetRecords(kinesis.GetCondition{
+            ShardID:           shardID,
+            ShardIteratorType: kinesis.IteratorTypeLatest,
+            ShardIterator:     result.NextShardIterator,
+        })
+    }
+
+    data := make(map[string]interface{})
+    data["foo"] = 999
+    data["bar"] = "some important info"
+
+    bytData, _ := json.Marshal(data)
+
+    // put data into stream record
+    err = stream.PutRecord(bytData)
+    if err != nil {
+        panic("error on putting record")
     }
 }
 ```
