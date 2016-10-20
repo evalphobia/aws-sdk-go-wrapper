@@ -5,6 +5,10 @@ services:
     command: -dbPath /dynamodb_data -sharedDb
     ports:
       - "8000:8000"
+  kinesis:
+    image: evalphobia/kinesalite:1.0.0
+    ports:
+      - "4577:4577"
   s3:
     image: evalphobia/fake-s3:1.0.0
     volumes:
