@@ -10,9 +10,10 @@ import (
 
 // Table is a wapper struct for DynamoDB table
 type Table struct {
-	service *DynamoDB
-	name    string
-	design  *TableDesign
+	service        *DynamoDB
+	name           string
+	nameWithPrefix string
+	design         *TableDesign
 
 	putSpool   []*SDK.PutItemInput
 	errorItems []*SDK.PutItemInput
@@ -35,19 +36,20 @@ func NewTable(svc *DynamoDB, name string) (*Table, error) {
 
 	design := newTableDesignFromDescription(req.Table)
 	return &Table{
-		service: svc,
-		name:    name,
-		design:  design,
+		service:        svc,
+		name:           name,
+		nameWithPrefix: tableName,
+		design:         design,
 	}, nil
 }
 
 // Design returns table design.
 func (t *Table) Design() (*TableDesign, error) {
 	req, err := t.service.client.DescribeTable(&SDK.DescribeTableInput{
-		TableName: pointers.String(t.name),
+		TableName: pointers.String(t.nameWithPrefix),
 	})
 	if err != nil {
-		t.service.Errorf("error on `DescribeTable` operation; table=%s; error=%s", t.name, err.Error())
+		t.service.Errorf("error on `DescribeTable` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return nil, err
 	}
 
@@ -76,14 +78,14 @@ func (t *Table) UpdateReadThroughput(r int64) error {
 // updateThroughput updates dynamodb table provisioned throughput
 func (t *Table) updateThroughput() error {
 	_, err := t.service.client.UpdateTable(&SDK.UpdateTableInput{
-		TableName: pointers.String(t.name),
+		TableName: pointers.String(t.nameWithPrefix),
 		ProvisionedThroughput: &SDK.ProvisionedThroughput{
 			ReadCapacityUnits:  pointers.Long64(t.design.readCapacity),
 			WriteCapacityUnits: pointers.Long64(t.design.writeCapacity),
 		},
 	})
 	if err != nil {
-		t.service.Errorf("error on `UpdateTable` operation; table=%s; error=%s", t.name, err.Error())
+		t.service.Errorf("error on `UpdateTable` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return err
 	}
 
@@ -103,13 +105,13 @@ func (t *Table) updateThroughput() error {
 // AddItem adds an item to the write-waiting list (writeItem)
 func (t *Table) AddItem(item *PutItem) {
 	w := &SDK.PutItemInput{
-		TableName:              pointers.String(t.name),
+		TableName:              pointers.String(t.nameWithPrefix),
 		ReturnConsumedCapacity: pointers.String("TOTAL"),
 		Item:     item.data,
 		Expected: item.conditions,
 	}
 	t.putSpool = append(t.putSpool, w)
-	t.service.addWriteTable(t.name)
+	t.service.addWriteTable(t.nameWithPrefix)
 }
 
 // Put excecutes put operation from the write-waiting list (writeItem)
@@ -132,7 +134,7 @@ func (t *Table) Put() error {
 
 	t.putSpool = nil
 	if errList.HasError() {
-		t.service.Errorf("errors on `Put` operations; table=%s; errors=[%s];", t.name, errList.Error())
+		t.service.Errorf("errors on `Put` operations; table=%s; errors=[%s];", t.nameWithPrefix, errList.Error())
 		return errList
 	}
 	return nil
@@ -143,7 +145,7 @@ func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 	hashKey := t.design.GetHashKeyName()
 	itemAttrs := item.Item
 	if _, ok := itemAttrs[hashKey]; !ok {
-		return fmt.Errorf("error on `validatePutItem`; No such hash key; table=%s; hashkey=%s", t.name, hashKey)
+		return fmt.Errorf("error on `validatePutItem`; No such hash key; table=%s; hashkey=%s", t.nameWithPrefix, hashKey)
 	}
 
 	rangeKey := t.design.GetRangeKeyName()
@@ -152,7 +154,7 @@ func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 	}
 
 	if _, ok := itemAttrs[rangeKey]; !ok {
-		return fmt.Errorf("error on `validatePutItem`; No such range key; table=%s; rangekey=%s", t.name, rangeKey)
+		return fmt.Errorf("error on `validatePutItem`; No such range key; table=%s; rangekey=%s", t.nameWithPrefix, rangeKey)
 	}
 	return nil
 }
@@ -192,10 +194,10 @@ func (t *Table) scan(cond *ConditionList, in *SDK.ScanInput) (*QueryResult, erro
 	}
 
 	in.ExclusiveStartKey = cond.startKey
-	in.TableName = pointers.String(t.name)
+	in.TableName = pointers.String(t.nameWithPrefix)
 	req, err := t.service.client.Scan(in)
 	if err != nil {
-		t.service.Errorf("error on `Scan` operation; table=%s; error=%s;", t.name, err.Error())
+		t.service.Errorf("error on `Scan` operation; table=%s; error=%s;", t.nameWithPrefix, err.Error())
 		return nil, err
 	}
 
@@ -227,7 +229,7 @@ func (t *Table) Count(cond *ConditionList) (*QueryResult, error) {
 func (t *Table) query(cond *ConditionList, in *SDK.QueryInput) (*QueryResult, error) {
 	if !cond.HasCondition() {
 		err := fmt.Errorf("condition is missing, you must specify at least one condition")
-		t.service.Errorf("error on `query`; table=%s; error=%s", t.name, err.Error())
+		t.service.Errorf("error on `query`; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return nil, err
 	}
 
@@ -246,10 +248,10 @@ func (t *Table) query(cond *ConditionList, in *SDK.QueryInput) (*QueryResult, er
 		in.ConsistentRead = pointers.Bool(cond.isConsistent)
 	}
 
-	in.TableName = pointers.String(t.name)
+	in.TableName = pointers.String(t.nameWithPrefix)
 	req, err := t.service.client.Query(in)
 	if err != nil {
-		t.service.Errorf("error on `Query` operation; table=%s; error=%s", t.name, err.Error())
+		t.service.Errorf("error on `Query` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return nil, err
 	}
 
@@ -274,13 +276,13 @@ func (t *Table) NewConditionList() *ConditionList {
 // GetOne retrieves a single item by GetOne(HashKey [, RangeKey])
 func (t *Table) GetOne(hashValue interface{}, rangeValue ...interface{}) (map[string]interface{}, error) {
 	in := &SDK.GetItemInput{
-		TableName: pointers.String(t.name),
+		TableName: pointers.String(t.nameWithPrefix),
 		Key:       t.design.keyAttributeValue(hashValue, rangeValue...),
 	}
 	req, err := t.service.client.GetItem(in)
 	switch {
 	case err != nil:
-		t.service.Errorf("error on `GetItem` operation; table=%s; error=%s", t.name, err.Error())
+		t.service.Errorf("error on `GetItem` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return nil, err
 	case req.Item == nil:
 		return nil, nil
@@ -296,14 +298,14 @@ func (t *Table) GetOne(hashValue interface{}, rangeValue ...interface{}) (map[st
 // Delete deletes the item.
 func (t *Table) Delete(hashValue interface{}, rangeValue ...interface{}) error {
 	in := &SDK.DeleteItemInput{
-		TableName: pointers.String(t.name),
+		TableName: pointers.String(t.nameWithPrefix),
 		Key:       t.design.keyAttributeValue(hashValue, rangeValue...),
 	}
 
 	fmt.Printf("hashValue: %v, rangeValue: %v, Delete: %+v\n", hashValue, rangeValue, in)
 	_, err := t.service.client.DeleteItem(in)
 	if err != nil {
-		t.service.Errorf("error on `DeleteItem` operation; table=%s; error=%s", t.name, err.Error())
+		t.service.Errorf("error on `DeleteItem` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return err
 	}
 	return nil

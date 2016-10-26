@@ -22,8 +22,9 @@ const (
 type Queue struct {
 	service *SQS
 
-	name string
-	url  *string
+	name           string
+	nameWithPrefix string
+	url            *string
 
 	sendSpoolMu sync.Mutex
 	sendSpool   []*SDK.SendMessageBatchRequestEntry
@@ -38,13 +39,15 @@ type Queue struct {
 }
 
 // NewQueue returns initialized *Queue.
-func NewQueue(name string, url string, service *SQS) *Queue {
+func NewQueue(svc *SQS, name string, url string) *Queue {
+	queueName := svc.prefix + name
 	return &Queue{
-		name:    name,
-		url:     pointers.String(url),
-		service: service,
-		autoDel: false,
-		expire:  defaultExpireSecond,
+		service:        svc,
+		name:           name,
+		nameWithPrefix: queueName,
+		url:            pointers.String(url),
+		autoDel:        false,
+		expire:         defaultExpireSecond,
 	}
 }
 
@@ -111,7 +114,7 @@ func (q *Queue) Send() error {
 	for i := 0; i < len(messages); i++ {
 		err := q.send(messages[i])
 		if err != nil {
-			q.service.Errorf("error on `SendMessageBatch` operation; queue=%s; error=%s;", q.name, err.Error())
+			q.service.Errorf("error on `SendMessageBatch` operation; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 			errList.Add(err)
 		}
 	}
@@ -149,7 +152,7 @@ func (q *Queue) Fetch(num int) ([]*Message, error) {
 		VisibilityTimeout:   pointers.Long(defaultExpireSecond),
 	})
 	if err != nil {
-		q.service.Errorf("error on `ReceiveMessage` operation; queue=%s; error=%s;", q.name, err.Error())
+		q.service.Errorf("error on `ReceiveMessage` operation; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 	}
 
 	if resp == nil || len(resp.Messages) == 0 {
@@ -250,7 +253,7 @@ func (q *Queue) DeleteMessage(msg *Message) error {
 		ReceiptHandle: msg.GetReceiptHandle(),
 	})
 	if err != nil {
-		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.name, err.Error())
+		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 	}
 	return err
 }
@@ -305,7 +308,7 @@ func (q *Queue) delete(msg []*SDK.DeleteMessageBatchRequestEntry) error {
 		QueueUrl: q.url,
 	})
 	if err != nil {
-		q.service.Errorf("error on `DeleteMessageBatch`; queue=%s; error=%s;", q.name, err.Error())
+		q.service.Errorf("error on `DeleteMessageBatch`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 		q.failedDelete = append(q.failedDelete, res.Failed...)
 	}
 
@@ -322,7 +325,7 @@ func (q *Queue) CountMessage() (visible int, invisible int, err error) {
 		},
 	})
 	if err != nil {
-		q.service.Errorf("error on `GetQueueAttributes`; queue=%s; error=%s;", q.name, err.Error())
+		q.service.Errorf("error on `GetQueueAttributes`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 		return 0, 0, err
 	}
 
@@ -338,10 +341,10 @@ func (q *Queue) Purge() error {
 		QueueUrl: q.url,
 	})
 	if err != nil {
-		q.service.Errorf("error on `PurgeQueue` operation; queue=%s; error=%s;", q.name, err.Error())
+		q.service.Errorf("error on `PurgeQueue` operation; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 		return err
 	}
 
-	q.service.Infof("success on `PurgeQueue` operation; queue=%s;", q.name)
+	q.service.Infof("success on `PurgeQueue` operation; queue=%s;", q.nameWithPrefix)
 	return nil
 }

@@ -72,7 +72,7 @@ func (svc *S3) GetBucket(bucket string) (*Bucket, error) {
 		return nil, err
 	}
 
-	b = NewBucket(bucketName, svc)
+	b = NewBucket(svc, bucket)
 	svc.bucketsMu.Lock()
 	svc.buckets[bucketName] = b
 	svc.bucketsMu.Unlock()

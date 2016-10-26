@@ -10,7 +10,7 @@ func TestNewTopic(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 
-	tp := NewTopic("arn", "name", svc)
+	tp := NewTopic(svc, "arn", "name")
 	assert.NotNil(tp)
 	assert.Equal("arn", tp.arn)
 	assert.Equal("name", tp.name)
