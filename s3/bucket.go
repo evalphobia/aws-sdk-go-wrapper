@@ -28,21 +28,24 @@ const (
 type Bucket struct {
 	service *S3
 
-	name         string
-	endpoint     string
-	expireSecond int
+	name           string
+	nameWithPrefix string
+	endpoint       string
+	expireSecond   int
 
 	putSpoolMu sync.Mutex
 	putSpool   []*SDK.PutObjectInput
 }
 
 // NewBucket returns initialized *Bucket.
-func NewBucket(name string, service *S3) *Bucket {
+func NewBucket(svc *S3, name string) *Bucket {
+	bucketName := svc.prefix + name
 	return &Bucket{
-		service:      service,
-		name:         name,
-		endpoint:     service.endpoint,
-		expireSecond: defaultExpireSecond,
+		service:        svc,
+		name:           name,
+		nameWithPrefix: bucketName,
+		endpoint:       svc.endpoint,
+		expireSecond:   defaultExpireSecond,
 	}
 }
 
@@ -69,7 +72,7 @@ func (b *Bucket) addObject(obj *PutObject, path, acl string) {
 	size := obj.Size()
 	req := &SDK.PutObjectInput{
 		ACL:           &acl,
-		Bucket:        &b.name,
+		Bucket:        &b.nameWithPrefix,
 		Body:          obj.data,
 		ContentLength: &size,
 		ContentType:   pointers.String(obj.FileType()),
@@ -88,7 +91,7 @@ func (b *Bucket) PutAll() error {
 	for _, obj := range b.putSpool {
 		_, err := cli.PutObject(obj)
 		if err != nil {
-			b.service.Errorf("error on `PutObject` operation; bucket=%s; error=%s;", b.name, err.Error())
+			b.service.Errorf("error on `PutObject` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
 			errList.Add(err)
 		}
 	}
@@ -105,7 +108,7 @@ func (b *Bucket) PutOne(obj *PutObject, path, acl string) error {
 	size := obj.Size()
 	req := &SDK.PutObjectInput{
 		ACL:           &acl,
-		Bucket:        &b.name,
+		Bucket:        &b.nameWithPrefix,
 		Body:          obj.data,
 		ContentLength: &size,
 		ContentType:   pointers.String(obj.FileType()),
@@ -114,7 +117,7 @@ func (b *Bucket) PutOne(obj *PutObject, path, acl string) error {
 
 	_, err := b.service.client.PutObject(req)
 	if err != nil {
-		b.service.Errorf("error on `PutObject` operation; bucket=%s; error=%s;", b.name, err.Error())
+		b.service.Errorf("error on `PutObject` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
 	}
 	return err
 }
@@ -157,7 +160,7 @@ func (b *Bucket) GetSecretURL(path string) (string, error) {
 // ** this isn't work **
 func (b *Bucket) GetSecretURLWithExpire(path string, expire int) (string, error) {
 	req, _ := b.service.client.GetObjectRequest(&SDK.GetObjectInput{
-		Bucket: pointers.String(b.name),
+		Bucket: pointers.String(b.nameWithPrefix),
 		Key:    pointers.String(path),
 	})
 	return req.Presign(time.Duration(expire) * time.Second)
@@ -166,11 +169,11 @@ func (b *Bucket) GetSecretURLWithExpire(path string, expire int) (string, error)
 // DeleteObject deletees the object of target path.
 func (b *Bucket) DeleteObject(path string) error {
 	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
-		Bucket: pointers.String(b.name),
+		Bucket: pointers.String(b.nameWithPrefix),
 		Key:    pointers.String(path),
 	})
 	if err != nil {
-		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.name, err.Error())
+		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
 	}
 	return err
 }

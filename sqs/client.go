@@ -72,7 +72,7 @@ func (svc *SQS) GetQueue(name string) (*Queue, error) {
 		return nil, err
 	}
 
-	q = NewQueue(queueName, *url.QueueUrl, svc)
+	q = NewQueue(svc, name, *url.QueueUrl)
 	svc.queuesMu.Lock()
 	svc.queues[queueName] = q
 	svc.queuesMu.Unlock()

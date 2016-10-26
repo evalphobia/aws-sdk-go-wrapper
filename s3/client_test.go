@@ -102,7 +102,7 @@ func TestGetBucket(t *testing.T) {
 
 	b3, err := svc2.GetBucket(testEmptyBucketName)
 	assert.NoError(err)
-	assert.Equal(testPrefix+testEmptyBucketName, b3.name)
+	assert.Equal(testPrefix+testEmptyBucketName, b3.nameWithPrefix)
 }
 
 func TestIsExistBucket(t *testing.T) {

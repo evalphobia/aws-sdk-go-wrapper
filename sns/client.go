@@ -128,7 +128,7 @@ func (svc *SNS) CreateTopic(name string) (*Topic, error) {
 		return nil, err
 	}
 
-	topic := NewTopic(arn, name, svc)
+	topic := NewTopic(svc, arn, name)
 	return topic, nil
 }
 

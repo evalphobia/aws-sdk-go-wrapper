@@ -8,19 +8,22 @@ import (
 
 // Topic is struct for Topic.
 type Topic struct {
-	svc   *SNS
-	name  string
-	arn   string
-	sound string
+	svc            *SNS
+	name           string
+	nameWithPrefix string
+	arn            string
+	sound          string
 }
 
 // NewTopic returns initialized *Topic.
-func NewTopic(arn, name string, svc *SNS) *Topic {
+func NewTopic(svc *SNS, arn, name string) *Topic {
+	topicName := svc.prefix + name
 	return &Topic{
-		arn:   arn,
-		name:  name,
-		sound: "default",
-		svc:   svc,
+		svc:            svc,
+		arn:            arn,
+		name:           name,
+		nameWithPrefix: topicName,
+		sound:          "default",
 	}
 }
 
@@ -32,7 +35,7 @@ func (t *Topic) Subscribe(endpointARN, protocol string) (subscriptionARN string,
 		TopicArn: pointers.String(t.arn),
 	})
 	if err != nil {
-		t.svc.Errorf("error on `Subscribe` operation; name=%s; error=%s;", t.name, err.Error())
+		t.svc.Errorf("error on `Subscribe` operation; name=%s; error=%s;", t.nameWithPrefix, err.Error())
 		return "", err
 	}
 	return *resp.SubscriptionArn, nil
@@ -49,7 +52,7 @@ func (t *Topic) Delete() error {
 		TopicArn: pointers.String(t.arn),
 	})
 	if err != nil {
-		t.svc.Errorf("error on `DeleteTopic` operation; name=%s; error=%s;", t.name, err.Error())
+		t.svc.Errorf("error on `DeleteTopic` operation; name=%s; error=%s;", t.nameWithPrefix, err.Error())
 	}
 	return err
 }
