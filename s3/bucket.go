@@ -148,7 +148,7 @@ func (b *Bucket) getObject(path string) (io.Reader, error) {
 
 // GetURL fetches url of target S3 object.
 func (b *Bucket) GetURL(path string) string {
-	return fmt.Sprintf("%s/%s/%s", b.endpoint, b.name, path)
+	return fmt.Sprintf("%s/%s/%s", b.endpoint, b.nameWithPrefix, path)
 }
 
 // GetSecretURL fetches a url of target S3 object w/ ACL permission.
