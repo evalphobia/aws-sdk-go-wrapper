@@ -63,7 +63,7 @@ func (svc *DynamoDB) CreateTable(design *TableDesign) error {
 		return err
 	}
 
-	in := design.CreateTableInput()
+	in := design.CreateTableInput(svc.prefix)
 	out, err := svc.client.CreateTable(in)
 	if err != nil {
 		svc.Errorf("error on `CreateTable` operation; table=%s; error=%s;", design.GetName(), err.Error())
