@@ -270,7 +270,7 @@ func (d *TableDesign) GetNumberOfDecreasesToday() int64 {
 // ---------------------------------
 
 // CreateTableInput creates *SDK.CreateTableInput from the table design.
-func (d *TableDesign) CreateTableInput(prefix string) *SDK.CreateTableInput {
+func (d *TableDesign) CreateTableInput() *SDK.CreateTableInput {
 	var keys []*SDK.KeySchemaElement
 	keys = append(keys, d.HashKey)
 	if d.HasRangeKey() {
@@ -278,7 +278,7 @@ func (d *TableDesign) CreateTableInput(prefix string) *SDK.CreateTableInput {
 	}
 
 	in := &SDK.CreateTableInput{
-		TableName:             pointers.String(prefix + d.name),
+		TableName:             pointers.String(d.name),
 		KeySchema:             keys,
 		AttributeDefinitions:  d.AttributeList(),
 		ProvisionedThroughput: newProvisionedThroughput(d.readCapacity, d.writeCapacity),

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -265,27 +264,6 @@ func TestIsExistPrimaryKeys(t *testing.T) {
 	tbl.AddItem(item)
 	err = tbl.validatePutItem(tbl.putSpool[2])
 	assert.NoError(err)
-}
-
-func TestTableDesign_CreateTableInput(t *testing.T) {
-	assert := assert.New(t)
-	const (
-		prefix       = "testprefix_"
-		tableName    = "table_name"
-		tableHashKey = "test_hash_key"
-	)
-	c := config.Config{
-		DefaultPrefix: prefix,
-	}
-
-	// input without prefix
-	design := NewTableDesignWithHashKeyN(tableName, tableHashKey)
-	input := design.CreateTableInput("")
-	assert.Equal(tableName, *input.TableName)
-
-	// input with prefix.
-	input = design.CreateTableInput(c.DefaultPrefix)
-	assert.Equal(prefix+tableName, *input.TableName)
 }
 
 func putTestTable(tbl *Table, hValue, rValue interface{}) error {
