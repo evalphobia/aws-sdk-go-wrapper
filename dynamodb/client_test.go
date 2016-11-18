@@ -77,9 +77,9 @@ func TestCreateTable(t *testing.T) {
 	err := svc.CreateTable(td) // create table which name is "testprefix_foo_table"
 	assert.NoError(err, "new table creation should be no error")
 	table, err := svc.GetTable(name) // get table which name is "testprefix_foo_table"
-	assert.NoError(err, name, err, *table)
+	assert.NoError(err, "GetTable should be succeessful when name parameter is \"foo_table\"", name)
 	table, err = svc.GetTable(nameWithPrefix) // get table which name is "testprefix_testprefix_foo_table"
-	assert.Error(err, nameWithPrefix)
+	assert.Error(err, "GetTable should fail when name parameter is \"testprefix_foo_table\"", nameWithPrefix)
 	assert.Nil(table)
 
 	td.name = name
@@ -283,7 +283,7 @@ func getTestHashTable(t *testing.T) *Table {
 func resetTestTable(t *testing.T) {
 	const name = "foo_table"
 	resetTable(getTestClient(t), name)
-	resetTable(getTestClient(t), tablePrefix + name)
+	resetTable(getTestClient(t), tablePrefix+name)
 }
 
 func resetTestHashTable(t *testing.T) {
