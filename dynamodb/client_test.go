@@ -13,6 +13,7 @@ import (
 const (
 	defaultEndpoint     = "http://localhost:8000"
 	testEmptyBucketName = "test-empty-bucket"
+	tablePrefix         = "testprefix_"
 )
 
 func getTestConfig() config.Config {
@@ -65,17 +66,25 @@ func TestCreateTable(t *testing.T) {
 	resetTestTable(t)
 
 	name := "foo_table"
+	nameWithPrefix := tablePrefix + name
 	svc := getTestClient(t)
+	svc.prefix = tablePrefix
 	td := NewTableDesignWithHashKeyN(name, "id")
 	td.AddRangeKeyN("time")
 	td.AddLSIS("lsi-index", "lsi_key")
 	td.AddGSINN("gsi-index", "time", "id")
 
-	err := svc.CreateTable(td)
+	err := svc.CreateTable(td) // create table which name is "testprefix_foo_table"
 	assert.NoError(err, "new table creation should be no error")
+	table, err := svc.GetTable(name) // get table which name is "testprefix_foo_table"
+	assert.NoError(err, "GetTable should be succeessful when name parameter is \"foo_table\"", name)
+	table, err = svc.GetTable(nameWithPrefix) // get table which name is "testprefix_testprefix_foo_table"
+	assert.Error(err, "GetTable should fail when name parameter is \"testprefix_foo_table\"", nameWithPrefix)
+	assert.Nil(table)
 
-	err = svc.CreateTable(td)
-	assert.Error(err, "duplicate creation table should be error")
+	td.name = name
+	err = svc.CreateTable(td) // create table which name is "testprefix_foo_table"
+	assert.Error(err, "duplicate creation table should be error", td)
 
 	empty := TableDesign{}
 	err = svc.CreateTable(&empty)
@@ -274,6 +283,7 @@ func getTestHashTable(t *testing.T) *Table {
 func resetTestTable(t *testing.T) {
 	const name = "foo_table"
 	resetTable(getTestClient(t), name)
+	resetTable(getTestClient(t), tablePrefix+name)
 }
 
 func resetTestHashTable(t *testing.T) {
