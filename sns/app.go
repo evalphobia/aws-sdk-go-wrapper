@@ -3,6 +3,8 @@
 package sns
 
 import (
+	"regexp"
+
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
@@ -47,4 +49,18 @@ func (a *SNSApp) CreateEndpoint(token string) (*SNSEndpoint, error) {
 	}
 	endpoint := a.svc.NewApplicationEndpoint(arn)
 	return endpoint, nil
+}
+
+var reARNError = regexp.MustCompile("Endpoint (arn:aws:sns:.*) already exists")
+
+func ParseARNFromError(err error) (arn string, ok bool) {
+	if err == nil {
+		return "", false
+	}
+
+	list := reARNError.FindStringSubmatch(err.Error())
+	if len(list) == 2 {
+		return list[1], true
+	}
+	return "", false
 }

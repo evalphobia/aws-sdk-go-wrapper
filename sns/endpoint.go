@@ -61,12 +61,27 @@ func (e *SNSEndpoint) UpdateTokenAsDisable() error {
 
 // UpdateToken updates endpoint attributes
 func (e *SNSEndpoint) UpdateToken() error {
+	attrs := map[string]*string{
+		"Enabled": String(strconv.FormatBool(e.enable)),
+		"Token":   String(e.token),
+	}
+	return e.updateToken(attrs)
+}
+
+// UpdateUserData updates CustomUserData.
+func (e *SNSEndpoint) UpdateUserData(userData string) error {
+	attrs := map[string]*string{
+		"Enabled":        String(strconv.FormatBool(e.enable)),
+		"Token":          String(e.token),
+		"CustomUserData": String(userData),
+	}
+	return e.updateToken(attrs)
+}
+
+func (e *SNSEndpoint) updateToken(attrs map[string]*string) error {
 	in := &SDK.SetEndpointAttributesInput{
 		EndpointArn: String(e.arn),
-		Attributes: map[string]*string{
-			"Enabled": String(strconv.FormatBool(e.enable)),
-			"Token":   String(e.token),
-		},
+		Attributes:  attrs,
 	}
 	_, err := e.svc.Client.SetEndpointAttributes(in)
 	return err
