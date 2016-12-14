@@ -246,6 +246,19 @@ func (q *Queue) AddDeleteList(msg interface{}) {
 	}
 }
 
+// ChangeMessageVisibility sends the request to AWS api to change visibility of the message.
+func (q *Queue) ChangeMessageVisibility(msg *Message, timeoutInSeconds int) error {
+	_, err := q.service.client.ChangeMessageVisibility(&SDK.ChangeMessageVisibilityInput{
+		QueueUrl:          q.url,
+		VisibilityTimeout: pointers.Long(timeoutInSeconds),
+		ReceiptHandle:     msg.GetReceiptHandle(),
+	})
+	if err != nil {
+		q.service.Errorf("error on `ChangeMessageVisibility`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
+	}
+	return err
+}
+
 // DeleteMessage sends the request to AWS api to delete the message.
 func (q *Queue) DeleteMessage(msg *Message) error {
 	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{

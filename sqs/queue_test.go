@@ -207,6 +207,24 @@ func TestAddDeleteList(t *testing.T) {
 
 }
 
+func TestChangeMessageVisibility(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
+	q, _ := svc.GetQueue("test")
+	cleanQueue(q)
+
+	// prepare messages
+	addTestMessage(q, 3)
+	msg, err := q.FetchOne()
+	assert.Nil(err)
+
+	// test this feature
+	err = q.ChangeMessageVisibility(msg, 1)
+	assert.Nil(err)
+
+	cleanQueue(q)
+}
+
 func TestDeleteMessage(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
