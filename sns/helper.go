@@ -3,10 +3,11 @@ package sns
 import "encoding/json"
 
 const (
-	gcmKeyMessage  = "message"
-	apnsKeyMessage = "alert"
-	apnsKeySound   = "sound"
-	apnsKeyBadge   = "badge"
+	gcmKeyMessage   = "message"
+	apnsKeyMessage  = "alert"
+	apnsKeySound    = "sound"
+	apnsKeyCategory = "category"
+	apnsKeyBadge    = "badge"
 )
 
 // make sns message for Google Cloud Messaging.
@@ -34,6 +35,10 @@ func composeMessageAPNS(msg string, opt map[string]interface{}) (payload string,
 		aps[apnsKeySound] = v
 	}
 
+	if v, ok := opt[apnsKeyCategory]; ok {
+		aps[apnsKeyCategory] = v
+	}
+
 	if v, ok := opt[apnsKeyBadge]; ok {
 		aps[apnsKeyBadge] = v
 	}
@@ -43,6 +48,8 @@ func composeMessageAPNS(msg string, opt map[string]interface{}) (payload string,
 	for k, v := range opt {
 		switch k {
 		case apnsKeySound:
+			continue
+		case apnsKeyCategory:
 			continue
 		case apnsKeyBadge:
 			continue
