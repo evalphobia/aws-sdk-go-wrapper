@@ -9,7 +9,6 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/errors"
-	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const (
@@ -78,32 +77,33 @@ func (svc *XRay) PutTraceSegments(segments []*Segment) error {
 		return nil
 	}
 
-	list := make([]*string, len(segments))
-	for i, s := range segments {
-		if !s.Trace {
-			continue
-		}
-
-		byt, err := s.ToJSON()
-		if err != nil {
-			svc.Errorf("error on segment.ToJSON(); segment=%+v; error=%s;", s, err.Error())
-			continue
-		}
-		list[i] = pointers.String(string(byt))
-	}
-
-	notProcessed, err := svc.client.PutTraceSegments(&SDK.PutTraceSegmentsInput{
-		TraceSegmentDocuments: list,
-	})
+	errList := newErrors()
+	// divide segments slice into multiple slices to avoid 64kb limitation on X-Ray.
+	sep, err := createSegmentDivider(segments)
 	if err != nil {
-		_list := make([]string, len(list))
-		for i, s := range list {
-			_list[i] = *s
-		}
-		svc.Errorf("error on `PutTraceSegments` operation; segments=%v; error=%s;", _list, err.Error())
+		svc.Errorf("error on createSegmentDivider(segments); error=%s;", err.Error())
+		errList.Add(err)
 	}
-	_ = notProcessed // TODO
-	return err
+
+	for _, list := range sep.list {
+		notProcessed, err := svc.client.PutTraceSegments(&SDK.PutTraceSegmentsInput{
+			TraceSegmentDocuments: list,
+		})
+		if err != nil {
+			_list := make([]string, len(list))
+			for i, s := range list {
+				_list[i] = *s
+			}
+			svc.Errorf("error on `PutTraceSegments` operation; segments=%v; error=%s;", _list, err.Error())
+			errList.Add(err)
+		}
+		_ = notProcessed // TODO
+	}
+
+	if errList.HasError() {
+		return errList
+	}
+	return nil
 }
 
 // NewSegment creates new Segment data with given name.
