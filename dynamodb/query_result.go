@@ -36,9 +36,10 @@ func (r QueryResult) Unmarshal(v interface{}) error {
 	}
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   v,
-		TagName:  tagName,
+		Metadata:         nil,
+		Result:           v,
+		TagName:          tagName,
+		WeaklyTypedInput: true,
 	})
 	if err != nil {
 		return err
