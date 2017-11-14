@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 		Region: region,
 	})
 	assert.NoError(err)
-	expectedEndpoint := "https://s3-" + region + ".amazonaws.com"
+	expectedEndpoint := "https://s3." + region + ".amazonaws.com"
 	assert.Equal(expectedEndpoint, svc.client.Endpoint)
 }
 
