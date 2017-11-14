@@ -1,9 +1,8 @@
 sudo: required
 language: go
 go:
-  - 1.5
-  - 1.6
   - 1.7
+  - 1.8
   - tip
 matrix:
   allow_failures:
@@ -28,9 +27,11 @@ script:
   - go test ./config -coverprofile="config.coverprofile"
   - go test ./dynamodb -coverprofile="dynamodb.coverprofile"
   - go test ./kinesis -coverprofile="kinesis.coverprofile"
+  - go test ./rekognition -coverprofile="rekognition.coverprofile"
   - go test ./s3 -coverprofile="s3.coverprofile"
   - go test ./sns -coverprofile="sns.coverprofile"
   - go test ./sqs -coverprofile="sqs.coverprofile"
+  - go test ./xray -coverprofile="xray.coverprofile"
 
 after_success:
   - gover
