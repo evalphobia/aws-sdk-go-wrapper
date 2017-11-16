@@ -1,6 +1,8 @@
 package sns
 
 import (
+	"regexp"
+
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
@@ -54,4 +56,19 @@ func (a *PlatformApplication) createEndpoint(token string, userData *string) (en
 		return "", err
 	}
 	return *resp.EndpointArn, nil
+}
+
+var reARNError = regexp.MustCompile("Endpoint (arn:aws:sns:.*) already exists")
+
+// ParseARNFromError extracts ARN string from error message.
+func ParseARNFromError(err error) (arn string, ok bool) {
+	if err == nil {
+		return "", false
+	}
+
+	list := reARNError.FindStringSubmatch(err.Error())
+	if len(list) == 2 {
+		return list[1], true
+	}
+	return "", false
 }
