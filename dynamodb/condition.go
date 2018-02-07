@@ -31,6 +31,7 @@ type ConditionList struct {
 	limit        int64
 	startKey     map[string]*SDK.AttributeValue
 	isConsistent bool
+	isDesc       bool // descending order
 }
 
 // NewConditionList returns initialized *ConditionList.
@@ -75,6 +76,11 @@ func (c *ConditionList) SetIndex(v string) {
 // SetConsistent sets consistent read flag.
 func (c *ConditionList) SetConsistent(b bool) {
 	c.isConsistent = b
+}
+
+// SetDesc sets descending order flag.
+func (c *ConditionList) SetDesc(b bool) {
+	c.isDesc = b
 }
 
 // SetStartKey sets ExclusiveStartKey.

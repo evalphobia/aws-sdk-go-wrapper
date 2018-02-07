@@ -247,7 +247,11 @@ func (t *Table) query(cond *ConditionList, in *SDK.QueryInput) (*QueryResult, er
 	if cond.isConsistent {
 		in.ConsistentRead = pointers.Bool(cond.isConsistent)
 	}
+	if cond.isDesc {
+		in.ScanIndexForward = pointers.Bool(false)
+	}
 
+	in.ExclusiveStartKey = cond.startKey
 	in.TableName = pointers.String(t.nameWithPrefix)
 	req, err := t.service.client.Query(in)
 	if err != nil {
