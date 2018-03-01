@@ -110,7 +110,7 @@ func TestPutAll(t *testing.T) {
 	// verify
 	data, err := b.GetObjectByte(testS3Path + "_file")
 	assert.NoError(err)
-	assert.Equal(obj.dataByte, data)
+	assert.Equal(len(obj.dataByte), len(data))
 
 	data, err = b.GetObjectByte(testS3Path + "_string")
 	assert.NoError(err)
