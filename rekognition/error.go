@@ -16,11 +16,11 @@ func IsErrorInvalidImageEncoding(err error) (ok bool) {
 	return strings.Contains(err.Error(), msgInvalidImageEncoding)
 }
 
-// IsErrorInvalidParameter checks if gicen error is `Invalid image encoding`.
+// IsErrorInvalidParameter checks if gicen error is `InvalidParameterException`.
 func IsErrorInvalidParameter(err error) (ok bool) {
 	if err == nil {
 		return false
 	}
 
-	return strings.Contains(err.Error(), msgInvalidImageEncoding)
+	return strings.Contains(err.Error(), msgInvalidParameter)
 }
