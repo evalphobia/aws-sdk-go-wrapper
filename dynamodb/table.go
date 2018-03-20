@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"fmt"
+	"strings"
 
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 
@@ -43,8 +44,40 @@ func NewTable(svc *DynamoDB, name string) (*Table, error) {
 	}, nil
 }
 
-// Design returns table design.
-func (t *Table) Design() (*TableDesign, error) {
+// NewTableWithDesign returns initialized *Table.
+func NewTableWithDesign(svc *DynamoDB, design *TableDesign) (*Table, error) {
+	tableName := design.name
+	name := strings.Replace(tableName, svc.prefix, "", 1)
+	return &Table{
+		service:        svc,
+		name:           name,
+		nameWithPrefix: tableName,
+		design:         design,
+	}, nil
+}
+
+// NewTableWithoutDesign returns initialized *Table without table design.
+func NewTableWithoutDesign(svc *DynamoDB, name string) *Table {
+	tableName := svc.prefix + name
+	return &Table{
+		service:        svc,
+		name:           name,
+		nameWithPrefix: tableName,
+	}
+}
+
+// GetDesign gets table design.
+func (t *Table) GetDesign() *TableDesign {
+	return t.design
+}
+
+// SetDesign sets table design.
+func (t *Table) SetDesign(design *TableDesign) {
+	t.design = design
+}
+
+// RefreshDesign returns refreshed table design.
+func (t *Table) RefreshDesign() (*TableDesign, error) {
 	req, err := t.service.client.DescribeTable(&SDK.DescribeTableInput{
 		TableName: pointers.String(t.nameWithPrefix),
 	})
@@ -90,7 +123,7 @@ func (t *Table) updateThroughput() error {
 	}
 
 	// refresh table information
-	design, err := t.Design()
+	design, err := t.RefreshDesign()
 	if err != nil {
 		return err
 	}
