@@ -63,7 +63,7 @@ func NewTableWithoutDesign(svc *DynamoDB, name string) *Table {
 		service:        svc,
 		name:           name,
 		nameWithPrefix: tableName,
-	}, nil
+	}
 }
 
 // GetDesign gets table design.
