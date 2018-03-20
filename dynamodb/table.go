@@ -123,7 +123,7 @@ func (t *Table) updateThroughput() error {
 	}
 
 	// refresh table information
-	design, err := t.Design()
+	design, err := t.RefreshDesign()
 	if err != nil {
 		return err
 	}
