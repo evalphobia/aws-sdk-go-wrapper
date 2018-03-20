@@ -12,7 +12,7 @@ func TestDesign(t *testing.T) {
 	assert := assert.New(t)
 	tbl := getTestTable(t)
 
-	design, err := tbl.Design()
+	design, err := tbl.RefreshDesign()
 	assert.NoError(err)
 	assert.Equal(tbl.design, design)
 }
@@ -28,7 +28,7 @@ func TestUpdateThroughput(t *testing.T) {
 	assert.NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
-	design, _ := tbl.Design()
+	design, _ := tbl.RefreshDesign()
 	assert.Equal(r, design.readCapacity)
 	assert.Equal(w, design.writeCapacity)
 }
@@ -43,7 +43,7 @@ func TestUpdateReadThroughput(t *testing.T) {
 	assert.NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
-	design, _ := tbl.Design()
+	design, _ := tbl.RefreshDesign()
 	assert.Equal(r, design.readCapacity)
 }
 
@@ -57,7 +57,7 @@ func TestUpdateWriteThroughput(t *testing.T) {
 	assert.NoError(err)
 
 	time.Sleep(500 * time.Millisecond)
-	design, _ := tbl.Design()
+	design, _ := tbl.RefreshDesign()
 	assert.Equal(w, design.writeCapacity)
 }
 
