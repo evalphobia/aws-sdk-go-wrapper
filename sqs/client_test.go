@@ -110,3 +110,30 @@ func TestIsExistQueue(t *testing.T) {
 	assert.NoError(err)
 	assert.False(has)
 }
+
+func TestSetPrefix(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
+
+	svc.SetPrefix("prefix_")
+	ok, _ := svc.IsExistQueue("test")
+	if !ok {
+		svc.CreateQueueWithName("test")
+	}
+	// No error
+	q, err := svc.GetQueue("test")
+	assert.NoError(err)
+	assert.NotNil(q)
+
+	// Has error
+	svc.SetPrefix("prefix2_")
+	q, err = svc.GetQueue("test")
+	assert.Error(err)
+	assert.Nil(q)
+
+	// No error
+	svc.SetPrefix("prefix_")
+	q, err = svc.GetQueue("test")
+	assert.NoError(err)
+	assert.NotNil(q)
+}
