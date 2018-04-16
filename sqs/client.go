@@ -50,6 +50,11 @@ func (svc *SQS) SetLogger(logger log.Logger) {
 	svc.logger = logger
 }
 
+// SetPrefix sets prefix.
+func (svc *SQS) SetPrefix(prefix string) {
+	svc.prefix = prefix
+}
+
 // GetQueue gets SQS Queue.
 func (svc *SQS) GetQueue(name string) (*Queue, error) {
 	queueName := svc.prefix + name
