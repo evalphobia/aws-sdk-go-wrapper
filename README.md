@@ -1,7 +1,32 @@
 aws-sdk-go-wrapper
-====
+----
 
-[![Build Status](https://travis-ci.org/evalphobia/aws-sdk-go-wrapper.svg?branch=master)](https://travis-ci.org/evalphobia/aws-sdk-go-wrapper) [![Coverage Status](https://coveralls.io/repos/evalphobia/logrus_kinesis/badge.svg?branch=master&service=github)](https://coveralls.io/github/evalphobia/logrus_kinesis?branch=master) [![Coverage Status](https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=master)](https://coveralls.io/r/evalphobia/aws-sdk-go-wrapper?branch=master) [![GoDoc](https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper?status.svg)](https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper) [![Join the chat at https://gitter.im/evalphobia/aws-sdk-go-wrapper](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/evalphobia/aws-sdk-go-wrapper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![GoDoc][1]][2] [![License: Apache 2.0][23]][24] [![Release][5]][6] [![Build Status][7]][8] [![Coveralls Coverage][9]][10] [![Codecov Coverage][11]][12] [![Go Report Card][13]][14] [![Code Climate][19]][20] [![BCH compliance][21]][22]
+
+[1]: https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper?status.svg
+[2]: https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper
+[3]: https://img.shields.io/badge/License-MIT-blue.svg
+[4]: LICENSE.md
+[5]: https://img.shields.io/github/release/evalphobia/aws-sdk-go-wrapper.svg
+[6]: https://github.com/evalphobia/aws-sdk-go-wrapper/releases/latest
+[7]: https://travis-ci.org/evalphobia/aws-sdk-go-wrapper.svg?branch=master
+[8]: https://travis-ci.org/evalphobia/aws-sdk-go-wrapper
+[9]: https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=master&service=github
+[10]: https://coveralls.io/github/evalphobia/aws-sdk-go-wrapper?branch=master
+[11]:https://codecov.io/gh/evalphobia/aws-sdk-go-wrapper/branch/master/graph/badge.svg
+[12]: https://codecov.io/gh/evalphobia/aws-sdk-go-wrapper
+[13]: https://goreportcard.com/badge/github.com/evalphobia/aws-sdk-go-wrapper
+[14]: https://goreportcard.com/report/github.com/evalphobia/aws-sdk-go-wrapper
+[15]: https://img.shields.io/github/downloads/evalphobia/aws-sdk-go-wrapper/total.svg?maxAge=1800
+[16]: https://github.com/evalphobia/aws-sdk-go-wrapper/releases
+[17]: https://img.shields.io/github/stars/evalphobia/aws-sdk-go-wrapper.svg
+[18]: https://github.com/evalphobia/aws-sdk-go-wrapper/stargazers
+[19]: https://codeclimate.com/github/evalphobia/aws-sdk-go-wrapper/badges/gpa.svg
+[20]: https://codeclimate.com/github/evalphobia/aws-sdk-go-wrapper
+[21]: https://bettercodehub.com/edge/badge/evalphobia/aws-sdk-go-wrapper?branch=master
+[22]: https://bettercodehub.com/
+[23]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+[24]: LICENSE.md
 
 (checked SDK version [aws-sdk-go](https://github.com/awslabs/aws-sdk-go/) :: [v1.4.10](https://github.com/awslabs/aws-sdk-go/tree/v1.4.10)
 

@@ -1,0 +1,10 @@
+engines:
+  golint:
+    enabled: true
+  gofmt:
+    enabled: true
+  govet:
+    enabled: true
+ratings:
+  paths: []
+exclude_paths: []
