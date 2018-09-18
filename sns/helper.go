@@ -11,7 +11,7 @@ const (
 )
 
 // make sns message for Google Cloud Messaging.
-func composeMessageGCM(msg string, opt map[string]interface{}) (payload string, err error) {
+func composeMessageGCM(msg string, opt map[string]interface{}, isHighPriority bool) (payload string, err error) {
 	data := make(map[string]interface{})
 	data[gcmKeyMessage] = msg
 	for k, v := range opt {
@@ -20,9 +20,24 @@ func composeMessageGCM(msg string, opt map[string]interface{}) (payload string, 
 
 	message := make(map[string]interface{})
 	message["data"] = data
+	message = appendPriority(message, isHighPriority)
 
 	b, err := json.Marshal(message)
 	return string(b), err
+}
+
+// set Android FCM priority, which is compatible to GCM
+func appendPriority(msgVal map[string]interface{}, isHighPriority bool) map[string]interface{}  {
+	var priority string
+	if isHighPriority {
+		priority = "high"
+	} else {
+		priority = "normal"
+	}
+	if p, err := json.Marshal(map[string]string { "priority": priority}); err != nil {
+		msgVal["android"] = p
+	}
+	return msgVal
 }
 
 // make sns message for Apple Push Notification Service.

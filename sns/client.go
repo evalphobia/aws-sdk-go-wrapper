@@ -147,7 +147,7 @@ func (svc *SNS) createTopic(name string) (topicARN string, err error) {
 }
 
 // Publish sends mobile notifications to the ARN (topic or endpoint).
-func (svc *SNS) Publish(arn string, msg string, options map[string]interface{}) error {
+func (svc *SNS) Publish(arn string, msg string, options map[string]interface{}, isHighPriority bool) error {
 	// trim message size
 	msg = truncateMessage(msg)
 
@@ -156,7 +156,7 @@ func (svc *SNS) Publish(arn string, msg string, options map[string]interface{}) 
 
 	// GCM
 	var err error
-	m[AppTypeGCM], err = composeMessageGCM(msg, options)
+	m[AppTypeGCM], err = composeMessageGCM(msg, options, false)
 	if err != nil {
 		svc.Errorf("error on composeMessageGCM; msg=%s; error=%s;", msg, err.Error())
 		return err
@@ -226,7 +226,7 @@ func (svc *SNS) PublishByToken(device, token string, msg string, badge int) erro
 	if err != nil {
 		return err
 	}
-	return ep.Publish(msg, badge)
+	return ep.Publish(msg, badge, false)
 }
 
 // BulkPublishByDevice sends mobile notification to many endpoints.
@@ -252,7 +252,7 @@ func (svc *SNS) BulkPublishByDevice(device string, tokens []string, msg string) 
 		}(token)
 	}
 	wg.Wait()
-	topic.Publish(msg)
+	topic.Publish(msg, false)
 	topic.Delete()
 	return nil
 }

@@ -126,7 +126,10 @@ func TestPublish(t *testing.T) {
 
 	opt := make(map[string]interface{})
 	topic, _ := svc.CreateTopic("fooTopic")
-	err := svc.Publish(topic.arn, "message", opt)
+	err := svc.Publish(topic.arn, "message", opt, true)
+	assert.NoError(err)
+
+	err = svc.Publish(topic.arn, "message", opt, false)
 	assert.NoError(err)
 }
 

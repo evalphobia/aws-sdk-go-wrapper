@@ -26,7 +26,7 @@ func TestEndpointPublish(t *testing.T) {
 	}
 
 	ep := svc.newApplicationEndpoint("arn")
-	err := ep.Publish("msg", 3)
+	err := ep.Publish("msg", 3, false)
 	assert.NoError(err)
 }
 

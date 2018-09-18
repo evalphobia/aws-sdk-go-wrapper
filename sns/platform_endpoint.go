@@ -18,13 +18,13 @@ type PlatformEndpoint struct {
 }
 
 // Publish sends push notification to the endpoint.
-func (e *PlatformEndpoint) Publish(msg string, badge int) error {
-	return e.svc.Publish(e.arn, msg, map[string]interface{}{"badge": badge})
+func (e *PlatformEndpoint) Publish(msg string, badge int, isHighPriority bool) error {
+	return e.svc.Publish(e.arn, msg, map[string]interface{}{"badge": badge}, isHighPriority)
 }
 
 // PublishWithOption sends push notification to the endpoint with optional params.
-func (e *PlatformEndpoint) PublishWithOption(msg string, opt map[string]interface{}) error {
-	return e.svc.Publish(e.arn, msg, opt)
+func (e *PlatformEndpoint) PublishWithOption(msg string, opt map[string]interface{}, isHighPriority bool) error {
+	return e.svc.Publish(e.arn, msg, opt, isHighPriority)
 }
 
 // GetARN returns endpoint ARN.
