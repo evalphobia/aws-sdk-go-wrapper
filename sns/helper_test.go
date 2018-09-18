@@ -12,56 +12,56 @@ func TestComposeMessageGCM(t *testing.T) {
 	opt := make(map[string]interface{})
 	msg, err := composeMessageGCM("test", opt, false)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"message":"test"}, "android": {"priority":"normal"}}`, msg)
+	assert.Equal(`{"android":{"priority":"normal"},"data":{"message":"test"}}`, msg)
 
 	opt["sound"] = "jazz"
 	msg, err = composeMessageGCM("test", opt, false)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"message":"test","sound":"jazz"}, "android": {"priority":"normal"}}`, msg)
+	assert.Equal(`{"android":{"priority":"normal"},"data":{"message":"test","sound":"jazz"}}`, msg)
 
 	delete(opt, "sound")
 	opt["badge"] = 5
 	msg, err = composeMessageGCM("test", opt, false)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"badge":5,"message":"test"}, "android": {"priority":"normal"}}`, msg)
+	assert.Equal(`{"android":{"priority":"normal"},"data":{"badge":5,"message":"test"}}`, msg)
 
 	opt["sound"] = "jazz"
 	opt["badge"] = 5
 	msg, err = composeMessageGCM("test", opt, false)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"badge":5,"message":"test","sound":"jazz"}, "android": {"priority":"normal"}}`, msg)
+	assert.Equal(`{"android":{"priority":"normal"},"data":{"badge":5,"message":"test","sound":"jazz"}}`, msg)
 
 	opt["x-option"] = "foo"
 	msg, err = composeMessageGCM("test", opt, false)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"badge":5,"message":"test","sound":"jazz","x-option":"foo"}, "android": {"priority":"normal"}}`, msg)
+	assert.Equal(`{"android":{"priority":"normal"},"data":{"badge":5,"message":"test","sound":"jazz","x-option":"foo"}}`, msg)
 
 	opt = make(map[string]interface{})
 	msg, err = composeMessageGCM("test", opt, true)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"message":"test"}, "android": {"priority":"high"}}`, msg)
+	assert.Equal(`{"android":{"priority":"high"},"data":{"message":"test"}}`, msg)
 
 	opt["sound"] = "jazz"
 	msg, err = composeMessageGCM("test", opt, true)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"message":"test","sound":"jazz"}, "android": {"priority":"high"}}`, msg)
+	assert.Equal(`{"android":{"priority":"high"},"data":{"message":"test","sound":"jazz"}}`, msg)
 
 	delete(opt, "sound")
 	opt["badge"] = 5
 	msg, err = composeMessageGCM("test", opt, true)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"badge":5,"message":"test"}, "android": {"priority":"high"}}`, msg)
+	assert.Equal(`{"android":{"priority":"high"},"data":{"badge":5,"message":"test"}}`, msg)
 
 	opt["sound"] = "jazz"
 	opt["badge"] = 5
 	msg, err = composeMessageGCM("test", opt, true)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"badge":5,"message":"test","sound":"jazz"}, "android": {"priority":"high"}}`, msg)
+	assert.Equal(`{"android":{"priority":"high"},"data":{"badge":5,"message":"test","sound":"jazz"}}`, msg)
 
 	opt["x-option"] = "foo"
 	msg, err = composeMessageGCM("test", opt, true)
 	assert.NoError(err)
-	assert.Equal(`{"data":{"badge":5,"message":"test","sound":"jazz","x-option":"foo"}, "android": {"priority":"high"}}`, msg)
+	assert.Equal(`{"android":{"priority":"high"},"data":{"badge":5,"message":"test","sound":"jazz","x-option":"foo"}}`, msg)
 }
 
 func TestComposeMessageAPNS(t *testing.T) {

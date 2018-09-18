@@ -20,6 +20,7 @@ func composeMessageGCM(msg string, opt map[string]interface{}, isHighPriority bo
 
 	message := make(map[string]interface{})
 	message["data"] = data
+
 	message = appendPriority(message, isHighPriority)
 
 	b, err := json.Marshal(message)
@@ -28,15 +29,14 @@ func composeMessageGCM(msg string, opt map[string]interface{}, isHighPriority bo
 
 // set Android FCM priority, which is compatible to GCM
 func appendPriority(msgVal map[string]interface{}, isHighPriority bool) map[string]interface{}  {
+
 	var priority string
 	if isHighPriority {
 		priority = "high"
 	} else {
 		priority = "normal"
 	}
-	if p, err := json.Marshal(map[string]string { "priority": priority}); err != nil {
-		msgVal["android"] = p
-	}
+	msgVal["android"] = map[string]string {"priority":priority}
 	return msgVal
 }
 

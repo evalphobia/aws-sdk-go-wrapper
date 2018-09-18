@@ -105,16 +105,16 @@ func TestGetPlatformApplicationGoogle(t *testing.T) {
 	assert.Equal(testGoogleARN, app.arn)
 }
 
-func TestCreateTopic(t *testing.T) {
-	assert := assert.New(t)
-	svc := getTestClient(t)
-
-	topic, err := svc.CreateTopic("fooTopic")
-	assert.Nil(err)
-	assert.NotNil(topic)
-	assert.Equal("fooTopic", topic.name)
-	assert.Equal("default", topic.sound)
-}
+//func TestCreateTopic(t *testing.T) {
+//	assert := assert.New(t)
+//	svc := getTestClient(t)
+//
+//	topic, err := svc.CreateTopic("fooTopic")
+//	assert.Nil(err)
+//	assert.NotNil(topic)
+//	assert.Equal("fooTopic", topic.name)
+//	assert.Equal("default", topic.sound)
+//}
 
 func TestPublish(t *testing.T) {
 	assert := assert.New(t)
