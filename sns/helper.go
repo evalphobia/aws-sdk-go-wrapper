@@ -3,15 +3,18 @@ package sns
 import "encoding/json"
 
 const (
-	gcmKeyMessage   = "message"
-	apnsKeyMessage  = "alert"
-	apnsKeySound    = "sound"
-	apnsKeyCategory = "category"
-	apnsKeyBadge    = "badge"
+	gcmKeyMessage         = "message"
+	fcmAndroidKeyPriority = "priority"
+	apnsKeyMessage        = "alert"
+	apnsKeySound          = "sound"
+	apnsKeyCategory       = "category"
+	apnsKeyBadge          = "badge"
 )
 
+const fcmPriorityHigh = "high"
+
 // make sns message for Google Cloud Messaging.
-func composeMessageGCM(msg string, opt map[string]interface{}, isHighPriority bool) (payload string, err error) {
+func composeMessageGCM(msg string, opt map[string]interface{}) (payload string, err error) {
 	data := make(map[string]interface{})
 	data[gcmKeyMessage] = msg
 	for k, v := range opt {
@@ -21,23 +24,11 @@ func composeMessageGCM(msg string, opt map[string]interface{}, isHighPriority bo
 	message := make(map[string]interface{})
 	message["data"] = data
 
-	message = appendPriority(message, isHighPriority)
+	// set Android FCM priority, which is compatible to GCM
+	message["android"] = map[string]string{fcmAndroidKeyPriority: fcmPriorityHigh}
 
 	b, err := json.Marshal(message)
 	return string(b), err
-}
-
-// set Android FCM priority, which is compatible to GCM
-func appendPriority(msgVal map[string]interface{}, isHighPriority bool) map[string]interface{}  {
-
-	var priority string
-	if isHighPriority {
-		priority = "high"
-	} else {
-		priority = "normal"
-	}
-	msgVal["android"] = map[string]string {"priority":priority}
-	return msgVal
 }
 
 // make sns message for Apple Push Notification Service.

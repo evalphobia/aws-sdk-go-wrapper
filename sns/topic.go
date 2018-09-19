@@ -42,8 +42,8 @@ func (t *Topic) Subscribe(endpointARN, protocol string) (subscriptionARN string,
 }
 
 // Publish sends notification to the topic.
-func (t *Topic) Publish(msg string, isHighPriority bool) error {
-	return t.svc.Publish(t.arn, msg, nil, isHighPriority)
+func (t *Topic) Publish(msg string) error {
+	return t.svc.Publish(t.arn, msg, nil)
 }
 
 // Delete deltes the topic.

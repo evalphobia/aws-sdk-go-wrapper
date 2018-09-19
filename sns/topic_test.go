@@ -41,6 +41,6 @@ func TestTopicPublish(t *testing.T) {
 
 	topicName := "fooTopic"
 	topic, _ := svc.CreateTopic(topicName)
-	err := topic.Publish("foo", false)
+	err := topic.Publish("foo")
 	assert.NoError(err)
 }
