@@ -9,6 +9,7 @@ const (
 	apnsKeySound          = "sound"
 	apnsKeyCategory       = "category"
 	apnsKeyBadge          = "badge"
+	apnsKeyMutableContent = "mutable-content"
 )
 
 const fcmPriorityHigh = "high"
@@ -49,6 +50,10 @@ func composeMessageAPNS(msg string, opt map[string]interface{}) (payload string,
 		aps[apnsKeyBadge] = v
 	}
 
+	if v, ok := opt[apnsKeyMutableContent]; ok {
+		aps[apnsKeyMutableContent] = v
+	}
+
 	message := make(map[string]interface{})
 	message["aps"] = aps
 	for k, v := range opt {
@@ -58,6 +63,8 @@ func composeMessageAPNS(msg string, opt map[string]interface{}) (payload string,
 		case apnsKeyCategory:
 			continue
 		case apnsKeyBadge:
+			continue
+		case apnsKeyMutableContent:
 			continue
 		default:
 			message[k] = v
