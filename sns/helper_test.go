@@ -56,15 +56,22 @@ func TestComposeMessageAPNS(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(`{"aps":{"alert":"test","badge":5,"sound":"default"}}`, msg)
 
+	delete(opt, "badge")
+	opt["mutable-content"] = 1
+	msg, err = composeMessageAPNS("test", opt)
+	assert.NoError(err)
+	assert.Equal(`{"aps":{"alert":"test","mutable-content":1,"sound":"default"}}`, msg)
+
 	opt["sound"] = "jazz"
 	opt["category"] = "new_message"
 	opt["badge"] = 5
+	opt["mutable-content"] = 1
 	msg, err = composeMessageAPNS("test", opt)
 	assert.NoError(err)
-	assert.Equal(`{"aps":{"alert":"test","badge":5,"category":"new_message","sound":"jazz"}}`, msg)
+	assert.Equal(`{"aps":{"alert":"test","badge":5,"category":"new_message","mutable-content":1,"sound":"jazz"}}`, msg)
 
 	opt["x-option"] = "foo"
 	msg, err = composeMessageAPNS("test", opt)
 	assert.NoError(err)
-	assert.Equal(`{"aps":{"alert":"test","badge":5,"category":"new_message","sound":"jazz"},"x-option":"foo"}`, msg)
+	assert.Equal(`{"aps":{"alert":"test","badge":5,"category":"new_message","mutable-content":1,"sound":"jazz"},"x-option":"foo"}`, msg)
 }
