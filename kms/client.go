@@ -2,7 +2,10 @@ package kms
 
 import (
 	"encoding/base64"
+	"fmt"
+	"strings"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	SDK "github.com/aws/aws-sdk-go/service/kms"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -12,6 +15,7 @@ import (
 
 const (
 	serviceName = "KMS"
+	aliasPrefix = "alias/"
 )
 
 // KMS has KMS client.
@@ -19,7 +23,6 @@ type KMS struct {
 	client *SDK.KMS
 
 	logger log.Logger
-	prefix string
 }
 
 // New returns initialized *Rekognition.
@@ -32,7 +35,6 @@ func New(conf config.Config) (*KMS, error) {
 	svc := &KMS{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
-		prefix: conf.DefaultPrefix,
 	}
 	return svc, nil
 }
@@ -44,6 +46,10 @@ func (svc *KMS) SetLogger(logger log.Logger) {
 
 // CreateAlias executes CreateAlias operation.
 func (svc *KMS) CreateAlias(keyID, aliasName string) error {
+	if !strings.HasPrefix(aliasName, aliasPrefix) {
+		aliasName = aliasPrefix + aliasName
+	}
+
 	_, err := svc.client.CreateAlias(&SDK.CreateAliasInput{
 		TargetKeyId: pointers.String(keyID),
 		AliasName:   pointers.String(aliasName),
@@ -79,6 +85,25 @@ func (svc *KMS) CreateKey(tags ...Tag) (*SDK.KeyMetadata, error) {
 
 // CreateKeyWithAlias creates a key and sets alias name.
 func (svc *KMS) CreateKeyWithAlias(aliasName string, tags ...Tag) (*SDK.KeyMetadata, error) {
+	if !strings.HasPrefix(aliasName, aliasPrefix) {
+		aliasName = aliasPrefix + aliasName
+	}
+
+	_, err := svc.DescribeKey(aliasName)
+	if err == nil {
+		return nil, fmt.Errorf("error: aliasName=[%s] is already exists", aliasName)
+	}
+	aerr, ok := err.(awserr.Error)
+	if !ok {
+		return nil, err
+	}
+	switch aerr.Code() {
+	case SDK.ErrCodeNotFoundException:
+		// error must be NotFoundException.
+	default:
+		return nil, err
+	}
+
 	metaData, err := svc.CreateKey(tags...)
 	if err != nil {
 		return nil, err
@@ -86,6 +111,41 @@ func (svc *KMS) CreateKeyWithAlias(aliasName string, tags ...Tag) (*SDK.KeyMetad
 
 	err = svc.CreateAlias(*metaData.KeyId, aliasName)
 	return metaData, err
+}
+
+// DescribeKey executes DescribeKey operation.
+func (svc *KMS) DescribeKey(keyName string) (metaData *SDK.KeyMetadata, err error) {
+	output, err := svc.client.DescribeKey(&SDK.DescribeKeyInput{
+		KeyId: pointers.String(keyName),
+	})
+	if err != nil {
+		svc.Errorf("error on `DescribeKey` operation; keyName=%s; error=%s;", keyName, err.Error())
+		return nil, err
+	}
+
+	return output.KeyMetadata, nil
+}
+
+// DeleteKey executes ScheduleKeyDeletion operation from Key name(key id, arn or alias).
+func (svc *KMS) DeleteKey(keyName string, day int) error {
+	metaData, err := svc.DescribeKey(keyName)
+	if err != nil {
+		return err
+	}
+
+	return svc.ScheduleKeyDeletion(*metaData.KeyId, day)
+}
+
+// ScheduleKeyDeletion executes ScheduleKeyDeletion operation.
+func (svc *KMS) ScheduleKeyDeletion(keyID string, day int) error {
+	_, err := svc.client.ScheduleKeyDeletion(&SDK.ScheduleKeyDeletionInput{
+		KeyId:               pointers.String(keyID),
+		PendingWindowInDays: pointers.Long(day),
+	})
+	if err != nil {
+		svc.Errorf("error on `ScheduleKeyDeletion` operation; keyID=%s; error=%s;", keyID, err.Error())
+	}
+	return err
 }
 
 // Encrypt executes Encrypt operation.
@@ -136,6 +196,34 @@ func (svc *KMS) DecryptString(base64Text string) (plainText string, err error) {
 		return "", err
 	}
 	return string(plainData), nil
+}
+
+// ReEncrypt executes ReEncrypt operation.
+func (svc *KMS) ReEncrypt(destinationKey string, encryptedData []byte) (resultEncryptedData []byte, err error) {
+	output, err := svc.client.ReEncrypt(&SDK.ReEncryptInput{
+		DestinationKeyId: pointers.String(destinationKey),
+		CiphertextBlob:   encryptedData,
+	})
+	if err != nil {
+		svc.Errorf("error on `ReEncrypt` operation; destinationKey=%s; error=%s;", destinationKey, err.Error())
+		return nil, err
+	}
+
+	return output.CiphertextBlob, nil
+}
+
+// ReEncryptString executes ReEncrypt operation with base64 string.
+func (svc *KMS) ReEncryptString(destinationKey, base64Text string) (resultBase64Text string, err error) {
+	byt, err := base64.StdEncoding.DecodeString(base64Text)
+	if err != nil {
+		return "", err
+	}
+
+	encryptedData, err := svc.ReEncrypt(destinationKey, byt)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(encryptedData), nil
 }
 
 // Infof logging information.

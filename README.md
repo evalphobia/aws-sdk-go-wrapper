@@ -53,7 +53,10 @@ At this time, it suports services below,
     - CreateAlias
     - CreateKey
     - Decrypt
+    - DescribeKey
     - Encrypt
+    - ReEncrypt
+    - ScheduleKeyDeletion
 - [`Rekognition`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/rekognition)
     - CompareFaces
     - DetectFaces
