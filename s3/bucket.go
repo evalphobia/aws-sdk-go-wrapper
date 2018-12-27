@@ -174,13 +174,13 @@ func (b *Bucket) HeadObject(path string) (*SDK.HeadObjectOutput, error) {
 	})
 }
 
-// IsExists checks if the given path.
+// IsExists checks if an object exists on the given path.
 func (b *Bucket) IsExists(path string) bool {
 	_, err := b.HeadObject(path)
 	return err == nil
 }
 
-// DeleteObject deletees the object of target path.
+// DeleteObject deletes the object of target path.
 func (b *Bucket) DeleteObject(path string) error {
 	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
 		Bucket: pointers.String(b.nameWithPrefix),
