@@ -166,6 +166,20 @@ func (b *Bucket) GetSecretURLWithExpire(path string, expire int) (string, error)
 	return req.Presign(time.Duration(expire) * time.Second)
 }
 
+// HeadObject executes HeadObject operation.
+func (b *Bucket) HeadObject(path string) (*SDK.HeadObjectOutput, error) {
+	return b.service.client.HeadObject(&SDK.HeadObjectInput{
+		Bucket: pointers.String(b.nameWithPrefix),
+		Key:    pointers.String(path),
+	})
+}
+
+// IsExists checks if the given path.
+func (b *Bucket) IsExists(path string) bool {
+	_, err := b.HeadObject(path)
+	return err == nil
+}
+
 // DeleteObject deletees the object of target path.
 func (b *Bucket) DeleteObject(path string) error {
 	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
