@@ -49,6 +49,18 @@ At this time, it suports services below,
     - CreateStream
     - GetShardIterator
     - PutRecord
+- [`KMS`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/kms)
+    - CreateAlias
+    - CreateKey
+    - Decrypt
+    - Encrypt
+- [`Rekognition`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/rekognition)
+    - CompareFaces
+    - DetectFaces
+    - DetectLabels
+    - DetectModerationLabels
+    - GetCelebrityInfo
+    - RecognizeCelebrities
 - [`S3`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/s3)
     - GetObject
     - PutObject
@@ -71,7 +83,8 @@ At this time, it suports services below,
     - DeleteMessage
     - DeleteMessageBatch
     - GetQueueAttributes
-
+- [`X-Ray`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/xray)
+    - PutTraceSegments
 
 # Quick Usage
 
