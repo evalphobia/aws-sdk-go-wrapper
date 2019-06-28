@@ -12,6 +12,56 @@ type FaceDetailResponse struct {
 	Orientation string
 }
 
+// FilterFaceByConfidence returns *FaceDetail list which has a face confidence more than or equal to the given.
+func (r FaceDetailResponse) FilterFaceByConfidence(confidence float64) []*FaceDetail {
+	list := make([]*FaceDetail, 0, len(r.List))
+	for _, f := range r.List {
+		if !f.IsFaceConfidenceGTE(confidence) {
+			continue
+		}
+		list = append(list, f)
+	}
+	return list
+}
+
+// FilterFaceBySize returns *FaceDetail list which face size is greater than or equal to the given.
+func (r FaceDetailResponse) FilterFaceBySize(size float64) []*FaceDetail {
+	list := make([]*FaceDetail, 0, len(r.List))
+	for _, f := range r.List {
+		if !f.IsBoundingGTE(size) {
+			continue
+		}
+		list = append(list, f)
+	}
+	return list
+}
+
+// FilterFaceByConfidenceAndSize returns *FaceDetail list which face confidence and size are greater than or equal to the given.
+func (r FaceDetailResponse) FilterFaceByConfidenceAndSize(confidence, size float64) []*FaceDetail {
+	list := make([]*FaceDetail, 0, len(r.List))
+	for _, f := range r.List {
+		switch {
+		case !f.IsFaceConfidenceGTE(confidence),
+			!f.IsBoundingGTE(size):
+			continue
+		}
+		list = append(list, f)
+	}
+	return list
+}
+
+// FilterSmileByConfidence returns *FaceDetail list which has a smile confidence more than or equal to the given.
+func (r FaceDetailResponse) FilterSmileByConfidence(confidence float64) []*FaceDetail {
+	list := make([]*FaceDetail, 0, len(r.List))
+	for _, f := range r.List {
+		if !f.IsSmileConfidenceGTE(confidence) {
+			continue
+		}
+		list = append(list, f)
+	}
+	return list
+}
+
 // FaceDetail has detailed face data. (wrapper struct for *SDK.FaceDetail)
 type FaceDetail struct {
 	// estimated age range.
@@ -165,6 +215,21 @@ func NewFaceDetailFromAWSFaceDetail(face *SDK.FaceDetail) *FaceDetail {
 	}
 
 	return f
+}
+
+// IsFaceConfidenceGTE checks if the face confidence is greater than threshold (0.0 ~ 1.0).
+func (f FaceDetail) IsFaceConfidenceGTE(threshold float64) bool {
+	return f.FaceConfidence >= threshold
+}
+
+// IsBoundingGTE checks if the face bounding is greater than size (0.0 ~ 1.0).
+func (f FaceDetail) IsBoundingGTE(size float64) bool {
+	return f.BoundingHeight >= size && f.BoundingWidth >= size
+}
+
+// IsSmileConfidenceGTE checks if the smile confidence is greater than threshold (0.0 ~ 1.0).
+func (f FaceDetail) IsSmileConfidenceGTE(threshold float64) bool {
+	return f.HasSmile && f.SmileConfidence >= threshold
 }
 
 // NewFaceDetailFromAWSComparedFace creates FaceDetail from *SDK.ComparedFace.
