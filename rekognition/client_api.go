@@ -3,7 +3,6 @@ package rekognition
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -320,7 +319,7 @@ func (svc *Rekognition) CompareFacesByBytes(source, target []byte) (*CompareFace
 
 // CompareFaces executes `CompareFaces` operation and gets celebrities info.
 func (svc *Rekognition) CompareFaces(input *SDK.CompareFacesInput) (*CompareFaceResponse, error) {
-	return svc.CompareFaces(input)
+	return svc.compareFaces(input)
 }
 
 // compareFaces executes `CompareFaces` operation and gets celebrities info.
@@ -331,7 +330,6 @@ func (svc *Rekognition) compareFaces(input *SDK.CompareFacesInput) (*CompareFace
 		return &CompareFaceResponse{}, err
 	}
 
-	fmt.Printf("op=%#v\n", op)
 	return NewCompareFaceResponseFromAWSOutput(op), nil
 }
 
