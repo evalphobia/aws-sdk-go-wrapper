@@ -9,6 +9,8 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
+const batchWriteItemMax = 25
+
 // Table is a wapper struct for DynamoDB table
 type Table struct {
 	service        *DynamoDB
@@ -189,9 +191,11 @@ func (t *Table) BatchPut() error {
 	}
 	input := new(SDK.BatchWriteItemInput)
 	writeRequests := t.spoolToWriteRequests()
-	input.SetRequestItems(writeRequests)
-	if _, err := t.service.client.BatchWriteItem(input); err != nil {
-		errList.Add(err)
+	for i := 0; i < len(writeRequests); i++ {
+		input.SetRequestItems(writeRequests[i])
+		if _, err := t.service.client.BatchWriteItem(input); err != nil {
+			errList.Add(err)
+		}
 	}
 
 	t.putSpool = nil
@@ -221,17 +225,30 @@ func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 	return nil
 }
 
-func (t *Table) spoolToWriteRequests() map[string][]*SDK.WriteRequest {
-	writeRequests := make([]*SDK.WriteRequest, 0, len(t.putSpool))
-	for i := 0; i < len(t.putSpool); i++ {
-		wr := new(SDK.WriteRequest)
-		wr.SetPutRequest(&SDK.PutRequest{Item: t.putSpool[i].Item})
-		writeRequests = append(writeRequests, wr)
+func (t *Table) spoolToWriteRequests() []map[string][]*SDK.WriteRequest {
+	requestChunkCount := 1 + (len(t.putSpool) / batchWriteItemMax)
+	writeRequestsChunks := make([]map[string][]*SDK.WriteRequest, 0, requestChunkCount)
+
+	for chunkNumber := 0; chunkNumber < requestChunkCount; chunkNumber++ {
+		writeRequests := make([]*SDK.WriteRequest, 0, batchWriteItemMax)
+		offsetInSpool := batchWriteItemMax * chunkNumber
+		if offsetInSpool == len(t.putSpool) {
+			break
+		}
+		for itemInChunk := 0;
+			itemInChunk < batchWriteItemMax && offsetInSpool+itemInChunk < len(t.putSpool);
+		itemInChunk++ {
+			spoolIndex := batchWriteItemMax*chunkNumber + itemInChunk
+			wr := new(SDK.WriteRequest)
+			wr.SetPutRequest(&SDK.PutRequest{Item: t.putSpool[spoolIndex].Item})
+			writeRequests = append(writeRequests, wr)
+		}
+		result := make(map[string][]*SDK.WriteRequest)
+		result[t.nameWithPrefix] = writeRequests
+		writeRequestsChunks = append(writeRequestsChunks, result)
 	}
 
-	result := make(map[string][]*SDK.WriteRequest)
-	result[t.nameWithPrefix] = writeRequests
-	return result
+	return writeRequestsChunks
 }
 
 // ---------------------------------

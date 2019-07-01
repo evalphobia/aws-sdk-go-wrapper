@@ -110,21 +110,28 @@ func TestBatchPut(t *testing.T) {
 		ID   int
 		Time int
 	}
-	cases := []testCase{{ID: 101, Time: 2}, {ID: 103, Time: 5}}
-	for _, c := range cases {
-		item := NewPutItem()
-		item.AddAttribute("id", c.ID)
-		item.AddAttribute("time", c.Time)
-		tbl.AddItem(item)
+	const batchCaseCount = 1 + 2*batchWriteItemMax
+	cases := make([]testCase, 0, batchCaseCount)
+	for i := 0; i < batchCaseCount; i++ {
+		cases = append(cases, testCase{ID: 200 + i, Time: 10 * i})
 	}
 
-	err := tbl.BatchPut()
-	assert.NoError(err)
+	// BatchWriteItem の最大レコード数の境界値とその前後のspool数のケース
+	for i := batchWriteItemMax - 2; i <= batchWriteItemMax; i++ {
+		for _, c := range cases[0:i] {
+			item := NewPutItem()
+			item.AddAttribute("id", c.ID)
+			item.AddAttribute("time", c.Time)
+			tbl.AddItem(item)
+		}
+		err := tbl.BatchPut()
+		assert.NoError(err)
+	}
 
-	item3 := NewPutItem()
-	item3.AddAttribute("id", 103)
-	tbl.AddItem(item3)
-	err = tbl.BatchPut()
+	item := NewPutItem()
+	item.AddAttribute("id", 103)
+	tbl.AddItem(item)
+	err := tbl.BatchPut()
 	assert.Error(err)
 }
 
