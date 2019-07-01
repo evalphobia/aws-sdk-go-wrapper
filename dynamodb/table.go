@@ -147,7 +147,7 @@ func (t *Table) AddItem(item *PutItem) {
 	t.service.addWriteTable(t.nameWithPrefix)
 }
 
-// Put excecutes put operation from the write-waiting list (writeItem)
+// Put executes put operation from the write-waiting list (writeItem)
 func (t *Table) Put() error {
 	errList := newErrors()
 	// アイテムの保存処理
