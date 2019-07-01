@@ -240,11 +240,11 @@ func (t *Table) spoolToWriteRequests() []map[string][]*SDK.WriteRequest {
 	writeRequestsChunks := make([]map[string][]*SDK.WriteRequest, 0, requestChunkCount)
 
 	for chunkNumber := 0; chunkNumber < requestChunkCount; chunkNumber++ {
-		writeRequests := make([]*SDK.WriteRequest, 0, batchWriteItemMax)
 		offsetInSpool := batchWriteItemMax * chunkNumber
-		if offsetInSpool == len(t.putSpool) {
+		if offsetInSpool >= len(t.putSpool) {
 			break
 		}
+		writeRequests := make([]*SDK.WriteRequest, 0, batchWriteItemMax)
 		for itemInChunk := 0;
 			itemInChunk < batchWriteItemMax && offsetInSpool+itemInChunk < len(t.putSpool);
 		itemInChunk++ {
