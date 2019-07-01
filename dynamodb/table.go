@@ -140,8 +140,8 @@ func (t *Table) AddItem(item *PutItem) {
 	w := &SDK.PutItemInput{
 		TableName:              pointers.String(t.nameWithPrefix),
 		ReturnConsumedCapacity: pointers.String("TOTAL"),
-		Item:     item.data,
-		Expected: item.conditions,
+		Item:                   item.data,
+		Expected:               item.conditions,
 	}
 	t.putSpool = append(t.putSpool, w)
 	t.service.addWriteTable(t.nameWithPrefix)
