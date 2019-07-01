@@ -173,6 +173,35 @@ func (t *Table) Put() error {
 	return nil
 }
 
+// BatchPut executes BatchWriteItem operation from the write-waiting list (writeItem)
+func (t *Table) BatchPut() error {
+	errList := newErrors()
+	// アイテムの保存処理
+	for index, item := range t.putSpool {
+		err := t.validatePutItem(item)
+		if err != nil {
+			errList.Add(err)
+			// バリデーションエラーのアイテムは送信スプールから除外する
+			firstHalf, latterHalf := t.putSpool[:index], t.putSpool[index+1:]
+			t.putSpool = append(firstHalf, latterHalf...)
+			continue
+		}
+	}
+	input := new(SDK.BatchWriteItemInput)
+	writeRequests := t.spoolToWriteRequests()
+	input.SetRequestItems(writeRequests)
+	if _, err := t.service.client.BatchWriteItem(input); err != nil {
+		errList.Add(err)
+	}
+
+	t.putSpool = nil
+	if errList.HasError() {
+		t.service.Errorf("errors on `Put` operations; table=%s; errors=[%s];", t.nameWithPrefix, errList.Error())
+		return errList
+	}
+	return nil
+}
+
 // check if exists all primary keys in the item to write it.
 func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 	hashKey := t.design.GetHashKeyName()
@@ -190,6 +219,19 @@ func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 		return fmt.Errorf("error on `validatePutItem`; No such range key; table=%s; rangekey=%s", t.nameWithPrefix, rangeKey)
 	}
 	return nil
+}
+
+func (t *Table) spoolToWriteRequests() map[string][]*SDK.WriteRequest {
+	writeRequests := make([]*SDK.WriteRequest, 0, len(t.putSpool))
+	for i := 0; i < len(t.putSpool); i++ {
+		wr := new(SDK.WriteRequest)
+		wr.SetPutRequest(&SDK.PutRequest{Item: t.putSpool[i].Item})
+		writeRequests = append(writeRequests, wr)
+	}
+
+	result := make(map[string][]*SDK.WriteRequest)
+	result[t.nameWithPrefix] = writeRequests
+	return result
 }
 
 // ---------------------------------

@@ -101,6 +101,33 @@ func TestPut(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestBatchPut(t *testing.T) {
+	assert := assert.New(t)
+
+	tbl := getTestTable(t)
+
+	type testCase struct {
+		ID   int
+		Time int
+	}
+	cases := []testCase{{ID: 101, Time: 2}, {ID: 103, Time: 5}}
+	for _, c := range cases {
+		item := NewPutItem()
+		item.AddAttribute("id", c.ID)
+		item.AddAttribute("time", c.Time)
+		tbl.AddItem(item)
+	}
+
+	err := tbl.BatchPut()
+	assert.NoError(err)
+
+	item3 := NewPutItem()
+	item3.AddAttribute("id", 103)
+	tbl.AddItem(item3)
+	err = tbl.BatchPut()
+	assert.Error(err)
+}
+
 func TestGetOne(t *testing.T) {
 	assert := assert.New(t)
 
