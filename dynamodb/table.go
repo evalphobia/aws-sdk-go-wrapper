@@ -178,17 +178,17 @@ func (t *Table) Put() error {
 // BatchPut executes BatchWriteItem operation from the write-waiting list (writeItem)
 func (t *Table) BatchPut() error {
 	errList := newErrors()
-	// アイテムの保存処理
+	errorSpoolIndices := make([]int, 0, len(t.putSpool))
 	for index, item := range t.putSpool {
 		err := t.validatePutItem(item)
 		if err != nil {
 			errList.Add(err)
-			// バリデーションエラーのアイテムは送信スプールから除外する
-			firstHalf, latterHalf := t.putSpool[:index], t.putSpool[index+1:]
-			t.putSpool = append(firstHalf, latterHalf...)
+			// バリデーションエラーのアイテムは送信スプールから除外するリストに加える
+			errorSpoolIndices = append(errorSpoolIndices, index)
 			continue
 		}
 	}
+	t.removeErroredSpoolByIndices(errorSpoolIndices)
 	input := new(SDK.BatchWriteItemInput)
 	writeRequests := t.spoolToWriteRequests()
 	for i := 0; i < len(writeRequests); i++ {
@@ -204,6 +204,16 @@ func (t *Table) BatchPut() error {
 		return errList
 	}
 	return nil
+}
+
+func (t *Table) removeErroredSpoolByIndices(errorSpoolIndices []int) {
+	errorSpoolOffset := 0
+	for i := 0; i < len(errorSpoolIndices); i++ {
+		removeIndex := errorSpoolIndices[i] + errorSpoolOffset
+		firstHalf, latterHalf := t.putSpool[:removeIndex], t.putSpool[removeIndex+1:]
+		t.putSpool = append(firstHalf, latterHalf...)
+		errorSpoolOffset -= 1
+	}
 }
 
 // check if exists all primary keys in the item to write it.
