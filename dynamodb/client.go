@@ -167,7 +167,7 @@ func (svc *DynamoDB) BatchPutAll() error {
 		err := svc.tables[name].BatchPut()
 		if err != nil {
 			errList.Add(err)
-			svc.Errorf("error on `Put` operation; table=%s; error=%s;", name, err.Error())
+			svc.Errorf("error on `BatchPut` operation; table=%s; error=%s;", name, err.Error())
 		}
 		svc.removeWriteTable(name)
 	}
