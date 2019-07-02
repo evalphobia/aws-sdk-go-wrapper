@@ -206,13 +206,12 @@ func (t *Table) BatchPut() error {
 	return nil
 }
 
+// removeErroredSpoolByIndices removes elements which have index in validation error indices list from putSpool.
 func (t *Table) removeErroredSpoolByIndices(errorSpoolIndices []int) {
-	errorSpoolOffset := 0
-	for i := 0; i < len(errorSpoolIndices); i++ {
-		removeIndex := errorSpoolIndices[i] + errorSpoolOffset
+	for i := len(errorSpoolIndices) - 1; i >= 0; i-- {
+		removeIndex := errorSpoolIndices[i]
 		firstHalf, latterHalf := t.putSpool[:removeIndex], t.putSpool[removeIndex+1:]
 		t.putSpool = append(firstHalf, latterHalf...)
-		errorSpoolOffset -= 1
 	}
 }
 
@@ -245,9 +244,7 @@ func (t *Table) spoolToWriteRequests() []map[string][]*SDK.WriteRequest {
 			break
 		}
 		writeRequests := make([]*SDK.WriteRequest, 0, batchWriteItemMax)
-		for itemInChunk := 0;
-			itemInChunk < batchWriteItemMax && offsetInSpool+itemInChunk < len(t.putSpool);
-		itemInChunk++ {
+		for itemInChunk := 0; itemInChunk < batchWriteItemMax && offsetInSpool+itemInChunk < len(t.putSpool); itemInChunk++ {
 			spoolIndex := batchWriteItemMax*chunkNumber + itemInChunk
 			wr := new(SDK.WriteRequest)
 			wr.SetPutRequest(&SDK.PutRequest{Item: t.putSpool[spoolIndex].Item})
