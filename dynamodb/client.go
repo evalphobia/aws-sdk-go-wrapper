@@ -160,6 +160,24 @@ func (svc *DynamoDB) PutAll() error {
 	return nil
 }
 
+// BatchPutAll executes put operation for all tables with batch operations in write spool list.
+func (svc *DynamoDB) BatchPutAll() error {
+	errList := errors.NewErrors(serviceName)
+	for name := range svc.writeTables {
+		err := svc.tables[name].BatchPut()
+		if err != nil {
+			errList.Add(err)
+			svc.Errorf("error on `BatchPut` operation; table=%s; error=%s;", name, err.Error())
+		}
+		svc.removeWriteTable(name)
+	}
+
+	if errList.HasError() {
+		return errList
+	}
+	return nil
+}
+
 // addWriteTable adds the table to write spool list.
 func (svc *DynamoDB) addWriteTable(name string) {
 	svc.tablesMu.Lock()

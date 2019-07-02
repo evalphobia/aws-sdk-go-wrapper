@@ -9,6 +9,8 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
+const batchWriteItemMax = 25
+
 // Table is a wapper struct for DynamoDB table
 type Table struct {
 	service        *DynamoDB
@@ -140,14 +142,14 @@ func (t *Table) AddItem(item *PutItem) {
 	w := &SDK.PutItemInput{
 		TableName:              pointers.String(t.nameWithPrefix),
 		ReturnConsumedCapacity: pointers.String("TOTAL"),
-		Item:     item.data,
-		Expected: item.conditions,
+		Item:                   item.data,
+		Expected:               item.conditions,
 	}
 	t.putSpool = append(t.putSpool, w)
 	t.service.addWriteTable(t.nameWithPrefix)
 }
 
-// Put excecutes put operation from the write-waiting list (writeItem)
+// Put executes put operation from the write-waiting list (writeItem)
 func (t *Table) Put() error {
 	errList := newErrors()
 	// アイテムの保存処理
@@ -173,6 +175,46 @@ func (t *Table) Put() error {
 	return nil
 }
 
+// BatchPut executes BatchWriteItem operation from the write-waiting list (writeItem)
+func (t *Table) BatchPut() error {
+	errList := newErrors()
+	errorSpoolIndices := make([]int, 0, len(t.putSpool))
+	for index, item := range t.putSpool {
+		err := t.validatePutItem(item)
+		if err != nil {
+			errList.Add(err)
+			// バリデーションエラーのアイテムは送信スプールから除外するリストに加える
+			errorSpoolIndices = append(errorSpoolIndices, index)
+			continue
+		}
+	}
+	t.removeErroredSpoolByIndices(errorSpoolIndices)
+	input := new(SDK.BatchWriteItemInput)
+	writeRequests := t.spoolToWriteRequests()
+	for i := 0; i < len(writeRequests); i++ {
+		input.SetRequestItems(writeRequests[i])
+		if _, err := t.service.client.BatchWriteItem(input); err != nil {
+			errList.Add(err)
+		}
+	}
+
+	t.putSpool = nil
+	if errList.HasError() {
+		t.service.Errorf("errors on `Put` operations; table=%s; errors=[%s];", t.nameWithPrefix, errList.Error())
+		return errList
+	}
+	return nil
+}
+
+// removeErroredSpoolByIndices removes elements which have index in validation error indices list from putSpool.
+func (t *Table) removeErroredSpoolByIndices(errorSpoolIndices []int) {
+	for i := len(errorSpoolIndices) - 1; i >= 0; i-- {
+		removeIndex := errorSpoolIndices[i]
+		firstHalf, latterHalf := t.putSpool[:removeIndex], t.putSpool[removeIndex+1:]
+		t.putSpool = append(firstHalf, latterHalf...)
+	}
+}
+
 // check if exists all primary keys in the item to write it.
 func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 	hashKey := t.design.GetHashKeyName()
@@ -190,6 +232,30 @@ func (t *Table) validatePutItem(item *SDK.PutItemInput) error {
 		return fmt.Errorf("error on `validatePutItem`; No such range key; table=%s; rangekey=%s", t.nameWithPrefix, rangeKey)
 	}
 	return nil
+}
+
+func (t *Table) spoolToWriteRequests() []map[string][]*SDK.WriteRequest {
+	requestChunkCount := 1 + (len(t.putSpool) / batchWriteItemMax)
+	writeRequestsChunks := make([]map[string][]*SDK.WriteRequest, 0, requestChunkCount)
+
+	for chunkNumber := 0; chunkNumber < requestChunkCount; chunkNumber++ {
+		offsetInSpool := batchWriteItemMax * chunkNumber
+		if offsetInSpool >= len(t.putSpool) {
+			break
+		}
+		writeRequests := make([]*SDK.WriteRequest, 0, batchWriteItemMax)
+		for itemInChunk := 0; itemInChunk < batchWriteItemMax && offsetInSpool+itemInChunk < len(t.putSpool); itemInChunk++ {
+			spoolIndex := batchWriteItemMax*chunkNumber + itemInChunk
+			wr := new(SDK.WriteRequest)
+			wr.SetPutRequest(&SDK.PutRequest{Item: t.putSpool[spoolIndex].Item})
+			writeRequests = append(writeRequests, wr)
+		}
+		result := make(map[string][]*SDK.WriteRequest)
+		result[t.nameWithPrefix] = writeRequests
+		writeRequestsChunks = append(writeRequestsChunks, result)
+	}
+
+	return writeRequestsChunks
 }
 
 // ---------------------------------

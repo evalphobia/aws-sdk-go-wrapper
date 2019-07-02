@@ -101,6 +101,40 @@ func TestPut(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestBatchPut(t *testing.T) {
+	assert := assert.New(t)
+
+	tbl := getTestTable(t)
+
+	type testCase struct {
+		ID   int
+		Time int
+	}
+	const batchCaseCount = 1 + 2*batchWriteItemMax
+	cases := make([]testCase, 0, batchCaseCount)
+	for i := 0; i < batchCaseCount; i++ {
+		cases = append(cases, testCase{ID: 200 + i, Time: 10 * i})
+	}
+
+	// BatchWriteItem の最大レコード数の境界値とその前後のspool数のケース
+	for i := batchWriteItemMax - 2; i <= batchWriteItemMax; i++ {
+		for _, c := range cases[0:i] {
+			item := NewPutItem()
+			item.AddAttribute("id", c.ID)
+			item.AddAttribute("time", c.Time)
+			tbl.AddItem(item)
+		}
+		err := tbl.BatchPut()
+		assert.NoError(err)
+	}
+
+	item := NewPutItem()
+	item.AddAttribute("id", 103)
+	tbl.AddItem(item)
+	err := tbl.BatchPut()
+	assert.Error(err)
+}
+
 func TestGetOne(t *testing.T) {
 	assert := assert.New(t)
 
