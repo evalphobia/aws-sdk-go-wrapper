@@ -18,7 +18,7 @@ type PinpointEmail struct {
 	logger log.Logger
 }
 
-// New returns initialized *Rekognition.
+// New returns initialized *PinpointEmail.
 func New(conf config.Config) (*PinpointEmail, error) {
 	sess, err := conf.Session()
 	if err != nil {
