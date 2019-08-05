@@ -51,6 +51,9 @@ func (svc *Rekognition) DetectFacesByS3Object(bucket, name string, version ...st
 
 // detectFaces executes `detectFace` operation and gets face info.
 func (svc *Rekognition) detectFaces(input *SDK.DetectFacesInput) (*FaceDetailResponse, error) {
+	if svc.useAllAttribute {
+		input.SetAttributes([]*string{pointers.String(SDK.AttributeAll)})
+	}
 	op, err := svc.client.DetectFaces(input)
 	if err != nil {
 		svc.Errorf("error on `DetectFaces` operation; error=%s;", err.Error())

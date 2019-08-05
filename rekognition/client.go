@@ -22,8 +22,9 @@ const (
 type Rekognition struct {
 	client *SDK.Rekognition
 
-	logger log.Logger
-	prefix string
+	logger          log.Logger
+	prefix          string
+	useAllAttribute bool
 
 	collectionsMu sync.RWMutex
 	collections   map[string]*Collection
@@ -53,6 +54,11 @@ func New(conf config.Config) (*Rekognition, error) {
 // SetLogger sets logger.
 func (svc *Rekognition) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetUseAllAttribute sets useAllAttribute..
+func (svc *Rekognition) SetUseAllAttribute(b bool) {
+	svc.useAllAttribute = b
 }
 
 // SetHTTPClient sets httpClient.
