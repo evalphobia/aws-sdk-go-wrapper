@@ -141,11 +141,14 @@ func TestAddWriteTable(t *testing.T) {
 	name := "foo_table"
 
 	svc := getTestClient(t)
-	svc.addWriteTable(name)
+	svc.addWriteTable(&Table{
+		nameWithPrefix: name,
+	})
 
 	_, ok := svc.writeTables[name]
 	assert.True(ok)
 	assert.Len(svc.writeTables, 1)
+	assert.Len(svc.tables, 1)
 }
 
 func TestRemoveWriteTable(t *testing.T) {

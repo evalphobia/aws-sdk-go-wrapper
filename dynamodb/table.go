@@ -146,7 +146,7 @@ func (t *Table) AddItem(item *PutItem) {
 		Expected:               item.conditions,
 	}
 	t.putSpool = append(t.putSpool, w)
-	t.service.addWriteTable(t.nameWithPrefix)
+	t.service.addWriteTable(t)
 }
 
 // Put executes put operation from the write-waiting list (writeItem)
