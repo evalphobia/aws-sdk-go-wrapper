@@ -179,10 +179,15 @@ func (svc *DynamoDB) BatchPutAll() error {
 }
 
 // addWriteTable adds the table to write spool list.
-func (svc *DynamoDB) addWriteTable(name string) {
+func (svc *DynamoDB) addWriteTable(tbl *Table) {
 	svc.tablesMu.Lock()
 	defer svc.tablesMu.Unlock()
+
+	name := tbl.nameWithPrefix
 	svc.writeTables[name] = struct{}{}
+	if _, ok := svc.tables[name]; !ok {
+		svc.tables[name] = tbl
+	}
 }
 
 // removeWriteTable removes the table from write spool list.
