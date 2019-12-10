@@ -84,6 +84,35 @@ func (svc *SQS) GetQueue(name string) (*Queue, error) {
 	return q, nil
 }
 
+// ListQueues gets all of SQS queue list.
+func (svc *SQS) ListAllQueues() ([]string, error) {
+	return svc.ListQueues("")
+}
+
+// ListQueues gets SQS queues list.
+func (svc *SQS) ListQueues(prefix string) ([]string, error) {
+	in := &SDK.ListQueuesInput{}
+	if prefix != "" {
+		in.QueueNamePrefix = pointers.String(prefix)
+	}
+
+	out, err := svc.client.ListQueues(in)
+	if err != nil {
+		svc.Errorf("error on `ListQueues`; prefix=%s; error=%s;", prefix, err.Error())
+	}
+	list := out.QueueUrls
+	size := len(out.QueueUrls)
+	if size == 0 {
+		return nil, nil
+	}
+
+	results := make([]string, size)
+	for i, url := range list {
+		results[i] = *url
+	}
+	return results, nil
+}
+
 // CreateQueue creates new SQS Queue.
 func (svc *SQS) CreateQueue(in *SDK.CreateQueueInput) error {
 	data, err := svc.client.CreateQueue(in)
