@@ -5,7 +5,6 @@ package sqs
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
@@ -330,22 +329,21 @@ func (q *Queue) delete(msg []*SDK.DeleteMessageBatchRequestEntry) error {
 
 // CountMessage sends request to AWS api to counts left messages in the Queue.
 func (q *Queue) CountMessage() (visible int, invisible int, err error) {
-	out, err := q.service.client.GetQueueAttributes(&SDK.GetQueueAttributesInput{
-		QueueUrl: q.url,
-		AttributeNames: []*string{
-			pointers.String("ApproximateNumberOfMessages"),
-			pointers.String("ApproximateNumberOfMessagesNotVisible"),
-		},
-	})
+	attr, err := q.service.GetQueueAttributes(*q.url,
+		AttributeApproximateNumberOfMessages,
+		AttributeApproximateNumberOfMessagesNotVisible,
+	)
 	if err != nil {
-		q.service.Errorf("error on `GetQueueAttributes`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
 		return 0, 0, err
 	}
 
-	m := out.Attributes
-	visible, _ = strconv.Atoi(*m["ApproximateNumberOfMessages"])
-	invisible, _ = strconv.Atoi(*m["ApproximateNumberOfMessagesNotVisible"])
-	return visible, invisible, nil
+	return attr.ApproximateNumberOfMessages, attr.ApproximateNumberOfMessagesNotVisible, nil
+}
+
+// GetAttributes sends request to AWS api to get the queue's attributes.
+// `AttributeNames` will be set as `All`.
+func (q *Queue) GetAttributes() (AttributesResponse, error) {
+	return q.service.GetQueueAttributes(*q.url)
 }
 
 // Purge deletes all messages in the Queue.
