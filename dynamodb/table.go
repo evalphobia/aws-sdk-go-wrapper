@@ -405,7 +405,6 @@ func (t *Table) Delete(hashValue interface{}, rangeValue ...interface{}) error {
 		Key:       t.design.keyAttributeValue(hashValue, rangeValue...),
 	}
 
-	fmt.Printf("hashValue: %v, rangeValue: %v, Delete: %+v\n", hashValue, rangeValue, in)
 	_, err := t.service.client.DeleteItem(in)
 	if err != nil {
 		t.service.Errorf("error on `DeleteItem` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())

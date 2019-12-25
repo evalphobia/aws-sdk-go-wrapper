@@ -1,8 +1,6 @@
 package rekognition
 
 import (
-	"fmt"
-
 	SDK "github.com/aws/aws-sdk-go/service/rekognition"
 )
 
@@ -349,7 +347,6 @@ func NewCompareFaceResponseFromAWSOutput(output *SDK.CompareFacesOutput) *Compar
 	if len(output.UnmatchedFaces) != 0 {
 		unmatchedFaces := make([]*FaceDetail, len(output.UnmatchedFaces))
 		for i, unmatch := range output.UnmatchedFaces {
-			fmt.Printf("unmatch=%#v\n", unmatch)
 			unmatchedFaces[i] = NewFaceDetailFromAWSComparedFace(unmatch)
 		}
 	}
