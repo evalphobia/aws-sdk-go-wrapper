@@ -99,6 +99,7 @@ func (svc *SQS) ListQueues(prefix string) ([]string, error) {
 	out, err := svc.client.ListQueues(in)
 	if err != nil {
 		svc.Errorf("error on `ListQueues`; prefix=%s; error=%s;", prefix, err.Error())
+		return nil, err
 	}
 	list := out.QueueUrls
 	size := len(out.QueueUrls)
@@ -111,6 +112,28 @@ func (svc *SQS) ListQueues(prefix string) ([]string, error) {
 		results[i] = *url
 	}
 	return results, nil
+}
+
+// GetQueueAttributes gets the queue's attributes.
+func (svc *SQS) GetQueueAttributes(url string, attributes ...string) (AttributesResponse, error) {
+	if len(attributes) == 0 {
+		attributes = append(attributes, AttributeAll)
+	}
+
+	attrs := make([]*string, len(attributes))
+	for i, a := range attributes {
+		attrs[i] = pointers.String(a)
+	}
+
+	out, err := svc.client.GetQueueAttributes(&SDK.GetQueueAttributesInput{
+		QueueUrl:       pointers.String(url),
+		AttributeNames: attrs,
+	})
+	if err != nil {
+		svc.Errorf("error on `GetQueueAttributes`; url=%s; error=%s;", url, err.Error())
+		return AttributesResponse{}, err
+	}
+	return NewAttributesResponse(out.Attributes), nil
 }
 
 // CreateQueue creates new SQS Queue.
