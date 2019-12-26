@@ -75,7 +75,7 @@ func sliceStringToPointer(list []string) []*string {
 
 	result := make([]*string, len(list))
 	for i, v := range list {
-		result[i] = &v
+		result[i] = pointers.String(v)
 	}
 	return result
 }
