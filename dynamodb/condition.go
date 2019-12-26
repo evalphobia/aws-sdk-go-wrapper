@@ -9,18 +9,6 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
-const (
-	conditionEQ      = "="
-	conditionLE      = "<="
-	conditionLT      = "<"
-	conditionGE      = ">="
-	conditionGT      = ">"
-	conditionBETWEEN = "BETWEEN"
-
-	conditionOR  = "OR"
-	conditionAND = "AND"
-)
-
 // ConditionList contains multiple condition.
 type ConditionList struct {
 	keyAttributes map[string]string

@@ -72,7 +72,8 @@ func (svc *DynamoDB) CreateTable(design *TableDesign) error {
 		design.name = originalName
 		return err
 	}
-	design = newTableDesignFromDescription(out.TableDescription)
+
+	design = newTableDesignFromDescription(NewTableDescription(out.TableDescription))
 	svc.Infof("success on `CreateTable` operation; table=%s; status=%s;", design.GetName(), design.status)
 	return nil
 }
@@ -95,8 +96,8 @@ func (svc *DynamoDB) ForceDeleteTable(name string) error {
 	}
 	svc.tablesMu.Unlock()
 
-	design := newTableDesignFromDescription(out.TableDescription)
-	svc.Infof("success on `DeleteTable` operation; table=%s; status=%s;", tableName, design.status)
+	desc := NewTableDescription(out.TableDescription)
+	svc.Infof("success on `DeleteTable` operation; table=%s; status=%s;", tableName, desc.TableStatus)
 	return nil
 }
 
@@ -136,6 +137,24 @@ func (svc *DynamoDB) ListTables() ([]string, error) {
 		list[i] = *name
 	}
 	return list, nil
+}
+
+// DescribeTable executes `DescribeTable` operation and get table info.
+func (svc *DynamoDB) DescribeTable(name string) (TableDescription, error) {
+	res, err := svc.client.DescribeTable(&SDK.DescribeTableInput{
+		TableName: pointers.String(name),
+	})
+	switch {
+	case err != nil:
+		svc.Errorf("error on `DescribeTable` operation; table=%s; error=%s;", name, err.Error())
+		return TableDescription{}, err
+	case res == nil:
+		err := fmt.Errorf("response is nil")
+		svc.Errorf("error on `DescribeTable` operation; table=%s; error=%s;", name, err.Error())
+		return TableDescription{}, err
+	}
+
+	return NewTableDescription(res.Table), nil
 }
 
 // ========================

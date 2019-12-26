@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getTestQueryRsult(t *testing.T) *QueryResult {
+func getTestQueryResult(t *testing.T) *QueryResult {
 	setupQueryTable(t)
 	tbl := getTestTable(t)
 
@@ -20,7 +20,7 @@ func getTestQueryRsult(t *testing.T) *QueryResult {
 func TestToSliceMap(t *testing.T) {
 	assert := assert.New(t)
 
-	r := getTestQueryRsult(t)
+	r := getTestQueryResult(t)
 
 	list := r.ToSliceMap()
 	assert.Len(list, 2)
@@ -43,7 +43,7 @@ func TestUnmarshal(t *testing.T) {
 		LSIKey   string `dynamodb:"lsi_key"`
 	}
 
-	r := getTestQueryRsult(t)
+	r := getTestQueryResult(t)
 
 	var list []*myStruct
 	err := r.Unmarshal(&list)

@@ -2,7 +2,7 @@ package dynamodb
 
 import (
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/mitchellh/mapstructure"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 const defaultResultTag = "dynamodb"
@@ -20,29 +20,28 @@ type QueryResult struct {
 func (r QueryResult) ToSliceMap() []map[string]interface{} {
 	m := make([]map[string]interface{}, len(r.Items))
 	for i, item := range r.Items {
+		// benachmark: https://gist.github.com/evalphobia/c1b436ef15038bc9fc9c588ca0163c93#gistcomment-3120916
 		m[i] = UnmarshalAttributeValue(item)
 	}
 	return m
 }
 
-// Unmarshal parse DynamoDB item data and mapping value to given slice pointer sturct.
+// Unmarshal unmarshals given slice pointer sturct from DynamoDB item result to mapping.
 //     e.g. err = Unmarshal(&[]*yourStruct)
+// The struct tag `dynamodb:""` is used to unmarshal.
 func (r QueryResult) Unmarshal(v interface{}) error {
-	m := r.ToSliceMap()
+	return r.UnmarshalWithTagName(v, defaultResultTag)
+}
 
-	tagName := r.tagName
-	if tagName == "" {
-		tagName = defaultResultTag
-	}
+// UnmarshalWithTagName unmarshals given slice pointer sturct and tag name from DynamoDB item result to mapping.
+func (r QueryResult) UnmarshalWithTagName(v interface{}, structTag string) error {
+	decoder := dynamodbattribute.NewDecoder()
+	decoder.TagKey = structTag
 
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata:         nil,
-		Result:           v,
-		TagName:          tagName,
-		WeaklyTypedInput: true,
-	})
-	if err != nil {
-		return err
+	items := make([]*SDK.AttributeValue, len(r.Items))
+	for i, m := range r.Items {
+		items[i] = &SDK.AttributeValue{M: m}
 	}
-	return decoder.Decode(m)
+	err := decoder.Decode(&SDK.AttributeValue{L: items}, v)
+	return err
 }

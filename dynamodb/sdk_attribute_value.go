@@ -14,22 +14,26 @@ import (
 
 func newAttributeValue(typ string, val interface{}) *SDK.AttributeValue {
 	switch typ {
-	case "S":
+	case AttributeTypeString:
 		return newAttributeValueS(val)
-	case "N":
+	case AttributeTypeNumber:
 		return newAttributeValueN(val)
-	case "B":
+	case AttributeTypeBinary:
 		return newAttributeValueB(val)
-	case "BOOL":
+	case AttributeTypeBool:
 		return newAttributeValueBOOL(val)
-	case "SS":
+	case AttributeTypeStringSet:
 		return newAttributeValueSS(val)
-	case "NS":
+	case AttributeTypeNumberSet:
 		return newAttributeValueNS(val)
-	case "L":
+	case AttributeTypeBinarySet:
+		return newAttributeValueBS(val)
+	case AttributeTypeList:
 		return newAttributeValueL(val)
-	case "M":
+	case AttributeTypeMap:
 		return newAttributeValueM(val)
+	case AttributeTypeNull:
+		return newAttributeValueNull(val)
 	}
 	return nil
 }
@@ -98,6 +102,14 @@ func newAttributeValueL(val interface{}) *SDK.AttributeValue {
 		list = append(list, createAttributeValue(v))
 	}
 	return &SDK.AttributeValue{L: list}
+}
+
+func newAttributeValueNull(val interface{}) *SDK.AttributeValue {
+	switch t := val.(type) {
+	case bool:
+		return &SDK.AttributeValue{NULL: pointers.Bool(t)}
+	}
+	return nil
 }
 
 // Create new AttributeValue from the type of value

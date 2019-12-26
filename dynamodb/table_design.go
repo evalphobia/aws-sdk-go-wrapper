@@ -36,14 +36,14 @@ type TableDesign struct {
 // NewTableDesignWithHashKeyS returns create table request data for string hashkey
 func NewTableDesignWithHashKeyS(tableName, keyName string) *TableDesign {
 	d := newTableDesignWithHashKey(tableName, keyName)
-	d.Attributes[keyName] = NewStringAttribute(keyName)
+	d.Attributes[keyName] = NewStringAttribute(keyName).ToSDKType()
 	return d
 }
 
 // NewTableDesignWithHashKeyN returns create table request data for number hashkey
 func NewTableDesignWithHashKeyN(tableName, keyName string) *TableDesign {
 	d := newTableDesignWithHashKey(tableName, keyName)
-	d.Attributes[keyName] = NewNumberAttribute(keyName)
+	d.Attributes[keyName] = NewNumberAttribute(keyName).ToSDKType()
 	return d
 }
 
@@ -57,50 +57,38 @@ func newTableDesignWithHashKey(tableName, hashkeyName string) *TableDesign {
 	}
 }
 
-func newTableDesignFromDescription(desc *SDK.TableDescription) *TableDesign {
-	if desc == nil {
+func newTableDesignFromDescription(desc TableDescription) *TableDesign {
+	if desc.IsEmpty() {
 		return nil
 	}
 
 	d := &TableDesign{
-		name:                   *desc.TableName,
-		status:                 *desc.TableStatus,
-		itemCount:              *desc.ItemCount,
-		readCapacity:           *desc.ProvisionedThroughput.ReadCapacityUnits,
-		writeCapacity:          *desc.ProvisionedThroughput.WriteCapacityUnits,
-		numberOfDecreasesToday: *desc.ProvisionedThroughput.NumberOfDecreasesToday,
+		name:                   desc.TableName,
+		status:                 desc.TableStatus,
+		itemCount:              desc.ItemCount,
+		readCapacity:           desc.ProvisionedThroughput.ReadCapacityUnits,
+		writeCapacity:          desc.ProvisionedThroughput.WriteCapacityUnits,
+		numberOfDecreasesToday: desc.ProvisionedThroughput.NumberOfDecreasesToday,
 		Attributes:             make(map[string]*SDK.AttributeDefinition),
 	}
 	for _, attr := range desc.AttributeDefinitions {
-		d.Attributes[*attr.AttributeName] = attr
+		d.Attributes[attr.Name] = attr.ToSDKType()
 	}
 	for _, schema := range desc.KeySchema {
-		switch *schema.KeyType {
+		switch schema.KeyType {
 		case "HASH":
-			d.HashKey = schema
+			d.HashKey = schema.ToSDKType()
 		case "RANGE":
-			d.RangeKey = schema
+			d.RangeKey = schema.ToSDKType()
 		}
 	}
 
 	for _, lsi := range desc.LocalSecondaryIndexes {
-		d.LSI = append(d.LSI, &SDK.LocalSecondaryIndex{
-			IndexName:  lsi.IndexName,
-			KeySchema:  lsi.KeySchema,
-			Projection: lsi.Projection,
-		})
+		d.LSI = append(d.LSI, lsi.ToLSI())
 	}
 
 	for _, gsi := range desc.GlobalSecondaryIndexes {
-		d.GSI = append(d.GSI, &SDK.GlobalSecondaryIndex{
-			IndexName:  gsi.IndexName,
-			KeySchema:  gsi.KeySchema,
-			Projection: gsi.Projection,
-			ProvisionedThroughput: &SDK.ProvisionedThroughput{
-				ReadCapacityUnits:  gsi.ProvisionedThroughput.ReadCapacityUnits,
-				WriteCapacityUnits: gsi.ProvisionedThroughput.WriteCapacityUnits,
-			},
-		})
+		d.GSI = append(d.GSI, gsi.ToGSI())
 	}
 	return d
 }
@@ -112,13 +100,13 @@ func newTableDesignFromDescription(desc *SDK.TableDescription) *TableDesign {
 // AddRangeKeyS adds range key for String type.
 func (d *TableDesign) AddRangeKeyS(keyName string) {
 	d.RangeKey = NewRangeKeyElement(keyName)
-	d.Attributes[keyName] = NewStringAttribute(keyName)
+	d.Attributes[keyName] = NewStringAttribute(keyName).ToSDKType()
 }
 
 // AddRangeKeyN adds range key for Number type.
 func (d *TableDesign) AddRangeKeyN(keyName string) {
 	d.RangeKey = NewRangeKeyElement(keyName)
-	d.Attributes[keyName] = NewNumberAttribute(keyName)
+	d.Attributes[keyName] = NewNumberAttribute(keyName).ToSDKType()
 }
 
 // HasRangeKey checks if range key is set or not.
@@ -148,7 +136,7 @@ func (d *TableDesign) ListGSI() []*SDK.GlobalSecondaryIndex {
 
 // AddLSIS adds LocalSecondaryIndex for String type.
 func (d *TableDesign) AddLSIS(name, keyName string) {
-	d.Attributes[keyName] = NewStringAttribute(keyName)
+	d.Attributes[keyName] = NewStringAttribute(keyName).ToSDKType()
 	schema := NewKeySchema(d.HashKey, NewRangeKeyElement(keyName))
 	lsi := NewLSI(name, schema)
 	d.LSI = append(d.LSI, lsi)
@@ -156,7 +144,7 @@ func (d *TableDesign) AddLSIS(name, keyName string) {
 
 // AddLSIN adds LocalSecondaryIndex for Number type.
 func (d *TableDesign) AddLSIN(name, keyName string) {
-	d.Attributes[keyName] = NewNumberAttribute(keyName)
+	d.Attributes[keyName] = NewNumberAttribute(keyName).ToSDKType()
 	schema := NewKeySchema(d.HashKey, NewRangeKeyElement(keyName))
 	lsi := NewLSI(name, schema)
 	d.LSI = append(d.LSI, lsi)
@@ -180,41 +168,41 @@ func (d *TableDesign) addGSI(name string, key ...string) error {
 
 // AddGSIS adds GlobalSecondaryIndex; HashKey=String.
 func (d *TableDesign) AddGSIS(name, hashKey string) error {
-	d.Attributes[hashKey] = NewStringAttribute(hashKey)
+	d.Attributes[hashKey] = NewStringAttribute(hashKey).ToSDKType()
 	return d.addGSI(name, hashKey)
 }
 
 // AddGSIN adds GlobalSecondaryIndex; HashKey=Number.
 func (d *TableDesign) AddGSIN(name, hashKey string) error {
-	d.Attributes[hashKey] = NewNumberAttribute(hashKey)
+	d.Attributes[hashKey] = NewNumberAttribute(hashKey).ToSDKType()
 	return d.addGSI(name, hashKey)
 }
 
 // AddGSISS adds GlobalSecondaryIndex; HashKey=String, RangeKey=String.
 func (d *TableDesign) AddGSISS(name, hashKey, rangeKey string) error {
-	d.Attributes[hashKey] = NewStringAttribute(hashKey)
-	d.Attributes[rangeKey] = NewStringAttribute(rangeKey)
+	d.Attributes[hashKey] = NewStringAttribute(hashKey).ToSDKType()
+	d.Attributes[rangeKey] = NewStringAttribute(rangeKey).ToSDKType()
 	return d.addGSI(name, hashKey, rangeKey)
 }
 
 // AddGSISN adds GlobalSecondaryIndex; HashKey=String, RangeKey=Number.
 func (d *TableDesign) AddGSISN(name, hashKey, rangeKey string) error {
-	d.Attributes[hashKey] = NewStringAttribute(hashKey)
-	d.Attributes[rangeKey] = NewNumberAttribute(rangeKey)
+	d.Attributes[hashKey] = NewStringAttribute(hashKey).ToSDKType()
+	d.Attributes[rangeKey] = NewNumberAttribute(rangeKey).ToSDKType()
 	return d.addGSI(name, hashKey, rangeKey)
 }
 
 // AddGSINN adds GlobalSecondaryIndex; HashKey=Number, RangeKey=Number.
 func (d *TableDesign) AddGSINN(name, hashKey, rangeKey string) error {
-	d.Attributes[hashKey] = NewNumberAttribute(hashKey)
-	d.Attributes[rangeKey] = NewNumberAttribute(rangeKey)
+	d.Attributes[hashKey] = NewNumberAttribute(hashKey).ToSDKType()
+	d.Attributes[rangeKey] = NewNumberAttribute(rangeKey).ToSDKType()
 	return d.addGSI(name, hashKey, rangeKey)
 }
 
 // AddGSINS adds GlobalSecondaryIndex; HashKey=Number, RangeKey=String.
 func (d *TableDesign) AddGSINS(name, hashKey, rangeKey string) error {
-	d.Attributes[hashKey] = NewNumberAttribute(hashKey)
-	d.Attributes[rangeKey] = NewStringAttribute(rangeKey)
+	d.Attributes[hashKey] = NewNumberAttribute(hashKey).ToSDKType()
+	d.Attributes[rangeKey] = NewStringAttribute(rangeKey).ToSDKType()
 	return d.addGSI(name, hashKey, rangeKey)
 }
 
