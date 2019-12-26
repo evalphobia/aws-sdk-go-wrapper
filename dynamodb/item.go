@@ -6,16 +6,6 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
-// comparison operators
-const (
-	ComparisonOperatorEQ = "EQ"
-	ComparisonOperatorNE = "NE"
-	ComparisonOperatorGT = "GT"
-	ComparisonOperatorLT = "LT"
-	ComparisonOperatorGE = "GE"
-	ComparisonOperatorLE = "LE"
-)
-
 // PutItem is wrapped struct for DynamoDB Item to put.
 type PutItem struct {
 	data       map[string]*SDK.AttributeValue

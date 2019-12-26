@@ -8,12 +8,6 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
-// key type name for DynamoDB Index.
-const (
-	KeyTypeHash  = "HASH"
-	KeyTypeRange = "RANGE"
-)
-
 // NewKeySchema creates new []*SDK.KeySchemaElement.
 func NewKeySchema(elements ...*SDK.KeySchemaElement) []*SDK.KeySchemaElement {
 	if len(elements) > 1 {

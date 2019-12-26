@@ -2,7 +2,7 @@ package dynamodb
 
 import (
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/mitchellh/mapstructure"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 const defaultResultTag = "dynamodb"
@@ -20,29 +20,27 @@ type QueryResult struct {
 func (r QueryResult) ToSliceMap() []map[string]interface{} {
 	m := make([]map[string]interface{}, len(r.Items))
 	for i, item := range r.Items {
-		m[i] = UnmarshalAttributeValue(item)
+		var v map[string]interface{}
+		if err := dynamodbattribute.UnmarshalMap(item, &v); err != nil {
+			continue
+		}
+		m[i] = v
 	}
 	return m
 }
 
-// Unmarshal parse DynamoDB item data and mapping value to given slice pointer sturct.
-//     e.g. err = Unmarshal(&[]*yourStruct)
 func (r QueryResult) Unmarshal(v interface{}) error {
-	m := r.ToSliceMap()
+	return r.UnmarshalWithTagName(v, defaultResultTag)
+}
 
-	tagName := r.tagName
-	if tagName == "" {
-		tagName = defaultResultTag
-	}
+func (r QueryResult) UnmarshalWithTagName(v interface{}, structTag string) error {
+	decoder := dynamodbattribute.NewDecoder()
+	decoder.TagKey = structTag
 
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata:         nil,
-		Result:           v,
-		TagName:          tagName,
-		WeaklyTypedInput: true,
-	})
-	if err != nil {
-		return err
+	items := make([]*SDK.AttributeValue, len(r.Items))
+	for i, m := range r.Items {
+		items[i] = &SDK.AttributeValue{M: m}
 	}
-	return decoder.Decode(m)
+	err := decoder.Decode(&SDK.AttributeValue{L: items}, v)
+	return err
 }

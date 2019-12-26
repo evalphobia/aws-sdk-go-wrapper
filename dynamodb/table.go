@@ -29,15 +29,12 @@ type Table struct {
 // NewTable returns initialized *Table.
 func NewTable(svc *DynamoDB, name string) (*Table, error) {
 	tableName := svc.prefix + name
-	req, err := svc.client.DescribeTable(&SDK.DescribeTableInput{
-		TableName: pointers.String(tableName),
-	})
+	desc, err := svc.DescribeTable(tableName)
 	if err != nil {
-		svc.Errorf("error on `DescribeTable` operation; table=%s; error=%s;", name, err.Error())
 		return nil, err
 	}
 
-	design := newTableDesignFromDescription(req.Table)
+	design := newTableDesignFromDescription(desc)
 	return &Table{
 		service:        svc,
 		name:           name,
@@ -80,15 +77,12 @@ func (t *Table) SetDesign(design *TableDesign) {
 
 // RefreshDesign returns refreshed table design.
 func (t *Table) RefreshDesign() (*TableDesign, error) {
-	req, err := t.service.client.DescribeTable(&SDK.DescribeTableInput{
-		TableName: pointers.String(t.nameWithPrefix),
-	})
+	desc, err := t.service.DescribeTable(t.nameWithPrefix)
 	if err != nil {
-		t.service.Errorf("error on `DescribeTable` operation; table=%s; error=%s", t.nameWithPrefix, err.Error())
 		return nil, err
 	}
 
-	t.design = newTableDesignFromDescription(req.Table)
+	t.design = newTableDesignFromDescription(desc)
 	return t.design, nil
 }
 
@@ -152,7 +146,7 @@ func (t *Table) AddItem(item *PutItem) {
 // Put executes put operation from the write-waiting list (writeItem)
 func (t *Table) Put() error {
 	errList := newErrors()
-	// アイテムの保存処理
+	// save items in spool
 	for _, item := range t.putSpool {
 		err := t.validatePutItem(item)
 		if err != nil {
@@ -183,7 +177,7 @@ func (t *Table) BatchPut() error {
 		err := t.validatePutItem(item)
 		if err != nil {
 			errList.Add(err)
-			// バリデーションエラーのアイテムは送信スプールから除外するリストに加える
+			// add to ignore list
 			errorSpoolIndices = append(errorSpoolIndices, index)
 			continue
 		}
@@ -321,7 +315,7 @@ func (t *Table) Query(cond *ConditionList) (*QueryResult, error) {
 // Count executes Query operation and get Count.
 func (t *Table) Count(cond *ConditionList) (*QueryResult, error) {
 	return t.query(cond, &SDK.QueryInput{
-		Select: pointers.String("COUNT"),
+		Select: pointers.String(SelectCount),
 	})
 }
 
