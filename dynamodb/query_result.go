@@ -20,11 +20,8 @@ type QueryResult struct {
 func (r QueryResult) ToSliceMap() []map[string]interface{} {
 	m := make([]map[string]interface{}, len(r.Items))
 	for i, item := range r.Items {
-		var v map[string]interface{}
-		if err := dynamodbattribute.UnmarshalMap(item, &v); err != nil {
-			continue
-		}
-		m[i] = v
+		// benachmark: https://gist.github.com/evalphobia/c1b436ef15038bc9fc9c588ca0163c93#gistcomment-3120916
+		m[i] = UnmarshalAttributeValue(item)
 	}
 	return m
 }
