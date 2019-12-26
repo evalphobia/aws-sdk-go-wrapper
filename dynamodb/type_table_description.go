@@ -6,6 +6,7 @@ import (
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
+// TableDescription represents the properties of a table.
 type TableDescription struct {
 	// IsExist will be true only when the api response contains table data
 	IsExist bool
@@ -31,6 +32,7 @@ type TableDescription struct {
 	StreamSpecification    StreamSpecification
 }
 
+// NewTableDescription creates TableDescription from SDK's output.
 func NewTableDescription(out *SDK.TableDescription) TableDescription {
 	v := TableDescription{}
 	if out == nil {
@@ -78,6 +80,7 @@ func NewTableDescription(out *SDK.TableDescription) TableDescription {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (d TableDescription) IsEmpty() bool {
 	switch {
 	case d.IsExist,

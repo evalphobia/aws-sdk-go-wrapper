@@ -7,11 +7,13 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
+// BillingModeSummary contains the details for the read/write capacity mode.
 type BillingModeSummary struct {
 	BillingMode               string
 	LastUpdateToPayPerRequest time.Time
 }
 
+// NewBillingModeSummary creates BillingModeSummary from SDK's output.
 func NewBillingModeSummary(out *SDK.BillingModeSummary) BillingModeSummary {
 	v := BillingModeSummary{}
 	if out == nil {
@@ -27,6 +29,7 @@ func NewBillingModeSummary(out *SDK.BillingModeSummary) BillingModeSummary {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (s BillingModeSummary) IsEmpty() bool {
 	switch {
 	case s.BillingMode != "",
@@ -36,6 +39,7 @@ func (s BillingModeSummary) IsEmpty() bool {
 	return true
 }
 
+// GSIDescription contains the properties of a global secondary index.
 type GSIDescription struct {
 	Backfilling           bool
 	IndexARN              string
@@ -48,6 +52,7 @@ type GSIDescription struct {
 	ProvisionedThroughput ProvisionedThroughputDescription
 }
 
+// NewGSIDescription creates GSIDescription from SDK's output.
 func NewGSIDescription(out *SDK.GlobalSecondaryIndexDescription) GSIDescription {
 	v := GSIDescription{}
 	if out == nil {
@@ -79,6 +84,7 @@ func NewGSIDescription(out *SDK.GlobalSecondaryIndexDescription) GSIDescription 
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (d GSIDescription) IsEmpty() bool {
 	switch {
 	case d.IndexARN != "",
@@ -91,6 +97,7 @@ func (d GSIDescription) IsEmpty() bool {
 	return true
 }
 
+// ToGSI converts to SDK's type.
 func (d GSIDescription) ToGSI() *SDK.GlobalSecondaryIndex {
 	if d.IsEmpty() {
 		return nil
@@ -114,6 +121,7 @@ func (d GSIDescription) ToGSI() *SDK.GlobalSecondaryIndex {
 	return gsi
 }
 
+// NewGSIDescriptionList creates the list of GSIDescription from SDK's output.
 func NewGSIDescriptionList(list []*SDK.GlobalSecondaryIndexDescription) []GSIDescription {
 	if len(list) == 0 {
 		return nil
@@ -126,11 +134,13 @@ func NewGSIDescriptionList(list []*SDK.GlobalSecondaryIndexDescription) []GSIDes
 	return result
 }
 
+// KeySchemaElement represents a single element of a key schema.
 type KeySchemaElement struct {
 	AttributeName string
 	KeyType       string
 }
 
+// NewKeySchemaElement creates KeySchemaElement from SDK's output.
 func NewKeySchemaElement(out *SDK.KeySchemaElement) KeySchemaElement {
 	v := KeySchemaElement{}
 	if out == nil {
@@ -146,6 +156,7 @@ func NewKeySchemaElement(out *SDK.KeySchemaElement) KeySchemaElement {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (k KeySchemaElement) IsEmpty() bool {
 	switch {
 	case k.AttributeName != "",
@@ -155,6 +166,7 @@ func (k KeySchemaElement) IsEmpty() bool {
 	return true
 }
 
+// ToSDKType converts to SDK's type.
 func (k KeySchemaElement) ToSDKType() *SDK.KeySchemaElement {
 	if k.IsEmpty() {
 		return nil
@@ -165,6 +177,7 @@ func (k KeySchemaElement) ToSDKType() *SDK.KeySchemaElement {
 	}
 }
 
+// NewKeySchemaElementList creates the list of KeySchemaElement from SDK's output.
 func NewKeySchemaElementList(list []*SDK.KeySchemaElement) []KeySchemaElement {
 	if len(list) == 0 {
 		return nil
@@ -177,6 +190,7 @@ func NewKeySchemaElementList(list []*SDK.KeySchemaElement) []KeySchemaElement {
 	return result
 }
 
+// LSIDescription represents the properties of a local secondary index.
 type LSIDescription struct {
 	IndexARN       string
 	IndexName      string
@@ -186,6 +200,7 @@ type LSIDescription struct {
 	Projection     Projection
 }
 
+// NewLSIDescription creates LSIDescription from SDK's output.
 func NewLSIDescription(out *SDK.LocalSecondaryIndexDescription) LSIDescription {
 	v := LSIDescription{}
 	if out == nil {
@@ -210,6 +225,7 @@ func NewLSIDescription(out *SDK.LocalSecondaryIndexDescription) LSIDescription {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (d LSIDescription) IsEmpty() bool {
 	switch {
 	case d.IndexARN != "",
@@ -221,6 +237,7 @@ func (d LSIDescription) IsEmpty() bool {
 	return true
 }
 
+// ToLSI converts to SDK's type.
 func (d LSIDescription) ToLSI() *SDK.LocalSecondaryIndex {
 	if d.IsEmpty() {
 		return nil
@@ -243,6 +260,7 @@ func (d LSIDescription) ToLSI() *SDK.LocalSecondaryIndex {
 	return lsi
 }
 
+// NewLSIDescriptionList creates the list of LSIDescription from SDK's output.
 func NewLSIDescriptionList(list []*SDK.LocalSecondaryIndexDescription) []LSIDescription {
 	if len(list) == 0 {
 		return nil
@@ -255,11 +273,13 @@ func NewLSIDescriptionList(list []*SDK.LocalSecondaryIndexDescription) []LSIDesc
 	return result
 }
 
+// Projection represents attributes that are copied (projected) from the table into an index.
 type Projection struct {
 	NonKeyAttributes []string
 	ProjectionType   string
 }
 
+// NewProjection creates Projection from SDK's output.
 func NewProjection(out *SDK.Projection) Projection {
 	v := Projection{}
 	if out == nil {
@@ -282,6 +302,7 @@ func NewProjection(out *SDK.Projection) Projection {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (p Projection) IsEmpty() bool {
 	switch {
 	case p.ProjectionType != "",
@@ -291,6 +312,7 @@ func (p Projection) IsEmpty() bool {
 	return true
 }
 
+// ToSDKType converts to SDK's type.
 func (p Projection) ToSDKType() *SDK.Projection {
 	if p.IsEmpty() {
 		return nil
@@ -308,6 +330,7 @@ func (p Projection) ToSDKType() *SDK.Projection {
 	return pp
 }
 
+// ProvisionedThroughputDescription represents the provisioned throughput settings for the table.
 type ProvisionedThroughputDescription struct {
 	LastDecreaseDateTime   time.Time
 	LastIncreaseDateTime   time.Time
@@ -316,6 +339,7 @@ type ProvisionedThroughputDescription struct {
 	WriteCapacityUnits     int64
 }
 
+// NewProvisionedThroughputDescription creates ProvisionedThroughputDescription from SDK's output.
 func NewProvisionedThroughputDescription(out *SDK.ProvisionedThroughputDescription) ProvisionedThroughputDescription {
 	v := ProvisionedThroughputDescription{}
 	if out == nil {
@@ -340,6 +364,7 @@ func NewProvisionedThroughputDescription(out *SDK.ProvisionedThroughputDescripti
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (p ProvisionedThroughputDescription) IsEmpty() bool {
 	switch {
 	case p.NumberOfDecreasesToday != 0,
@@ -352,6 +377,7 @@ func (p ProvisionedThroughputDescription) IsEmpty() bool {
 	return true
 }
 
+// ToProvisionedThroughput converts to SDK's type.
 func (p ProvisionedThroughputDescription) ToProvisionedThroughput() *SDK.ProvisionedThroughput {
 	if p.IsEmpty() {
 		return nil
@@ -362,6 +388,7 @@ func (p ProvisionedThroughputDescription) ToProvisionedThroughput() *SDK.Provisi
 	}
 }
 
+// RestoreSummary contains details for the restore.
 type RestoreSummary struct {
 	RestoreDateTime   time.Time
 	RestoreInProgress bool
@@ -369,6 +396,7 @@ type RestoreSummary struct {
 	SourceTableARN    string
 }
 
+// NewRestoreSummary creates RestoreSummary from SDK's output.
 func NewRestoreSummary(out *SDK.RestoreSummary) RestoreSummary {
 	v := RestoreSummary{}
 	if out == nil {
@@ -390,6 +418,7 @@ func NewRestoreSummary(out *SDK.RestoreSummary) RestoreSummary {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (s RestoreSummary) IsEmpty() bool {
 	switch {
 	case s.SourceBackupARN != "",
@@ -399,12 +428,14 @@ func (s RestoreSummary) IsEmpty() bool {
 	return true
 }
 
+// SSEDescription contains description of the server-side encryption status on the specified table.
 type SSEDescription struct {
 	KMSMasterKeyARN string
 	SSEType         string
 	Status          string
 }
 
+// NewSSEDescription creates SSEDescription from SDK's output.
 func NewSSEDescription(out *SDK.SSEDescription) SSEDescription {
 	v := SSEDescription{}
 	if out == nil {
@@ -423,6 +454,7 @@ func NewSSEDescription(out *SDK.SSEDescription) SSEDescription {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (s SSEDescription) IsEmpty() bool {
 	switch {
 	case s.KMSMasterKeyARN != "",
@@ -433,11 +465,13 @@ func (s SSEDescription) IsEmpty() bool {
 	return true
 }
 
+// StreamSpecification represents the DynamoDB Streams configuration for a table in DynamoDB.
 type StreamSpecification struct {
 	StreamEnabled  bool
 	StreamViewType string
 }
 
+// NewStreamSpecification creates StreamSpecification from SDK's output.
 func NewStreamSpecification(out *SDK.StreamSpecification) StreamSpecification {
 	v := StreamSpecification{}
 	if out == nil {
@@ -453,6 +487,7 @@ func NewStreamSpecification(out *SDK.StreamSpecification) StreamSpecification {
 	return v
 }
 
+// IsEmpty checks if the data is empty or not.
 func (s StreamSpecification) IsEmpty() bool {
 	switch {
 	case s.StreamViewType != "":

@@ -29,10 +29,14 @@ func (r QueryResult) ToSliceMap() []map[string]interface{} {
 	return m
 }
 
+// Unmarshal unmarshals given slice pointer sturct from DynamoDB item result to mapping.
+//     e.g. err = Unmarshal(&[]*yourStruct)
+// The struct tag `dynamodb:""` is used to unmarshal.
 func (r QueryResult) Unmarshal(v interface{}) error {
 	return r.UnmarshalWithTagName(v, defaultResultTag)
 }
 
+// UnmarshalWithTagName unmarshals given slice pointer sturct and tag name from DynamoDB item result to mapping.
 func (r QueryResult) UnmarshalWithTagName(v interface{}, structTag string) error {
 	decoder := dynamodbattribute.NewDecoder()
 	decoder.TagKey = structTag

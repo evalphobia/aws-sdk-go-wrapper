@@ -8,11 +8,13 @@ import (
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
+// AttributeDefinition represents an attribute for describing the key schema for the table and indexes.
 type AttributeDefinition struct {
 	Name string
 	Type string
 }
 
+// NewAttributeDefinition creates AttributeDefinition from SDK's output.
 func NewAttributeDefinition(out *SDK.AttributeDefinition) AttributeDefinition {
 	v := AttributeDefinition{}
 	if out == nil {
@@ -28,6 +30,7 @@ func NewAttributeDefinition(out *SDK.AttributeDefinition) AttributeDefinition {
 	return v
 }
 
+// NewAttributeDefinitionFromType creates AttributeDefinition from the give type.
 func NewAttributeDefinitionFromType(name, typ string) AttributeDefinition {
 	return AttributeDefinition{
 		Name: name,
@@ -35,6 +38,7 @@ func NewAttributeDefinitionFromType(name, typ string) AttributeDefinition {
 	}
 }
 
+// IsEmpty checks if the data is empty or not.
 func (d AttributeDefinition) IsEmpty() bool {
 	switch {
 	case d.Name != "",
@@ -44,6 +48,7 @@ func (d AttributeDefinition) IsEmpty() bool {
 	return true
 }
 
+// ToSDKType converts to SDK's type.
 func (d AttributeDefinition) ToSDKType() *SDK.AttributeDefinition {
 	if d.IsEmpty() {
 		return nil
@@ -54,6 +59,7 @@ func (d AttributeDefinition) ToSDKType() *SDK.AttributeDefinition {
 	}
 }
 
+// NewAttributeDefinitionList creates the list of AttributeDefinition from SDK's output.
 func NewAttributeDefinitionList(list []*SDK.AttributeDefinition) []AttributeDefinition {
 	if len(list) == 0 {
 		return nil
