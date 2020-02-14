@@ -33,23 +33,44 @@ aws-sdk-go-wrapper
 Simple wrapper for aws-sdk-go
 At this time, it suports services below,
 
-- [`DynamoDB`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/dynamodb)
-    - ListTables
-    - DescribeTable
+- [`CloudWatch`](/cloudwatch)
+    - GetMetricStatistics
+- [`CostExplorer`](/costexplorer)
+    - GetCostAndUsage
+- [`DynamoDB`](/dynamodb)
+    - BatchWriteItem
     - CreateTable
-    - UpdateTable
-    - DeleteTable
-    - Scan
-    - Query
-    - GetItem
-    - PutItem
     - DeleteItem
-- [`Kinesis`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/kinesis)
-    - DescribeStream
+    - DeleteTable
+    - DescribeTable
+    - GetItem
+    - ListTables
+    - PutItem
+    - Query
+    - UpdateTable
+    - Scan
+- [`IAM`](/iam)
+    - GetGroup
+    - GetGroupPolicy
+    - GetPolicyVersion
+    - GetRolePolicy
+    - GetUserPolicy
+    - ListEntitiesForPolicy
+    - ListGroups
+    - ListGroupPolicies
+    - ListPolicies
+    - ListUsers
+    - ListUserPolicies
+    - ListRoles
+    - ListRolePolicies
+- [`Kinesis`](/kinesis)
     - CreateStream
+    - DeleteStream
+    - DescribeStream
+    - GetRecords
     - GetShardIterator
     - PutRecord
-- [`KMS`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/kms)
+- [`KMS`](/kms)
     - CreateAlias
     - CreateKey
     - Decrypt
@@ -57,36 +78,51 @@ At this time, it suports services below,
     - Encrypt
     - ReEncrypt
     - ScheduleKeyDeletion
-- [`Rekognition`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/rekognition)
+- [`Pinpoint`](/pinpoint)
+    - SendEmail
+- [`Rekognition`](/rekognition)
     - CompareFaces
+    - CreateCollection
+    - DeleteCollection
+    - DeleteFaces
     - DetectFaces
     - DetectLabels
     - DetectModerationLabels
     - GetCelebrityInfo
+    - IndexFaces
+    - ListCollections
+    - ListFaces
     - RecognizeCelebrities
-- [`S3`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/s3)
-    - GetObject
-    - PutObject
+    - SearchFaces
+    - SearchFacesByImage
+- [`S3`](/s3)
+    - CreateBucket
+    - DeleteBucket
     - DeleteObject
-- [`SNS`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/sns)
+    - GetObject
+    - HeadObject
+    - PutObject
+- [`SNS`](/sns)
     - CreatePlatformEndpoint
     - CreateTopic
     - DeleteTopic
-    - Subscribe
-    - Publish
     - GetEndpointAttributes
+    - Publish
     - SetEndpointAttributes
-- [`SQS`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/sqs)
-    - GetQueueUrl
+    - Subscribe
+- [`SQS`](/sqs)
+    - ChangeMessageVisibility
     - CreateQueue
-    - DeleteQueue
-    - PurgeQueue
-    - SendMessageBatch
-    - ReceiveMessage
     - DeleteMessage
     - DeleteMessageBatch
+    - DeleteQueue
     - GetQueueAttributes
-- [`X-Ray`](https://github.com/evalphobia/aws-sdk-go-wrapper/tree/master/xray)
+    - GetQueueUrl
+    - ListQueues
+    - PurgeQueue
+    - ReceiveMessage
+    - SendMessageBatch
+- [`X-Ray`](/xray)
     - PutTraceSegments
 
 # Quick Usage
