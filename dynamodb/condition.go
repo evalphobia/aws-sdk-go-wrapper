@@ -241,6 +241,11 @@ func (c *ConditionList) getMergedConditions() map[string]*Condition {
 	return list
 }
 
+// AddKeyAttribute adds to attribute to keyAttributes.
+func (c *ConditionList) AddKeyAttribute(attr AttributeDefinition) {
+	c.keyAttributes[attr.Name] = attr.Type
+}
+
 // Condition contains condition.
 type Condition struct {
 	Condition string
