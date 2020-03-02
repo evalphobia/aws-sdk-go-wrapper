@@ -2,7 +2,7 @@ sudo: required
 language: go
 go:
   - 1.11
-  - 1.12
+  - 1.14
   - tip
 matrix:
   allow_failures:
@@ -20,9 +20,15 @@ before_script:
   - go vet ./... 2>&1 | grep -v "\(in Errorf call\|exit status 1\)" > vet.log ; test ! -s vet.log
   - gofmt -s -l .
 script:
+  - go test ./cloudtrail -coverprofile="cloudtrail.coverprofile"
+  - go test ./cloudwatch -coverprofile="cloudwatch.coverprofile"
+  - go test ./costexplorer -coverprofile="costexplorer.coverprofile"
   - go test ./config -coverprofile="config.coverprofile"
   - go test ./dynamodb -coverprofile="dynamodb.coverprofile"
+  - go test ./iam -coverprofile="iam.coverprofile"
   - go test ./kinesis -coverprofile="kinesis.coverprofile"
+  - go test ./kms -coverprofile="kms.coverprofile"
+  - go test ./pinpointemail -coverprofile="pinpointemail.coverprofile"
   - go test ./rekognition -coverprofile="rekognition.coverprofile"
   - go test ./s3 -coverprofile="s3.coverprofile"
   - go test ./sns -coverprofile="sns.coverprofile"
