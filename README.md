@@ -28,11 +28,13 @@ aws-sdk-go-wrapper
 [23]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [24]: LICENSE.md
 
-(checked SDK version [aws-sdk-go](https://github.com/awslabs/aws-sdk-go/) :: [v1.4.10](https://github.com/awslabs/aws-sdk-go/tree/v1.4.10)
+(checked SDK version [aws-sdk-go](https://github.com/awslabs/aws-sdk-go/) :: [v1.29.14](https://github.com/awslabs/aws-sdk-go/tree/v1.29.14)
 
 Simple wrapper for aws-sdk-go
 At this time, it suports services below,
 
+- [`CloudTrail`](/cloudtrail)
+    - LookupEvents
 - [`CloudWatch`](/cloudwatch)
     - GetMetricStatistics
 - [`CostExplorer`](/costexplorer)
@@ -126,6 +128,48 @@ At this time, it suports services below,
     - PutTraceSegments
 
 # Quick Usage
+
+### CloudTrail
+
+```go
+import (
+    "fmt"
+    "time"
+
+    "github.com/evalphobia/aws-sdk-go-wrapper/cloudtrail"
+    "github.com/evalphobia/aws-sdk-go-wrapper/config"
+)
+
+func main() {
+    // Create CloudTrail service
+    svc, err := cloudtrail.New(config.Config{
+        AccessKey: "access",
+        SecretKey: "secret",
+        Region: "ap-north-east1",
+    })
+    if err != nil {
+        panic("error to create client")
+    }
+
+    // Get all of CloudTrail events with in the time.
+    results, err := svc.LookupEventsAll(cloudtrail.LookupEventsInput{
+        StartTime: time.Now(),
+        EndTime:   time.Now(),
+        LookupAttributes: []LookupAttribute{
+            {
+                Key:   "EventName",
+                Value: "GetEndpointAttributes", // sns
+            },
+        },
+    })
+    if err != nil {
+        panic("error to get table")
+    }
+
+    for _, v := results.Events {
+        fmt.Printf("%+v\n", v)
+    }
+```
 
 ### DynamoDB
 
