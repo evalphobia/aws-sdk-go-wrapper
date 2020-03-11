@@ -15,6 +15,7 @@ import (
 const (
 	defaultMessageIDPrefix = "msg_"
 	defaultExpireSecond    = 180
+	defaultWaitTimeSeconds = 0
 )
 
 // Queue is SQS Queue wrapper struct.
@@ -33,20 +34,22 @@ type Queue struct {
 	deleteSpool   []*SDK.DeleteMessageBatchRequestEntry
 	failedDelete  []*SDK.BatchResultErrorEntry
 
-	autoDel bool
-	expire  int
+	autoDel         bool
+	expire          int
+	waitTimeSeconds int
 }
 
 // NewQueue returns initialized *Queue.
 func NewQueue(svc *SQS, name string, url string) *Queue {
 	queueName := svc.prefix + name
 	return &Queue{
-		service:        svc,
-		name:           name,
-		nameWithPrefix: queueName,
-		url:            pointers.String(url),
-		autoDel:        false,
-		expire:         defaultExpireSecond,
+		service:         svc,
+		name:            name,
+		nameWithPrefix:  queueName,
+		url:             pointers.String(url),
+		autoDel:         false,
+		expire:          defaultExpireSecond,
+		waitTimeSeconds: defaultWaitTimeSeconds,
 	}
 }
 
@@ -58,6 +61,12 @@ func (q *Queue) AutoDelete(b bool) {
 // SetExpire sets visibility timeout for message.
 func (q *Queue) SetExpire(sec int) {
 	q.expire = sec
+}
+
+// SetWaitTimeSeconds sets wait time timeout for message.
+// Setting this value allows for a long polling workflow.
+func (q *Queue) SetWaitTimeSeconds(sec int) {
+	q.waitTimeSeconds = sec
 }
 
 // AddMessage adds message to the send spool.
@@ -137,18 +146,13 @@ func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 
 // Fetch fetches message list from the queue with limit.
 func (q *Queue) Fetch(num int) ([]*Message, error) {
-	wait := 0
-
-	if num > 1 {
-		wait = 1 // use long-polling for 1sec when to get multiple messages
-	}
 
 	// receive message from AWS api
 	resp, err := q.service.client.ReceiveMessage(&SDK.ReceiveMessageInput{
 		QueueUrl:            q.url,
-		WaitTimeSeconds:     pointers.Long(wait),
+		WaitTimeSeconds:     pointers.Long(q.waitTimeSeconds),
 		MaxNumberOfMessages: pointers.Long(num),
-		VisibilityTimeout:   pointers.Long(defaultExpireSecond),
+		VisibilityTimeout:   pointers.Long(q.expire),
 	})
 	if err != nil {
 		q.service.Errorf("error on `ReceiveMessage` operation; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
