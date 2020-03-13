@@ -49,12 +49,33 @@ func TestSetExpire(t *testing.T) {
 	assert.Equal(10, q.expire)
 }
 
+func TestSetWaitTimeSeconds(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
+	q, _ := svc.GetQueue("test")
+
+	assert.Equal(defaultWaitTimeSeconds, q.waitTimeSeconds)
+	q.SetWaitTimeSeconds(20)
+	assert.Equal(20, q.waitTimeSeconds)
+}
+
 func TestAddMessage(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 	q, _ := svc.GetQueue("test")
 
 	q.AddMessage("foo msg")
+	assert.Equal(1, len(q.sendSpool))
+	msg := *(q.sendSpool[0].MessageBody)
+	assert.Equal("foo msg", msg)
+}
+
+func TestAddMessageWithGroupID(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
+	q, _ := svc.GetQueue("test")
+
+	q.AddMessageWithGroupID("foo msg", "Grp1")
 	assert.Equal(1, len(q.sendSpool))
 	msg := *(q.sendSpool[0].MessageBody)
 	assert.Equal("foo msg", msg)
@@ -238,6 +259,25 @@ func TestDeleteMessage(t *testing.T) {
 
 	// test this feature
 	err = q.DeleteMessage(msg)
+	assert.Nil(err)
+
+	cleanQueue(q)
+}
+
+func TestDeleteMessageWithReceipt(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
+	q, _ := svc.GetQueue("test")
+	cleanQueue(q)
+
+	// prepare messages
+	addTestMessage(q, 3)
+	msg, err := q.FetchOne()
+	assert.Nil(err)
+
+	msgReceipt := msg.GetReceiptHandle()
+	// test this feature
+	err = q.DeleteMessageWithReceipt(*msgReceipt)
 	assert.Nil(err)
 
 	cleanQueue(q)

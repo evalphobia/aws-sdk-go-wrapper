@@ -70,6 +70,7 @@ func (q *Queue) SetWaitTimeSeconds(sec int) {
 }
 
 // AddMessage adds message to the send spool.
+// This assumes a Standard SQS Queue and not a FifoQueue
 func (q *Queue) AddMessage(message string) {
 	q.sendSpoolMu.Lock()
 	defer q.sendSpoolMu.Unlock()
@@ -162,10 +163,16 @@ func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 // Fetch fetches message list from the queue with limit.
 func (q *Queue) Fetch(num int) ([]*Message, error) {
 
+	wait := q.waitTimeSeconds
+
+	if wait == 0 && num > 1 {
+		wait = 1 // use long-polling for 1sec when to get multiple messages
+	}
+
 	// receive message from AWS api
 	resp, err := q.service.client.ReceiveMessage(&SDK.ReceiveMessageInput{
 		QueueUrl:            q.url,
-		WaitTimeSeconds:     pointers.Long(q.waitTimeSeconds),
+		WaitTimeSeconds:     pointers.Long(wait),
 		MaxNumberOfMessages: pointers.Long(num),
 		VisibilityTimeout:   pointers.Long(q.expire),
 	})
@@ -290,10 +297,10 @@ func (q *Queue) DeleteMessage(msg *Message) error {
 }
 
 // DeleteMessageWithReceipt sends the request to AWS api to delete the message.
-func (q *Queue) DeleteMessageWithReceipt(msgReceipt *string) error {
+func (q *Queue) DeleteMessageWithReceipt(msgReceipt string) error {
 	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{
 		QueueUrl:      q.url,
-		ReceiptHandle: msgReceipt,
+		ReceiptHandle: pointers.String(msgReceipt),
 	})
 	if err != nil {
 		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
