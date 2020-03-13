@@ -82,6 +82,21 @@ func (q *Queue) AddMessage(message string) {
 	q.sendSpool = append(q.sendSpool, m)
 }
 
+// AddMessageWithGroupID adds a message to the send spool but adds the required attributes
+// for a SQS FIFO Queue. This assumes the SQS FIFO Queue has ContentBasedDeduplication enabled.
+func (q *Queue) AddMessageWithGroupID(message string, messageGroupID string) {
+	q.sendSpoolMu.Lock()
+	defer q.sendSpoolMu.Unlock()
+
+	num := fmt.Sprint(len(q.sendSpool) + 1)
+	m := &SDK.SendMessageBatchRequestEntry{
+		MessageBody:    pointers.String(message),
+		Id:             pointers.String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
+		MessageGroupId: pointers.String(messageGroupID),
+	}
+	q.sendSpool = append(q.sendSpool, m)
+}
+
 // AddMessageJSONMarshal adds message to the send pool with encoding json data.
 func (q *Queue) AddMessageJSONMarshal(message interface{}) error {
 	msg, err := json.Marshal(message)
@@ -267,6 +282,18 @@ func (q *Queue) DeleteMessage(msg *Message) error {
 	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{
 		QueueUrl:      q.url,
 		ReceiptHandle: msg.GetReceiptHandle(),
+	})
+	if err != nil {
+		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
+	}
+	return err
+}
+
+// DeleteMessageWithReceipt sends the request to AWS api to delete the message.
+func (q *Queue) DeleteMessageWithReceipt(msgReceipt *string) error {
+	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{
+		QueueUrl:      q.url,
+		ReceiptHandle: msgReceipt,
 	})
 	if err != nil {
 		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
