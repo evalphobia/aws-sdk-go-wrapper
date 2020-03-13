@@ -56,6 +56,20 @@ func (svc *CloudWatch) DoGetMetricStatistics(in *SDK.GetMetricStatisticsInput) (
 	return out, nil
 }
 
+// PutMetricData executes PutMetricData operation.
+func (svc *CloudWatch) PutMetricData(in PutMetricDataInput) error {
+	return svc.DoPutMetricData(in.ToInput())
+}
+
+// DoPutMetricData executes PutMetricData operation.
+func (svc *CloudWatch) DoPutMetricData(in *SDK.PutMetricDataInput) error {
+	_, err := svc.client.PutMetricData(in)
+	if err != nil {
+		svc.Errorf("error on `PutMetricData` operation; error=%s;", err.Error())
+	}
+	return err
+}
+
 // Infof logging information.
 func (svc *CloudWatch) Infof(format string, v ...interface{}) {
 	svc.logger.Infof(serviceName, format, v...)
