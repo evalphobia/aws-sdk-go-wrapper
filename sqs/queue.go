@@ -15,6 +15,7 @@ import (
 const (
 	defaultMessageIDPrefix = "msg_"
 	defaultExpireSecond    = 180
+	defaultWaitTimeSeconds = 0
 )
 
 // Queue is SQS Queue wrapper struct.
@@ -33,20 +34,22 @@ type Queue struct {
 	deleteSpool   []*SDK.DeleteMessageBatchRequestEntry
 	failedDelete  []*SDK.BatchResultErrorEntry
 
-	autoDel bool
-	expire  int
+	autoDel         bool
+	expire          int
+	waitTimeSeconds int
 }
 
 // NewQueue returns initialized *Queue.
 func NewQueue(svc *SQS, name string, url string) *Queue {
 	queueName := svc.prefix + name
 	return &Queue{
-		service:        svc,
-		name:           name,
-		nameWithPrefix: queueName,
-		url:            pointers.String(url),
-		autoDel:        false,
-		expire:         defaultExpireSecond,
+		service:         svc,
+		name:            name,
+		nameWithPrefix:  queueName,
+		url:             pointers.String(url),
+		autoDel:         false,
+		expire:          defaultExpireSecond,
+		waitTimeSeconds: defaultWaitTimeSeconds,
 	}
 }
 
@@ -60,7 +63,14 @@ func (q *Queue) SetExpire(sec int) {
 	q.expire = sec
 }
 
+// SetWaitTimeSeconds sets wait time timeout for message.
+// Setting this value allows for a long polling workflow.
+func (q *Queue) SetWaitTimeSeconds(sec int) {
+	q.waitTimeSeconds = sec
+}
+
 // AddMessage adds message to the send spool.
+// This assumes a Standard SQS Queue and not a FifoQueue
 func (q *Queue) AddMessage(message string) {
 	q.sendSpoolMu.Lock()
 	defer q.sendSpoolMu.Unlock()
@@ -69,6 +79,21 @@ func (q *Queue) AddMessage(message string) {
 	m := &SDK.SendMessageBatchRequestEntry{
 		MessageBody: pointers.String(message),
 		Id:          pointers.String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
+	}
+	q.sendSpool = append(q.sendSpool, m)
+}
+
+// AddMessageWithGroupID adds a message to the send spool but adds the required attributes
+// for a SQS FIFO Queue. This assumes the SQS FIFO Queue has ContentBasedDeduplication enabled.
+func (q *Queue) AddMessageWithGroupID(message string, messageGroupID string) {
+	q.sendSpoolMu.Lock()
+	defer q.sendSpoolMu.Unlock()
+
+	num := fmt.Sprint(len(q.sendSpool) + 1)
+	m := &SDK.SendMessageBatchRequestEntry{
+		MessageBody:    pointers.String(message),
+		Id:             pointers.String(defaultMessageIDPrefix + num), // serial numbering for convenience sake
+		MessageGroupId: pointers.String(messageGroupID),
 	}
 	q.sendSpool = append(q.sendSpool, m)
 }
@@ -137,9 +162,10 @@ func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 
 // Fetch fetches message list from the queue with limit.
 func (q *Queue) Fetch(num int) ([]*Message, error) {
-	wait := 0
 
-	if num > 1 {
+	wait := q.waitTimeSeconds
+
+	if wait == 0 && num > 1 {
 		wait = 1 // use long-polling for 1sec when to get multiple messages
 	}
 
@@ -148,7 +174,7 @@ func (q *Queue) Fetch(num int) ([]*Message, error) {
 		QueueUrl:            q.url,
 		WaitTimeSeconds:     pointers.Long(wait),
 		MaxNumberOfMessages: pointers.Long(num),
-		VisibilityTimeout:   pointers.Long(defaultExpireSecond),
+		VisibilityTimeout:   pointers.Long(q.expire),
 	})
 	if err != nil {
 		q.service.Errorf("error on `ReceiveMessage` operation; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
@@ -263,6 +289,18 @@ func (q *Queue) DeleteMessage(msg *Message) error {
 	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{
 		QueueUrl:      q.url,
 		ReceiptHandle: msg.GetReceiptHandle(),
+	})
+	if err != nil {
+		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
+	}
+	return err
+}
+
+// DeleteMessageWithReceipt sends the request to AWS api to delete the message.
+func (q *Queue) DeleteMessageWithReceipt(msgReceipt string) error {
+	_, err := q.service.client.DeleteMessage(&SDK.DeleteMessageInput{
+		QueueUrl:      q.url,
+		ReceiptHandle: pointers.String(msgReceipt),
 	})
 	if err != nil {
 		q.service.Errorf("error on `DeleteMessage`; queue=%s; error=%s;", q.nameWithPrefix, err.Error())
