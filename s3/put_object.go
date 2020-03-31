@@ -44,12 +44,16 @@ func NewPutObjectCopy(file *os.File) *PutObject {
 	return o
 }
 
-// NewPutObjectString returns initialized *PutObject from string.
-func NewPutObjectString(s string) *PutObject {
-	b := []byte(s)
+// NewPutObjectBytes returns initialized *PutObject from bytes.
+func NewPutObjectBytes(b []byte) *PutObject {
 	o := newPutObject(bytes.NewReader(b), int64(len(b)), mimeBinary)
 	o.dataByte = b
 	return o
+}
+
+// NewPutObjectString returns initialized *PutObject from string.
+func NewPutObjectString(s string) *PutObject {
+	return NewPutObjectBytes([]byte(s))
 }
 
 func (o *PutObject) String() string {

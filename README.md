@@ -1,7 +1,7 @@
 aws-sdk-go-wrapper
 ----
 
-[![GoDoc][1]][2] [![License: Apache 2.0][23]][24] [![Release][5]][6] [![Build Status][7]][8] [![Coveralls Coverage][9]][10] [![Codecov Coverage][11]][12] [![Go Report Card][13]][14] [![Code Climate][19]][20] [![BCH compliance][21]][22]
+[![GoDoc][1]][2] [![License: MIT][3]][4] [![Release][5]][6] [![Build Status][7]][8] [![Coveralls Coverage][9]][10] [![Codecov Coverage][11]][12] [![Go Report Card][13]][14] [![Code Climate][19]][20] [![BCH compliance][21]][22]
 
 [1]: https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper?status.svg
 [2]: https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper
@@ -489,4 +489,4 @@ func main(){
 
 # License
 
-Apache License, Version 2.0
+MIT
