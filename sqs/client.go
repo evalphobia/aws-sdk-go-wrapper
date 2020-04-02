@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -40,6 +41,15 @@ func New(conf config.Config) (*SQS, error) {
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 		prefix: conf.DefaultPrefix,
+		queues: make(map[string]*Queue),
+	}
+	return svc, nil
+}
+
+func NewFromSession(sess *session.Session) (*SQS, error) {
+	svc := &SQS{
+		client: SDK.New(sess),
+		logger: log.DefaultLogger,
 		queues: make(map[string]*Queue),
 	}
 	return svc, nil

@@ -1,14 +1,41 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
 const defaultRegion = "us-east-1"
+
+// NewSession - Creates a new AWS session given a profile to load from your local creds and a region.
+// If region is empty, will get the region from the instance metadata.
+func NewSession(profile, region string) (*session.Session, error) {
+	if region == "" {
+		svc := ec2metadata.New(session.New())
+		doc, err := svc.GetInstanceIdentityDocument()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to stablish AWS session: %w", err)
+		}
+		if len(doc.AvailabilityZone) > 0 {
+			region = doc.AvailabilityZone[:len(doc.AvailabilityZone)-1]
+		}
+	}
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config:            aws.Config{Region: aws.String(region)},
+		Profile:           profile,
+	})
+	if err != nil {
+		return sess, fmt.Errorf("Failed to stablish AWS session: %w", err)
+	}
+	return sess, nil
+}
 
 // Config has AWS settings.
 type Config struct {
