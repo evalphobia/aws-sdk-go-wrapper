@@ -1,10 +1,10 @@
-name: lint
+name: tidy
 
 on: [push]
 
 jobs:
-  lint:
-    name: Lint
+  tidy:
+    name: go mod tidy
     runs-on: ubuntu-latest
     steps:
 
@@ -23,7 +23,7 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: Lint
+    - name: go mod tidy
       run: |
-        make init
-        make lint
+        go mod tidy
+        git diff --exit-code -- go.mod go.sum
