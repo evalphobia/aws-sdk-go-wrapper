@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	defaultEndpoint     = "http://localhost:8000"
-	testEmptyBucketName = "test-empty-bucket"
-	tablePrefix         = "testprefix_"
+	defaultEndpoint = "http://localhost:8000"
+	tablePrefix     = "testprefix_"
 )
 
 func getTestConfig() config.Config {
@@ -78,6 +77,7 @@ func TestCreateTable(t *testing.T) {
 	assert.NoError(err, "new table creation should be no error")
 	table, err := svc.GetTable(name) // get table which name is "testprefix_foo_table"
 	assert.NoError(err, "GetTable should be succeessful when name parameter is \"foo_table\"", name)
+	assert.NotEmpty(table)
 	table, err = svc.GetTable(nameWithPrefix) // get table which name is "testprefix_testprefix_foo_table"
 	assert.Error(err, "GetTable should fail when name parameter is \"testprefix_foo_table\"", nameWithPrefix)
 	assert.Nil(table)
@@ -305,6 +305,6 @@ func resetTable(svc *DynamoDB, name string) {
 		return
 	}
 
-	err = svc.ForceDeleteTable(name)
+	_ = svc.ForceDeleteTable(name)
 	resetTable(svc, name)
 }

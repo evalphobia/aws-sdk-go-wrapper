@@ -162,7 +162,6 @@ func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 
 // Fetch fetches message list from the queue with limit.
 func (q *Queue) Fetch(num int) ([]*Message, error) {
-
 	wait := q.waitTimeSeconds
 
 	if wait == 0 && num > 1 {

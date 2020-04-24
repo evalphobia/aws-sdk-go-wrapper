@@ -27,11 +27,11 @@ func TestAddAttribute(t *testing.T) {
 	assert.Equal("value", *added.S)
 
 	item.AddAttribute("int", 100)
-	added, _ = item.data["int"]
+	added = item.data["int"]
 	assert.Equal("100", *added.N)
 
 	item.AddAttribute("float", 100.99)
-	added, _ = item.data["float"]
+	added = item.data["float"]
 	assert.Equal("100.99", *added.N)
 }
 
@@ -51,7 +51,7 @@ func TestAddConditionExist(t *testing.T) {
 
 	item := NewPutItem()
 	item.AddConditionExist("test_condition")
-	cond, _ := item.conditions["test_condition"]
+	cond := item.conditions["test_condition"]
 	assert.Equal(true, *cond.Exists)
 }
 
@@ -60,7 +60,7 @@ func TestAddConditionNotExist(t *testing.T) {
 
 	item := NewPutItem()
 	item.AddConditionNotExist("test_condition")
-	cond, _ := item.conditions["test_condition"]
+	cond := item.conditions["test_condition"]
 	assert.Equal(false, *cond.Exists)
 }
 
@@ -70,17 +70,17 @@ func TestAddConditionEQ(t *testing.T) {
 	expectedOperator := ComparisonOperatorEQ
 	item := NewPutItem()
 	item.AddConditionEQ("int_condition", 99)
-	cond, _ := item.conditions["int_condition"]
+	cond := item.conditions["int_condition"]
 	assert.Equal("99", *cond.Value.N)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 
 	item.AddConditionEQ("string_condition", "foo")
-	cond, _ = item.conditions["string_condition"]
+	cond = item.conditions["string_condition"]
 	assert.Equal("foo", *cond.Value.S)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 
 	item.AddConditionEQ("bool_condition", true)
-	cond, _ = item.conditions["bool_condition"]
+	cond = item.conditions["bool_condition"]
 	assert.Equal(true, *cond.Value.BOOL)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 }
@@ -91,7 +91,7 @@ func TestAddConditionNE(t *testing.T) {
 	expectedOperator := ComparisonOperatorNE
 	item := NewPutItem()
 	item.AddConditionNE("int_condition", 99)
-	cond, _ := item.conditions["int_condition"]
+	cond := item.conditions["int_condition"]
 	assert.Equal("99", *cond.Value.N)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 }
@@ -102,7 +102,7 @@ func TestAddConditionGT(t *testing.T) {
 	expectedOperator := ComparisonOperatorGT
 	item := NewPutItem()
 	item.AddConditionGT("int_condition", 99)
-	cond, _ := item.conditions["int_condition"]
+	cond := item.conditions["int_condition"]
 	assert.Equal("99", *cond.Value.N)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 }
@@ -113,7 +113,7 @@ func TestAddConditionLT(t *testing.T) {
 	expectedOperator := ComparisonOperatorLT
 	item := NewPutItem()
 	item.AddConditionLT("int_condition", 99)
-	cond, _ := item.conditions["int_condition"]
+	cond := item.conditions["int_condition"]
 	assert.Equal("99", *cond.Value.N)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 }
@@ -124,7 +124,7 @@ func TestAddConditionGE(t *testing.T) {
 	expectedOperator := ComparisonOperatorGE
 	item := NewPutItem()
 	item.AddConditionGE("int_condition", 99)
-	cond, _ := item.conditions["int_condition"]
+	cond := item.conditions["int_condition"]
 	assert.Equal("99", *cond.Value.N)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 }
@@ -135,7 +135,7 @@ func TestAddConditionLE(t *testing.T) {
 	expectedOperator := ComparisonOperatorLE
 	item := NewPutItem()
 	item.AddConditionLE("int_condition", 99)
-	cond, _ := item.conditions["int_condition"]
+	cond := item.conditions["int_condition"]
 	assert.Equal("99", *cond.Value.N)
 	assert.Equal(expectedOperator, *cond.ComparisonOperator)
 }

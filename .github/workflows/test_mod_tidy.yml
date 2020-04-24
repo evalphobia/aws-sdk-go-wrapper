@@ -1,0 +1,29 @@
+name: tidy
+
+on: [push]
+
+jobs:
+  tidy:
+    name: go mod tidy
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.14
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.14.2
+      id: go
+
+    - name: setup env
+      run: |
+        echo "::set-env name=GOPATH::$(go env GOPATH)"
+        echo "::add-path::$(go env GOPATH)/bin"
+      shell: bash
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: go mod tidy
+      run: |
+        go mod tidy
+        git diff --exit-code -- go.mod go.sum

@@ -11,13 +11,13 @@ import (
 // NewKeySchema creates new []*SDK.KeySchemaElement.
 func NewKeySchema(elements ...*SDK.KeySchemaElement) []*SDK.KeySchemaElement {
 	if len(elements) > 1 {
-		schema := make([]*SDK.KeySchemaElement, 2, 2)
+		schema := make([]*SDK.KeySchemaElement, 2)
 		schema[0] = elements[0]
 		schema[1] = elements[1]
 		return schema
 	}
 
-	schema := make([]*SDK.KeySchemaElement, 1, 1)
+	schema := make([]*SDK.KeySchemaElement, 1)
 	schema[0] = elements[0]
 	return schema
 }

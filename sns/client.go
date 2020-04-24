@@ -304,7 +304,7 @@ func (svc *SNS) getApp(device string) (*PlatformApplication, error) {
 		return svc.GetPlatformApplicationGoogle(), nil
 	}
 
-	err := fmt.Errorf("Unsupported device")
+	err := fmt.Errorf("unsupported device")
 	svc.Errorf("error getApp; device=%s; error=%s;", device, err.Error())
 	return nil, err
 }

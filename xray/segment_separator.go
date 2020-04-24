@@ -58,7 +58,6 @@ func (s *segmentDivider) append(byt []byte) {
 		s.currentIndex++
 		s.currentByte = bytesize
 		s.list[s.currentIndex] = make([]*string, 0, s.totalSize)
-
 	}
 	s.list[s.currentIndex] = append(s.list[s.currentIndex], pointers.String(string(byt)))
 }

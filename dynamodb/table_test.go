@@ -21,9 +21,8 @@ func TestUpdateThroughput(t *testing.T) {
 	assert := assert.New(t)
 	tbl := getTestTable(t)
 
-	var r, w int64
-	r = 10
-	w = 20
+	r := int64(10)
+	w := int64(20)
 	err := tbl.UpdateThroughput(r, w)
 	assert.NoError(err)
 
@@ -37,8 +36,7 @@ func TestUpdateReadThroughput(t *testing.T) {
 	assert := assert.New(t)
 	tbl := getTestTable(t)
 
-	var r int64
-	r = 50
+	r := int64(50)
 	err := tbl.UpdateReadThroughput(r)
 	assert.NoError(err)
 
@@ -51,8 +49,7 @@ func TestUpdateWriteThroughput(t *testing.T) {
 	assert := assert.New(t)
 	tbl := getTestTable(t)
 
-	var w int64
-	w = 30
+	w := int64(30)
 	err := tbl.UpdateWriteThroughput(w)
 	assert.NoError(err)
 

@@ -200,17 +200,9 @@ func getItemValue(val *SDK.AttributeValue) interface{} {
 		}
 		return data
 	case len(val.SS) > 0:
-		var data []*string
-		for _, vString := range val.SS {
-			data = append(data, vString)
-		}
-		return data
+		return val.SS
 	case len(val.BS) > 0:
-		var data [][]byte
-		for _, vBytes := range val.BS {
-			data = append(data, vBytes)
-		}
-		return data
+		return val.BS
 	case len(val.L) > 0:
 		var data []interface{}
 		for _, v := range val.L {

@@ -225,7 +225,6 @@ func TestAddDeleteList(t *testing.T) {
 	// add slice message
 	q.AddDeleteList([]*Message{msg, msg, msg})
 	assert.Equal(7, len(q.deleteSpool))
-
 }
 
 func TestChangeMessageVisibility(t *testing.T) {

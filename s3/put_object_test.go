@@ -20,7 +20,7 @@ func openFile(t *testing.T) *os.File {
 func TestNewPutObject(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	obj := NewPutObject(f)
 	assert.Equal(testFileType, obj.dataType)
@@ -33,7 +33,7 @@ func TestNewPutObject(t *testing.T) {
 func TestNewPutObjectCopy(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	obj := NewPutObjectCopy(f)
 	assert.Equal(testFileType, obj.dataType)
@@ -46,7 +46,7 @@ func TestNewPutObjectCopy(t *testing.T) {
 func TestNewPutObjectString(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	d, err := ioutil.ReadFile(testFileName)
 	assert.NoError(err)
@@ -63,7 +63,7 @@ func TestNewPutObjectString(t *testing.T) {
 func TestContent(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	obj := NewPutObject(f)
 	assert.Equal(f, obj.Content())
@@ -72,7 +72,7 @@ func TestContent(t *testing.T) {
 func TestSize(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	obj := NewPutObject(f)
 	stat, _ := f.Stat()
@@ -82,7 +82,7 @@ func TestSize(t *testing.T) {
 func TestFileType(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	obj := NewPutObject(f)
 	assert.Equal(testFileType, obj.FileType())
@@ -91,7 +91,7 @@ func TestFileType(t *testing.T) {
 func TestString(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	d, err := ioutil.ReadFile(testFileName)
 	assert.NoError(err)
@@ -104,7 +104,7 @@ func TestString(t *testing.T) {
 func TestSetTypeAsText(t *testing.T) {
 	assert := assert.New(t)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	obj := NewPutObjectCopy(f)
 	assert.Equal(testFileType, obj.FileType())

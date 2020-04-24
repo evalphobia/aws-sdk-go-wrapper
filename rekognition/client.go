@@ -9,7 +9,6 @@ import (
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
 	"github.com/evalphobia/aws-sdk-go-wrapper/log"
-	"github.com/evalphobia/aws-sdk-go-wrapper/private/errors"
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
 )
 
@@ -180,10 +179,6 @@ func (svc *Rekognition) Infof(format string, v ...interface{}) {
 // Errorf logging error information.
 func (svc *Rekognition) Errorf(format string, v ...interface{}) {
 	svc.logger.Errorf(serviceName, format, v...)
-}
-
-func newErrors() *errors.Errors {
-	return errors.NewErrors(serviceName)
 }
 
 // HTTPClient is used for fetching image data from URL.

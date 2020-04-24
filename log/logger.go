@@ -14,7 +14,7 @@ func init() {
 	DefaultLogger = v
 }
 
-// DummyLogger does not ouput anything
+// DummyLogger does not output anything
 type DummyLogger struct{}
 
 // Infof does nothing.
