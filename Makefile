@@ -1,13 +1,21 @@
 .PHONY: init lint test-coverage send-coverage __setup_test
 
 GO111MODULE=on
+LINT_OPT := -E gofmt \
+            -E golint \
+			-E gosec \
+			-E misspell \
+			-E whitespace \
+			-E stylecheck \
+			-D errcheck
+
 
 init:
 	go mod download
 
 lint:
 	@type golangci-lint > /dev/null || go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-	golangci-lint run ./...
+	golangci-lint $(LINT_OPT) run ./...
 
 test-coverage: __setup_test
 	go test -race -covermode atomic -coverprofile=gotest.cov ./...

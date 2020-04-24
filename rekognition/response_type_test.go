@@ -27,6 +27,7 @@ func TestFaceDetail_FilterFaceByConfidence(t *testing.T) {
 		{1.0, 1},
 	}
 
+	// nolint:gofmt
 	list := []*FaceDetail{
 		&FaceDetail{FaceConfidence: 0.0},
 		&FaceDetail{FaceConfidence: 0.11},
@@ -72,6 +73,7 @@ func TestFaceDetail_FilterFaceBySize(t *testing.T) {
 		{1.0, 1},
 	}
 
+	// nolint:gofmt
 	list := []*FaceDetail{
 		&FaceDetail{BoundingHeight: 0.0, BoundingWidth: 0.01},
 		&FaceDetail{BoundingHeight: 0.11, BoundingWidth: 0.1},
@@ -138,6 +140,7 @@ func TestFaceDetail_FilterFaceByConfidenceAndSize(t *testing.T) {
 		{1.0, 0.9, 0},
 	}
 
+	// nolint:gofmt
 	list := []*FaceDetail{
 		&FaceDetail{FaceConfidence: 0.49, BoundingHeight: 0.0, BoundingWidth: 0.01},
 		&FaceDetail{FaceConfidence: 0.51, BoundingHeight: 0.11, BoundingWidth: 0.1},
@@ -183,6 +186,7 @@ func TestFaceDetail_FilterSmileByConfidence(t *testing.T) {
 		{1.0, 1},
 	}
 
+	// nolint:gofmt
 	list := []*FaceDetail{
 		&FaceDetail{HasSmile: true, SmileConfidence: 0.0},
 		&FaceDetail{HasSmile: true, SmileConfidence: 0.11},

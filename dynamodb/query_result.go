@@ -13,7 +13,6 @@ type QueryResult struct {
 	LastEvaluatedKey map[string]*SDK.AttributeValue
 	Count            int64
 	ScannedCount     int64
-	tagName          string
 }
 
 // ToSliceMap converts result to slice of map.

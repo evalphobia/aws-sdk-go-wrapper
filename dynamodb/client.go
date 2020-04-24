@@ -91,9 +91,7 @@ func (svc *DynamoDB) ForceDeleteTable(name string) error {
 	}
 
 	svc.tablesMu.Lock()
-	if _, ok := svc.tables[name]; ok {
-		delete(svc.tables, name)
-	}
+	delete(svc.tables, name)
 	svc.tablesMu.Unlock()
 
 	desc := NewTableDescription(out.TableDescription)

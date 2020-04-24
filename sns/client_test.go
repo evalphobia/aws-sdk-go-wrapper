@@ -154,8 +154,8 @@ func TestRegisterEndpoint(t *testing.T) {
 	assert.NotNil(err)
 	assert.Nil(ep)
 
-	ep, err = svc.RegisterEndpoint("apns", "token")
-	ep, err = svc.RegisterEndpoint("gcm", "token")
+	// ep, err = svc.RegisterEndpoint("apns", "token")
+	// ep, err = svc.RegisterEndpoint("gcm", "token")
 	t.Skip("fakesns does not implement CreatePlatformEndpoint() yet.")
 }
 

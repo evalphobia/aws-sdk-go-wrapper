@@ -46,8 +46,8 @@ func (a *PlatformApplication) CreateEndpointWithUserData(token, userData string)
 func (a *PlatformApplication) createEndpoint(token string, userData *string) (endpointARN string, err error) {
 	in := &SDK.CreatePlatformEndpointInput{
 		PlatformApplicationArn: pointers.String(a.arn),
-		Token:          pointers.String(token),
-		CustomUserData: userData,
+		Token:                  pointers.String(token),
+		CustomUserData:         userData,
 	}
 
 	resp, err := a.svc.client.CreatePlatformEndpoint(in)

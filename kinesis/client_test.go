@@ -104,6 +104,7 @@ func TestCreateStreamWithName(t *testing.T) {
 
 	// not exitst
 	err := svc.ForceDeleteStream("test2")
+	assert.NoError(err)
 	time.Sleep(20 * time.Millisecond)
 	has, err := svc.IsExistStream("test2")
 	assert.NoError(err)

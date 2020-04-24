@@ -136,7 +136,7 @@ func TestGetRecords(t *testing.T) {
 	assert.Equal(1, len(result.Items))
 	assert.Equal("TestGetRecords2", string(result.Items[0].Data))
 
-	// get 2 record from the beggining
+	// get 2 record from the beginning
 	result, err = s.GetRecords(GetCondition{
 		ShardID:           s.shardIDs[0],
 		ShardIteratorType: IteratorTypeTrimHorizon,

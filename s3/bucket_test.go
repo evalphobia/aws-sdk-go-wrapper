@@ -114,7 +114,7 @@ func TestPutAll(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("testString-02", string(data))
 
-	// Data copy error is occured on Travis CI, Skip it.
+	// Data copy error is occurred on Travis CI, Skip it.
 	// f := openFile(t)
 	// defer f.Close()
 	// obj := NewPutObjectCopy(f)

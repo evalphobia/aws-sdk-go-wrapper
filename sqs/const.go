@@ -17,7 +17,7 @@ const (
 	AttributeReceiveMessageWaitTimeSeconds         = "ReceiveMessageWaitTimeSeconds"
 	AttributeRedrivePolicy                         = "RedrivePolicy"
 	AttributeVisibilityTimeout                     = "VisibilityTimeout"
-	AttributeKmsMasterKeyId                        = "KmsMasterKeyId"
+	AttributeKmsMasterKeyId                        = "KmsMasterKeyId" // nolint
 	AttributeKmsDataKeyReusePeriodSeconds          = "KmsDataKeyReusePeriodSeconds"
 	AttributeFifoQueue                             = "FifoQueue"
 	AttributeContentBasedDeduplication             = "ContentBasedDeduplication"
