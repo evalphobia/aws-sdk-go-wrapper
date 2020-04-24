@@ -175,3 +175,22 @@ func TestBulkPublish(t *testing.T) {
 	err := svc.BulkPublish(tokens, "message")
 	assert.Nil(err)
 }
+
+func TestGetPlatformApplicationAttributes(t *testing.T) {
+	a := assert.New(t)
+	svc := getTestClient(t)
+
+	list := []string{
+		testAppleARN,
+		testGoogleARN,
+	}
+
+	t.Skip("fakesns does not implement GetPlatformApplicationAttributes() yet.")
+
+	for _, v := range list {
+		resp, err := svc.GetPlatformApplicationAttributes(v)
+		a.NoError(err, v)
+		a.True(resp.HasEnabled, v)
+		a.True(resp.Enabled, v)
+	}
+}
