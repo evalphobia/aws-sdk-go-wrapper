@@ -16,7 +16,7 @@ func testPutObject(t *testing.T) {
 	assert := assert.New(t)
 	createBucket(testPutBucketName)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	svc := getTestClient(t)
 	b, err := svc.GetBucket(testPutBucketName)
@@ -33,7 +33,7 @@ func TestAddObject(t *testing.T) {
 	assert := assert.New(t)
 	createBucket(testPutBucketName)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	svc := getTestClient(t)
 	b, err := svc.GetBucket(testPutBucketName)
@@ -62,7 +62,7 @@ func TestAddSecretObject(t *testing.T) {
 	assert := assert.New(t)
 	createBucket(testPutBucketName)
 	f := openFile(t)
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	svc := getTestClient(t)
 	b, err := svc.GetBucket(testPutBucketName)
@@ -131,7 +131,7 @@ func TestGetObjectByte(t *testing.T) {
 
 	f := openFile(t)
 	fs, _ := f.Stat()
-	defer f.Close()
+	defer f.Close() // nolint:gosec
 
 	svc := getTestClient(t)
 	b, err := svc.GetBucket(testPutBucketName)

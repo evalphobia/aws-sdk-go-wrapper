@@ -177,6 +177,8 @@ func TestBulkPublish(t *testing.T) {
 }
 
 func TestGetPlatformApplicationAttributes(t *testing.T) {
+	t.Skip("fakesns does not implement GetPlatformApplicationAttributes() yet.")
+
 	a := assert.New(t)
 	svc := getTestClient(t)
 
@@ -184,8 +186,6 @@ func TestGetPlatformApplicationAttributes(t *testing.T) {
 		testAppleARN,
 		testGoogleARN,
 	}
-
-	t.Skip("fakesns does not implement GetPlatformApplicationAttributes() yet.")
 
 	for _, v := range list {
 		resp, err := svc.GetPlatformApplicationAttributes(v)
