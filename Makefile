@@ -17,6 +17,6 @@ send-coverage:
 	goveralls -coverprofile=gotest.cov -service=github
 
 __setup_test:
-  @mkdir -p ./.local/s3_data
-  @chmod 777 ./.local/s3_data
-  docker-compose up -d
+	@mkdir -p ./.local/s3_data
+	@chmod 777 ./.local/s3_data
+	docker-compose up -d
