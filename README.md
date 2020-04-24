@@ -9,8 +9,8 @@ aws-sdk-go-wrapper
 [4]: LICENSE.md
 [5]: https://img.shields.io/github/release/evalphobia/aws-sdk-go-wrapper.svg
 [6]: https://github.com/evalphobia/aws-sdk-go-wrapper/releases/latest
-[7]: https://travis-ci.org/evalphobia/aws-sdk-go-wrapper.svg?branch=master
-[8]: https://travis-ci.org/evalphobia/aws-sdk-go-wrapper
+[7]: https://github.com/evalphobia/aws-sdk-go-wrapper/workflows/test/badge.svg
+[8]: https://github.com/evalphobia/aws-sdk-go-wrapper/actions?query=workflow%3Atest
 [9]: https://coveralls.io/repos/evalphobia/aws-sdk-go-wrapper/badge.svg?branch=master&service=github
 [10]: https://coveralls.io/github/evalphobia/aws-sdk-go-wrapper?branch=master
 [11]:https://codecov.io/gh/evalphobia/aws-sdk-go-wrapper/branch/master/graph/badge.svg
