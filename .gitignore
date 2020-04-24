@@ -25,3 +25,5 @@ Thumbs.db
 *.swo
 .vscode
 .idea
+.local
+gotest.cov
