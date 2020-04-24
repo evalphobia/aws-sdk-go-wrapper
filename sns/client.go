@@ -330,6 +330,19 @@ func (svc *SNS) GetEndpoint(arn string) (*PlatformEndpoint, error) {
 	return ep, err
 }
 
+// GetPlatformApplicationAttributes executes `GetPlatformApplicationAttributes`.
+func (svc *SNS) GetPlatformApplicationAttributes(arn string) (PlatformAttributes, error) {
+	resp, err := svc.client.GetPlatformApplicationAttributes(&SDK.GetPlatformApplicationAttributesInput{
+		PlatformApplicationArn: pointers.String(arn),
+	})
+	if err != nil {
+		svc.Errorf("error on `GetPlatformApplicationAttributes` operation; arn=%s; error=%s;", arn, err.Error())
+		return PlatformAttributes{}, err
+	}
+
+	return NewPlatformAttributesFromMap(resp.Attributes), nil
+}
+
 func (svc *SNS) newApplicationEndpoint(arn string) *PlatformEndpoint {
 	return &PlatformEndpoint{
 		svc:      svc,
