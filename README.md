@@ -109,7 +109,7 @@ At this time, it suports services below,
     - CreateTopic
     - DeleteTopic
     - GetEndpointAttributes
-    - GetPlatformAttributes
+    - GetPlatformApplicationAttributes
     - Publish
     - SetEndpointAttributes
     - Subscribe
