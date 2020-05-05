@@ -1,15 +1,17 @@
 package s3
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	testS3Path        = "test_path"
-	testPutBucketName = "test-put-bucket"
-	testBaseURL       = "http://localhost:4567/" + testPutBucketName
+	testS3Path         = "test_path"
+	testPutBucketName  = "test-put-bucket"
+	testCopyBucketName = "test-copy-bucket"
+	testBaseURL        = "http://localhost:4567/" + testPutBucketName
 )
 
 func testPutObject(t *testing.T) {
@@ -205,6 +207,98 @@ func TestGetSecretURLWithExpire(t *testing.T) {
 	assert.NoError(err)
 	assert.Contains(data, testBaseURL+"/non_exist/path")
 	assert.Contains(data, "X-Amz-Expires=10")
+}
+
+func TestListAllObjects(t *testing.T) {
+	a := assert.New(t)
+	createBucket(testPutBucketName)
+	testPutObject(t)
+
+	const (
+		targetPrefix = "list-path/"
+		objectCount  = 5
+	)
+
+	f := openFile(t)
+	defer f.Close() // nolint:gosec
+	obj := NewPutObject(f)
+
+	svc := getTestClient(t)
+	b, err := svc.GetBucket(testPutBucketName)
+	a.NoError(err)
+
+	for i := 0; i < objectCount; i++ {
+		b.DeleteObject(fmt.Sprintf("%s/%d", targetPrefix, i))
+	}
+	list, err := b.ListAllObjects(targetPrefix)
+	a.NoError(err)
+	a.Len(list, 0)
+
+	for i := 0; i < objectCount; i++ {
+		b.AddObject(obj, fmt.Sprintf("%s/%d", targetPrefix, i))
+	}
+	err = b.PutAll()
+	a.NoError(err)
+
+	list, err = b.ListAllObjects(targetPrefix)
+	a.NoError(err)
+	a.Len(list, objectCount)
+}
+
+func TestCopyFrom(t *testing.T) {
+	a := assert.New(t)
+	createBucket(testPutBucketName)
+	createBucket(testCopyBucketName)
+	testPutObject(t)
+
+	f := openFile(t)
+	fs, _ := f.Stat()
+	defer f.Close() // nolint:gosec
+
+	svc := getTestClient(t)
+	b1, err := svc.GetBucket(testPutBucketName)
+	a.NoError(err)
+
+	b2, err := svc.GetBucket(testCopyBucketName)
+	a.NoError(err)
+
+	// copy data
+	resp, err := b2.CopyFrom(testPutBucketName, testS3Path, testS3Path)
+	a.NoError(err)
+	a.NotEmpty(resp.ETag)
+
+	// check copied content
+	data, err := b1.GetObjectByte(testS3Path)
+	a.NoError(err)
+	a.Equal(int(fs.Size()), len(data))
+}
+
+func TestCopyTo(t *testing.T) {
+	a := assert.New(t)
+	createBucket(testPutBucketName)
+	createBucket(testCopyBucketName)
+	testPutObject(t)
+
+	f := openFile(t)
+	fs, _ := f.Stat()
+	defer f.Close() // nolint:gosec
+
+	svc := getTestClient(t)
+	b1, err := svc.GetBucket(testPutBucketName)
+	a.NoError(err)
+
+	b2, err := svc.GetBucket(testCopyBucketName)
+	a.NoError(err)
+
+	// copy data
+	resp, err := b1.CopyTo(testS3Path, testCopyBucketName, testS3Path)
+	a.NoError(err)
+	a.NotEmpty(resp.ETag)
+
+	// check copied content
+	data, err := b2.GetObjectByte(testS3Path)
+	a.NoError(err)
+	a.Equal(int(fs.Size()), len(data))
 }
 
 func TestDeleteObject(t *testing.T) {

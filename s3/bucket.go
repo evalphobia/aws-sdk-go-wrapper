@@ -180,6 +180,75 @@ func (b *Bucket) IsExists(path string) bool {
 	return err == nil
 }
 
+// ListAllObjects fetches a list of all of the objects in the bucket and prefix.
+func (b *Bucket) ListAllObjects(prefix string) ([]Object, error) {
+	var contents []Object
+	nextToken := ""
+	for {
+		resp, err := b.ListObjectsV2(ListObjectsRequest{
+			Prefix:            prefix,
+			ContinuationToken: nextToken,
+		})
+		if err != nil {
+			return contents, err
+		}
+		contents = append(contents, resp.Contents...)
+		if !resp.IsTruncated {
+			return contents, nil
+		}
+		nextToken = resp.NextContinuationToken
+	}
+}
+
+// ListObjectsV2 executes ListObjectsV2 operation.
+func (b *Bucket) ListObjectsV2(opt ...ListObjectsRequest) (ListObjectsResponse, error) {
+	var o ListObjectsRequest
+	if len(opt) != 0 {
+		o = opt[0]
+	}
+	o.Bucket = b.nameWithPrefix
+	resp, err := b.service.client.ListObjectsV2(o.ToInput())
+	return NewListObjectsResponse(resp), err
+}
+
+// CopyTo copies an object to destination bucket and path.
+func (b *Bucket) CopyTo(srcPath, destBucket, destPath string, opt ...CopyObjectRequest) (CopyObjectResponse, error) {
+	var o CopyObjectRequest
+	if len(opt) != 0 {
+		o = opt[0]
+	}
+
+	bucketName := destBucket
+	if o.UseSamePrefix {
+		bucketName = b.service.prefix + bucketName
+	}
+
+	o.SrcBucket = b.nameWithPrefix
+	o.SrcPath = srcPath
+	o.DestBucket = bucketName
+	o.DestPath = destPath
+	return b.service.CopyObject(o)
+}
+
+// CopyFrom copies an object from source buckwt and path.
+func (b *Bucket) CopyFrom(srcBucket, srcPath, destPath string, opt ...CopyObjectRequest) (CopyObjectResponse, error) {
+	var o CopyObjectRequest
+	if len(opt) != 0 {
+		o = opt[0]
+	}
+
+	bucketName := srcBucket
+	if o.UseSamePrefix {
+		bucketName = b.service.prefix + bucketName
+	}
+
+	o.SrcBucket = bucketName
+	o.SrcPath = srcPath
+	o.DestBucket = b.nameWithPrefix
+	o.DestPath = destPath
+	return b.service.CopyObject(o)
+}
+
 // DeleteObject deletes the object of target path.
 func (b *Bucket) DeleteObject(path string) error {
 	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
