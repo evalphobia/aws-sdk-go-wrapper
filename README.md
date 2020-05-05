@@ -28,105 +28,97 @@ aws-sdk-go-wrapper
 [23]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [24]: LICENSE.md
 
-(checked SDK version [aws-sdk-go](https://github.com/awslabs/aws-sdk-go/) :: [v1.29.14](https://github.com/awslabs/aws-sdk-go/tree/v1.29.14)
 
 Simple wrapper for aws-sdk-go
-At this time, it suports services below,
+At this time, this library suports these AWS services below,
 
-- [`CloudTrail`](/cloudtrail)
-    - LookupEvents
-- [`CloudWatch`](/cloudwatch)
-    - GetMetricStatistics
-- [`CostExplorer`](/costexplorer)
-    - GetCostAndUsage
-- [`DynamoDB`](/dynamodb)
-    - BatchWriteItem
-    - CreateTable
-    - DeleteItem
-    - DeleteTable
-    - DescribeTable
-    - GetItem
-    - ListTables
-    - PutItem
-    - Query
-    - UpdateTable
-    - Scan
-- [`IAM`](/iam)
-    - GetGroup
-    - GetGroupPolicy
-    - GetPolicyVersion
-    - GetRolePolicy
-    - GetUserPolicy
-    - ListEntitiesForPolicy
-    - ListGroups
-    - ListGroupPolicies
-    - ListPolicies
-    - ListUsers
-    - ListUserPolicies
-    - ListRoles
-    - ListRolePolicies
-- [`Kinesis`](/kinesis)
-    - CreateStream
-    - DeleteStream
-    - DescribeStream
-    - GetRecords
-    - GetShardIterator
-    - PutRecord
-- [`KMS`](/kms)
-    - CreateAlias
-    - CreateKey
-    - Decrypt
-    - DescribeKey
-    - Encrypt
-    - ReEncrypt
-    - ScheduleKeyDeletion
-- [`Pinpoint`](/pinpoint)
-    - SendEmail
-- [`Rekognition`](/rekognition)
-    - CompareFaces
-    - CreateCollection
-    - DeleteCollection
-    - DeleteFaces
-    - DetectFaces
-    - DetectLabels
-    - DetectModerationLabels
-    - GetCelebrityInfo
-    - IndexFaces
-    - ListCollections
-    - ListFaces
-    - RecognizeCelebrities
-    - SearchFaces
-    - SearchFacesByImage
-- [`S3`](/s3)
-    - CreateBucket
-    - DeleteBucket
-    - DeleteObject
-    - GetObject
-    - HeadObject
-    - PutObject
-- [`SNS`](/sns)
-    - CreatePlatformEndpoint
-    - CreateTopic
-    - DeleteTopic
-    - GetEndpointAttributes
-    - GetPlatformApplicationAttributes
-    - Publish
-    - SetEndpointAttributes
-    - Subscribe
-- [`SQS`](/sqs)
-    - ChangeMessageVisibility
-    - CreateQueue
-    - DeleteMessage
-    - DeleteMessageBatch
-    - DeleteQueue
-    - GetQueueAttributes
-    - GetQueueUrl
-    - ListQueues
-    - PurgeQueue
-    - ReceiveMessage
-    - SendMessageBatch
-- [`X-Ray`](/xray)
-    - PutTraceSegments
+| Service | API |
+| :--- | :-- |
+| [`CloudTrail`](/cloudtrail) | LookupEvents |
+| [`CloudWatch`](/cloudwatch) | GetMetricStatistics |
+| [`CostExplorer`](/costexplorer) | GetCostAndUsage |
+| [`DynamoDB`](/dynamodb) | BatchWriteItem |
+|  | CreateTable |
+|  | DeleteItem |
+|  | DeleteTable |
+|  | DescribeTable |
+|  | GetItem |
+|  | ListTables |
+|  | PutItem |
+|  | Query |
+|  | UpdateTable |
+|  | Scan |
+| [`IAM`](/iam) | GetGroup |
+|  | GetGroupPolicy |
+|  | GetPolicyVersion |
+|  | GetRolePolicy |
+|  | GetUserPolicy |
+|  | ListEntitiesForPolicy |
+|  | ListGroups |
+|  | ListGroupPolicies |
+|  | ListPolicies |
+|  | ListUsers |
+|  | ListUserPolicies |
+|  | ListRoles |
+|  | ListRolePolicies |
+| [`Kinesis`](/kinesis) | CreateStream |
+|  | DeleteStream |
+|  | DescribeStream |
+|  | GetRecords |
+|  | GetShardIterator |
+|  | PutRecord |
+| [`KMS`](/kms) | CreateAlias |
+|  | CreateKey |
+|  | Decrypt |
+|  | DescribeKey |
+|  | Encrypt |
+|  | ReEncrypt |
+|  | ReEncrypt |
+|  | ScheduleKeyDeletion |
+| [`Pinpoint`](/pinpoint) | SendEmail |
+| [`Rekognition`](/rekognition) | CompareFaces |
+|  | CreateCollection |
+|  | DeleteCollection |
+|  | DeleteFaces |
+|  | DetectFaces |
+|  | DetectLabels |
+|  | DetectModerationLabels |
+|  | GetCelebrityInfo |
+|  | IndexFaces |
+|  | ListCollections |
+|  | ListFaces |
+|  | RecognizeCelebrities |
+|  | SearchFaces |
+|  | SearchFacesByImage |
+| [`S3`](/s3) | CreateBucket |
+|  | CopyObject |
+|  | DeleteBucket |
+|  | DeleteObject |
+|  | GetObject |
+|  | HeadObject |
+|  | ListObjectsV2 |
+|  | PutObject |
+| [`SNS`](/sns) | CreatePlatformEndpoint |
+|  | CreateTopic |
+|  | DeleteTopic |
+|  | GetEndpointAttributes |
+|  | GetPlatformApplicationAttributes |
+|  | Publish |
+|  | SetEndpointAttributes |
+|  | Subscribe |
+| [`SQS`](/sqs) | ChangeMessageVisibility |
+|  | CreateQueue |
+|  | DeleteMessage |
+|  | DeleteMessageBatch |
+|  | DeleteQueue |
+|  | GetQueueAttributes |
+|  | GetQueueUrl |
+|  | ListQueues |
+|  | PurgeQueue |
+|  | ReceiveMessage |
+|  | SendMessageBatch |
+| [`X-Ray`](/xray) | PutTraceSegments |
+
 
 # Quick Usage
 

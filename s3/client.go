@@ -144,6 +144,16 @@ func (svc *S3) ForceDeleteBucket(name string) error {
 	return nil
 }
 
+// CopyObject executes `CopyObject` operation.
+func (s *S3) CopyObject(req CopyObjectRequest) (CopyObjectResponse, error) {
+	out, err := s.copyObject(req.ToInput())
+	return NewCopyObjectResponse(out), err
+}
+
+func (s *S3) copyObject(input *SDK.CopyObjectInput) (*SDK.CopyObjectOutput, error) {
+	return s.client.CopyObject(input)
+}
+
 // Infof logging information.
 func (svc *S3) Infof(format string, v ...interface{}) {
 	svc.logger.Infof(serviceName, format, v...)
