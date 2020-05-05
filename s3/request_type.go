@@ -47,7 +47,7 @@ type CopyObjectRequest struct {
 	SSECustomerKey                 string
 	SSECustomerKeyMD5              string
 	SSEKMSEncryptionContext        string
-	SSEKMSKeyId                    string
+	SSEKMSKeyID                    string
 	ServerSideEncryption           string
 	StorageClass                   string
 	Tagging                        string
@@ -137,8 +137,8 @@ func (r CopyObjectRequest) ToInput() *SDK.CopyObjectInput {
 	if r.SSEKMSEncryptionContext != "" {
 		in.SetSSEKMSEncryptionContext(r.SSEKMSEncryptionContext)
 	}
-	if r.SSEKMSKeyId != "" {
-		in.SetSSEKMSKeyId(r.SSEKMSKeyId)
+	if r.SSEKMSKeyID != "" {
+		in.SetSSEKMSKeyId(r.SSEKMSKeyID)
 	}
 	if r.ServerSideEncryption != "" {
 		in.SetServerSideEncryption(r.ServerSideEncryption)

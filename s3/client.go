@@ -145,13 +145,13 @@ func (svc *S3) ForceDeleteBucket(name string) error {
 }
 
 // CopyObject executes `CopyObject` operation.
-func (s *S3) CopyObject(req CopyObjectRequest) (CopyObjectResponse, error) {
-	out, err := s.copyObject(req.ToInput())
+func (svc *S3) CopyObject(req CopyObjectRequest) (CopyObjectResponse, error) {
+	out, err := svc.copyObject(req.ToInput())
 	return NewCopyObjectResponse(out), err
 }
 
-func (s *S3) copyObject(input *SDK.CopyObjectInput) (*SDK.CopyObjectOutput, error) {
-	return s.client.CopyObject(input)
+func (svc *S3) copyObject(input *SDK.CopyObjectInput) (*SDK.CopyObjectOutput, error) {
+	return svc.client.CopyObject(input)
 }
 
 // Infof logging information.
