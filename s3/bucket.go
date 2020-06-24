@@ -129,7 +129,10 @@ func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 		return nil, err
 	}
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(r)
+	_, err = buf.ReadFrom(r)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
 }
 
