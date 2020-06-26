@@ -35,13 +35,16 @@ func NewPutObject(file *os.File) *PutObject {
 }
 
 // NewPutObjectCopy returns initialized *PutObject from File and copy byte data.
-func NewPutObjectCopy(file *os.File) *PutObject {
+func NewPutObjectCopy(file *os.File) (*PutObject, error) {
 	buf := new(bytes.Buffer)
-	io.Copy(buf, file)
+	_, err := io.Copy(buf, file)
+	if err != nil {
+		return nil, err
+	}
 	fi, _ := file.Stat()
 	o := newPutObject(file, fi.Size(), mimeBinary)
 	o.dataByte = buf.Bytes()
-	return o
+	return o, nil
 }
 
 // NewPutObjectBytes returns initialized *PutObject from bytes.

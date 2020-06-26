@@ -82,8 +82,10 @@ func TestGetBucket(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 	testPrefix := "prefix-"
-	createBucket(testEmptyBucketName)
-	createBucket(testPrefix + testEmptyBucketName)
+	err := createBucket(testEmptyBucketName)
+	assert.NoError(err)
+	err = createBucket(testPrefix + testEmptyBucketName)
+	assert.NoError(err)
 
 	b, err := svc.GetBucket(testEmptyBucketName)
 	assert.NoError(err)
@@ -109,12 +111,14 @@ func TestIsExistBucket(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 
-	svc.ForceDeleteBucket(testEmptyBucketName)
+	err := svc.ForceDeleteBucket(testEmptyBucketName)
+	assert.NoError(err)
 	has, err := svc.IsExistBucket(testEmptyBucketName)
 	assert.NoError(err)
 	assert.False(has, "should be deleted")
 
-	createBucket(testEmptyBucketName)
+	err = createBucket(testEmptyBucketName)
+	assert.NoError(err)
 	has, err = svc.IsExistBucket(testEmptyBucketName)
 	assert.NoError(err)
 	assert.True(has, "should be created")
@@ -124,7 +128,8 @@ func TestCreateBucket(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 
-	svc.ForceDeleteBucket(testEmptyBucketName)
+	err := svc.ForceDeleteBucket(testEmptyBucketName)
+	assert.NoError(err)
 	has, err := svc.IsExistBucket(testEmptyBucketName)
 	assert.NoError(err)
 	assert.False(has)
@@ -146,7 +151,8 @@ func TestCreateBucketWithName(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 
-	svc.ForceDeleteBucket(testEmptyBucketName)
+	err := svc.ForceDeleteBucket(testEmptyBucketName)
+	assert.NoError(err)
 	has, err := svc.IsExistBucket(testEmptyBucketName)
 	assert.NoError(err)
 	assert.False(has)
@@ -163,12 +169,14 @@ func TestForceDeleteBucket(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
 
-	createBucket(testEmptyBucketName)
+	err := createBucket(testEmptyBucketName)
+	assert.NoError(err)
 	has, err := svc.IsExistBucket(testEmptyBucketName)
 	assert.NoError(err)
 	assert.True(has)
 
-	svc.ForceDeleteBucket(testEmptyBucketName)
+	err = svc.ForceDeleteBucket(testEmptyBucketName)
+	assert.NoError(err)
 	has, err = svc.IsExistBucket(testEmptyBucketName)
 	assert.NoError(err)
 	assert.False(has, "should be deleted")

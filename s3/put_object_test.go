@@ -35,7 +35,8 @@ func TestNewPutObjectCopy(t *testing.T) {
 	f := openFile(t)
 	defer f.Close() // nolint:gosec
 
-	obj := NewPutObjectCopy(f)
+	obj, err := NewPutObjectCopy(f)
+	assert.NoError(err)
 	assert.Equal(testFileType, obj.dataType)
 
 	stat, _ := f.Stat()
@@ -97,7 +98,8 @@ func TestString(t *testing.T) {
 	assert.NoError(err)
 	data := string(d)
 
-	obj := NewPutObjectCopy(f)
+	obj, err := NewPutObjectCopy(f)
+	assert.NoError(err)
 	assert.Equal(data, obj.String())
 }
 
@@ -106,7 +108,8 @@ func TestSetTypeAsText(t *testing.T) {
 	f := openFile(t)
 	defer f.Close() // nolint:gosec
 
-	obj := NewPutObjectCopy(f)
+	obj, err := NewPutObjectCopy(f)
+	assert.NoError(err)
 	assert.Equal(testFileType, obj.FileType())
 
 	obj.SetTypeAsText()

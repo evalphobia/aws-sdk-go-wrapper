@@ -90,7 +90,10 @@ func (s *Statement) IsDeny() bool {
 // UnmarshalJSON converts from json to *Statement.
 func (s *Statement) UnmarshalJSON(data []byte) error {
 	var m map[string]interface{}
-	json.Unmarshal(data, &m)
+	err := json.Unmarshal(data, &m)
+	if err != nil {
+		return err
+	}
 	return s.setFromMap(m)
 }
 

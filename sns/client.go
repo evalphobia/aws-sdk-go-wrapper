@@ -252,8 +252,16 @@ func (svc *SNS) BulkPublishByDevice(device string, tokens []string, msg string) 
 		}(token)
 	}
 	wg.Wait()
-	topic.Publish(msg)
-	topic.Delete()
+	err = topic.Publish(msg)
+	if err != nil {
+		return err
+	}
+
+	err = topic.Delete()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -270,7 +278,10 @@ func (svc *SNS) BulkPublish(tokens map[string][]string, msg string) error {
 			if l < to {
 				to = l
 			}
-			svc.BulkPublishByDevice(device, t[from:to], msg)
+			err := svc.BulkPublishByDevice(device, t[from:to], msg)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
