@@ -65,7 +65,7 @@ func TestAWSCredentials(t *testing.T) {
 	}{
 		{true, useEnv, "EnvProvider", "access_key", "secret_key"},
 		{true, noEnv, "StaticProvider", "access_key", "secret_key"},
-		{false, useEnv, "", "access_key", ""},
+		{false, useEnv, "", "access_key", "secret_key"},
 		{false, noEnv, "", "access_key", ""},
 		// {true, noEnv, "SharedCredentialsProvider", "", ""},
 	}
