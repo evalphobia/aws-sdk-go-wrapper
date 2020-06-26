@@ -63,14 +63,17 @@ func (c Config) awsCredentials() *credentials.Credentials {
 	}
 
 	// from param
-	cred = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
-	_, err = cred.Get()
-	if err == nil {
-		return cred
+	if c.AccessKey != "" && c.SecretKey != "" {
+		return credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
 	}
 
 	// from local file
-	return credentials.NewSharedCredentials(c.Filename, c.Profile)
+	if c.Filename != "" {
+		return credentials.NewSharedCredentials(c.Filename, c.Profile)
+	}
+
+	// IAM role
+	return nil
 }
 
 func (c Config) getRegion() string {

@@ -85,12 +85,14 @@ func TestAWSCredentials(t *testing.T) {
 		}
 
 		cred := conf.awsCredentials()
+		if !tt.isSuccess {
+			assert.Nil(cred, target)
+			continue
+		}
+
 		assert.NotNil(cred, target)
 		val, err := cred.Get()
-		if !tt.isSuccess {
-			assert.Error(err, target)
-			return
-		}
+		assert.NoError(err, target)
 
 		assert.Equal(tt.provider, val.ProviderName, target)
 		assert.Equal(tt.accessKey, val.AccessKeyID, target)
