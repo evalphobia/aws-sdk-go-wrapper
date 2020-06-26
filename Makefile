@@ -14,7 +14,7 @@ init:
 	go mod download
 
 lint:
-	@type golangci-lint > /dev/null || go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	@type golangci-lint > /dev/null || go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
 	golangci-lint $(LINT_OPT) run ./...
 
 test-coverage: __setup_test

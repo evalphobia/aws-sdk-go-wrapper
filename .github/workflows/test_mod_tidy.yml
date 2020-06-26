@@ -1,6 +1,6 @@
 name: tidy
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   tidy:
