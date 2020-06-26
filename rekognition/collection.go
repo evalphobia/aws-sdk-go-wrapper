@@ -92,6 +92,7 @@ func (c *Collection) DeleteFaces(faceIDs []string) ([]string, error) {
 
 	ids := make([]*string, len(faceIDs))
 	for i, id := range faceIDs {
+		id := id
 		ids[i] = &id
 	}
 
