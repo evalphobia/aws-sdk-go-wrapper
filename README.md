@@ -2,6 +2,7 @@ aws-sdk-go-wrapper
 ----
 
 [![GoDoc][1]][2] [![License: MIT][3]][4] [![Release][5]][6] [![Build Status][7]][8] [![Coveralls Coverage][9]][10] [![Codecov Coverage][11]][12] [![Go Report Card][13]][14] [![Code Climate][19]][20] [![BCH compliance][21]][22]
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fevalphobia%2Faws-sdk-go-wrapper.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fevalphobia%2Faws-sdk-go-wrapper?ref=badge_shield)
 
 [1]: https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper?status.svg
 [2]: https://godoc.org/github.com/evalphobia/aws-sdk-go-wrapper
@@ -483,3 +484,6 @@ func main(){
 # License
 
 MIT
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fevalphobia%2Faws-sdk-go-wrapper.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fevalphobia%2Faws-sdk-go-wrapper?ref=badge_large)
