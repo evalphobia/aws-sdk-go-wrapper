@@ -124,17 +124,13 @@ func (svc *DynamoDB) GetTable(name string) (*Table, error) {
 }
 
 // GetCachedTable returns *Table from cache.
-func (svc *DynamoDB) GetCachedTable(name string) (*Table) {
+func (svc *DynamoDB) GetCachedTable(name string) *Table {
 	tableName := svc.prefix + name
 
 	// get the table from cache
 	svc.tablesMu.RLock()
-	t, ok := svc.tables[tableName]
-	svc.tablesMu.RUnlock()
-	if ok {
-		return t
-	}
-	return nil
+	defer svc.tablesMu.RUnlock()
+	return svc.tables[tableName]
 }
 
 // ListTables gets the list of DynamoDB table.
