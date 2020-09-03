@@ -101,26 +101,30 @@ func (svc *DynamoDB) ForceDeleteTable(name string) error {
 
 // GetTable returns *Table.
 func (svc *DynamoDB) GetTable(name string) (*Table, error) {
-	tableName := svc.prefix + name
-
-	// get the table from cache
-	svc.tablesMu.RLock()
-	t, ok := svc.tables[tableName]
-	svc.tablesMu.RUnlock()
-	if ok {
-		return t, nil
+	if tbl := svc.GetCachedTable(name); tbl != nil {
+		return tbl, nil
 	}
-
 	// get the table from AWS api.
 	t, err := NewTable(svc, name)
 	if err != nil {
 		return nil, err
 	}
 
+	tableName := svc.prefix + name
 	svc.tablesMu.Lock()
 	svc.tables[tableName] = t
 	svc.tablesMu.Unlock()
 	return t, nil
+}
+
+// GetCachedTable returns *Table from cache.
+func (svc *DynamoDB) GetCachedTable(name string) *Table {
+	tableName := svc.prefix + name
+
+	// get the table from cache
+	svc.tablesMu.RLock()
+	defer svc.tablesMu.RUnlock()
+	return svc.tables[tableName]
 }
 
 // ListTables gets the list of DynamoDB table.
