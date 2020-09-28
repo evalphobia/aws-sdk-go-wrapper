@@ -235,6 +235,11 @@ func (svc *DynamoDB) DoQuery(in *SDK.QueryInput) (*QueryResult, error) {
 	return res, nil
 }
 
+// BatchGetAll
+func (svc *DynamoDB) BatchGetItem(in *SDK.BatchGetItemInput) (*SDK.BatchGetItemOutput, error) {
+	return svc.client.BatchGetItem(in)
+}
+
 // ========================
 // misc
 // ========================
