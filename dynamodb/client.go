@@ -46,11 +46,6 @@ func New(conf config.Config) (*DynamoDB, error) {
 	return svc, nil
 }
 
-// GetClient get client
-func (svc *DynamoDB) GetClient() *SDK.DynamoDB {
-	return svc.client
-}
-
 // SetLogger sets logger.
 func (svc *DynamoDB) SetLogger(logger log.Logger) {
 	svc.logger = logger
