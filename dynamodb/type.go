@@ -1,6 +1,7 @@
 package dynamodb
 
 import (
+	"strconv"
 	"time"
 
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
@@ -494,4 +495,322 @@ func (s StreamSpecification) IsEmpty() bool {
 		return false
 	}
 	return true
+}
+
+type KeysAndAttributes struct {
+	AttributesToGet          []string
+	ConsistentRead           bool
+	ExpressionAttributeNames map[string]string           `type:"map"`
+	Keys                     []map[string]AttributeValue `min:"1" type:"list" required:"true"`
+	ProjectionExpression     string                      `type:"string"`
+}
+
+func (r KeysAndAttributes) ToSDK() *SDK.KeysAndAttributes {
+	o := SDK.KeysAndAttributes{}
+
+	if len(r.Keys) != 0 {
+		list := make([]map[string]*SDK.AttributeValue, len(r.Keys))
+		for i, v := range r.Keys {
+			m := make(map[string]*SDK.AttributeValue, len(v))
+			for key, val := range v {
+				m[key] = val.ToSDK()
+			}
+			list[i] = m
+		}
+		o.Keys = list
+	}
+
+	if r.ConsistentRead {
+		o.ConsistentRead = pointers.Bool(r.ConsistentRead)
+	}
+	if r.ProjectionExpression != "" {
+		o.ProjectionExpression = pointers.String(r.ProjectionExpression)
+	}
+
+	if len(r.AttributesToGet) != 0 {
+		attrs := make([]*string, len(r.AttributesToGet))
+		for i, s := range r.AttributesToGet {
+			attrs[i] = pointers.String(s)
+		}
+		o.AttributesToGet = attrs
+	}
+	if len(r.ExpressionAttributeNames) != 0 {
+		names := make(map[string]*string, len(r.ExpressionAttributeNames))
+		for i, s := range r.ExpressionAttributeNames {
+			names[i] = pointers.String(s)
+		}
+		o.ExpressionAttributeNames = names
+	}
+	return &o
+}
+
+func newKeysAndAttributes(o *SDK.KeysAndAttributes) KeysAndAttributes {
+	result := KeysAndAttributes{}
+	if o == nil {
+		return result
+	}
+
+	if len(o.AttributesToGet) != 0 {
+		list := make([]string, len(o.AttributesToGet))
+		for i, s := range o.AttributesToGet {
+			list[i] = *s
+		}
+		result.AttributesToGet = list
+	}
+
+	if len(o.ExpressionAttributeNames) != 0 {
+		list := make(map[string]string, len(o.ExpressionAttributeNames))
+		for i, s := range o.ExpressionAttributeNames {
+			list[i] = *s
+		}
+		result.ExpressionAttributeNames = list
+	}
+
+	if o.ConsistentRead != nil {
+		result.ConsistentRead = *o.ConsistentRead
+	}
+	if o.ProjectionExpression != nil {
+		result.ProjectionExpression = *o.ProjectionExpression
+	}
+
+	if len(o.Keys) != 0 {
+		list := make([]map[string]AttributeValue, len(o.Keys))
+		for i, v := range o.Keys {
+			list[i] = newAttributeValueMap(v)
+		}
+		result.Keys = list
+	}
+
+	return result
+}
+
+type AttributeValue struct {
+	Binary         []byte
+	BinarySet      [][]byte
+	List           []AttributeValue
+	Map            map[string]AttributeValue
+	Number         string
+	NumberInt      int64
+	NumberFloat    float64
+	NumberSet      []string
+	NumberSetInt   []int64
+	NumberSetFloat []float64
+	Null           bool
+	String         string
+	StringSet      []string
+
+	Bool      bool
+	HasBool   bool
+	HasNumber bool
+}
+
+func newAttributeValueBySDK(o *SDK.AttributeValue) AttributeValue {
+	result := AttributeValue{}
+	if o == nil {
+		return result
+	}
+
+	switch {
+	case len(o.B) != 0:
+		result.Binary = o.B
+	case len(o.BS) != 0:
+		result.BinarySet = o.BS
+	case len(o.L) != 0:
+		result.List = newAttributeValueList(o.L)
+	case len(o.M) != 0:
+		result.Map = newAttributeValueMap(o.M)
+	case o.N != nil:
+		result.Number = *o.N
+		result.HasNumber = true
+	case len(o.NS) != 0:
+		list := make([]string, len(o.NS))
+		for i, n := range o.NS {
+			list[i] = *n
+		}
+		result.NumberSet = list
+	case o.NULL != nil:
+		result.Null = *o.NULL
+	case o.S != nil:
+		result.String = *o.S
+	case len(o.SS) != 0:
+		list := make([]string, len(o.SS))
+		for i, n := range o.SS {
+			list[i] = *n
+		}
+		result.StringSet = list
+	case o.BOOL != nil:
+		result.Bool = *o.BOOL
+		result.HasBool = true
+	}
+	return result
+}
+
+func (r AttributeValue) ToSDK() *SDK.AttributeValue {
+	o := SDK.AttributeValue{}
+
+	switch {
+	case len(r.Binary) != 0:
+		o.B = r.Binary
+	case len(r.BinarySet) != 0:
+		o.BS = r.BinarySet
+	case len(r.List) != 0:
+		list := make([]*SDK.AttributeValue, len(r.List))
+		for i, v := range r.List {
+			list[i] = v.ToSDK()
+		}
+		o.L = list
+	case len(r.Map) != 0:
+		m := make(map[string]*SDK.AttributeValue, len(r.Map))
+		for key, val := range r.Map {
+			m[key] = val.ToSDK()
+		}
+		o.M = m
+	case r.Number != "":
+		o.N = pointers.String(r.Number)
+	case r.NumberInt != 0:
+		o.N = pointers.String(strconv.FormatInt(r.NumberInt, 10))
+	case r.NumberFloat != 0:
+		o.N = pointers.String(strconv.FormatFloat(r.NumberFloat, 'f', -1, 64))
+	case r.HasNumber:
+		o.N = pointers.String("0")
+	case len(r.NumberSet) != 0:
+		list := make([]*string, len(r.NumberSet))
+		for i, s := range r.NumberSet {
+			list[i] = pointers.String(s)
+		}
+		o.NS = list
+	case len(r.NumberSetInt) != 0:
+		list := make([]*string, len(r.NumberSetInt))
+		for i, v := range r.NumberSetInt {
+			list[i] = pointers.String(strconv.FormatInt(v, 10))
+		}
+		o.NS = list
+	case len(r.NumberSetFloat) != 0:
+		list := make([]*string, len(r.NumberSetFloat))
+		for i, v := range r.NumberSetFloat {
+			list[i] = pointers.String(strconv.FormatFloat(v, 'f', -1, 64))
+		}
+		o.NS = list
+	case r.String != "":
+		o.S = pointers.String(r.String)
+	case len(r.StringSet) != 0:
+		list := make([]*string, len(r.StringSet))
+		for i, v := range r.StringSet {
+			list[i] = pointers.String(v)
+		}
+		o.SS = list
+	case r.HasBool,
+		r.Bool:
+		o.BOOL = pointers.Bool(r.Bool)
+	case r.Null:
+		o.NULL = pointers.Bool(r.Null)
+	}
+	return &o
+}
+
+func newAttributeValueList(list []*SDK.AttributeValue) []AttributeValue {
+	if len(list) == 0 {
+		return nil
+	}
+
+	results := make([]AttributeValue, len(list))
+	for i, v := range list {
+		results[i] = newAttributeValueBySDK(v)
+	}
+	return results
+}
+
+func newAttributeValueMap(o map[string]*SDK.AttributeValue) map[string]AttributeValue {
+	if len(o) == 0 {
+		return nil
+	}
+
+	m := make(map[string]AttributeValue, len(o))
+	for key, val := range o {
+		m[key] = newAttributeValueBySDK(val)
+	}
+	return m
+}
+
+type ConsumedCapacity struct {
+	CapacityUnits          float64
+	GlobalSecondaryIndexes map[string]Capacity
+	LocalSecondaryIndexes  map[string]Capacity
+	ReadCapacityUnits      float64
+	Table                  Capacity
+	TableName              string
+	WriteCapacityUnits     float64
+}
+
+func newConsumedCapacities(list []*SDK.ConsumedCapacity) []ConsumedCapacity {
+	if len(list) == 0 {
+		return nil
+	}
+
+	result := make([]ConsumedCapacity, len(list))
+	for i, v := range list {
+		result[i] = newConsumedCapacity(v)
+	}
+	return result
+}
+
+func newConsumedCapacity(o *SDK.ConsumedCapacity) ConsumedCapacity {
+	result := ConsumedCapacity{}
+	if o == nil {
+		return result
+	}
+
+	if o.CapacityUnits != nil {
+		result.CapacityUnits = *o.CapacityUnits
+	}
+	if o.ReadCapacityUnits != nil {
+		result.ReadCapacityUnits = *o.ReadCapacityUnits
+	}
+	if o.TableName != nil {
+		result.TableName = *o.TableName
+	}
+	if o.WriteCapacityUnits != nil {
+		result.WriteCapacityUnits = *o.WriteCapacityUnits
+	}
+
+	result.GlobalSecondaryIndexes = newCapacityMap(o.GlobalSecondaryIndexes)
+	result.LocalSecondaryIndexes = newCapacityMap(o.LocalSecondaryIndexes)
+	result.Table = newCapacity(o.Table)
+	return result
+}
+
+type Capacity struct {
+	CapacityUnits      float64
+	ReadCapacityUnits  float64
+	WriteCapacityUnits float64
+}
+
+func newCapacity(o *SDK.Capacity) Capacity {
+	result := Capacity{}
+	if o == nil {
+		return result
+	}
+
+	if o.CapacityUnits != nil {
+		result.CapacityUnits = *o.CapacityUnits
+	}
+	if o.ReadCapacityUnits != nil {
+		result.ReadCapacityUnits = *o.ReadCapacityUnits
+	}
+	if o.WriteCapacityUnits != nil {
+		result.WriteCapacityUnits = *o.WriteCapacityUnits
+	}
+	return result
+}
+
+func newCapacityMap(m map[string]*SDK.Capacity) map[string]Capacity {
+	if m == nil {
+		return nil
+	}
+
+	result := make(map[string]Capacity, len(m))
+	for key, val := range m {
+		result[key] = newCapacity(val)
+	}
+	return result
 }
