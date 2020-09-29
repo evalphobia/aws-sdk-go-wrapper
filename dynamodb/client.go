@@ -46,6 +46,11 @@ func New(conf config.Config) (*DynamoDB, error) {
 	return svc, nil
 }
 
+// GetClient get client
+func (svc *DynamoDB) GetClient() *SDK.DynamoDB {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *DynamoDB) SetLogger(logger log.Logger) {
 	svc.logger = logger
@@ -233,11 +238,6 @@ func (svc *DynamoDB) DoQuery(in *SDK.QueryInput) (*QueryResult, error) {
 		ScannedCount:     *req.ScannedCount,
 	}
 	return res, nil
-}
-
-// BatchGetItem executes batch_get_item operation
-func (svc *DynamoDB) BatchGetItem(in *SDK.BatchGetItemInput) (*SDK.BatchGetItemOutput, error) {
-	return svc.client.BatchGetItem(in)
 }
 
 // ========================
