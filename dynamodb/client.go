@@ -235,7 +235,7 @@ func (svc *DynamoDB) DoQuery(in *SDK.QueryInput) (*QueryResult, error) {
 	return res, nil
 }
 
-// BatchGetAll
+// BatchGetItem executes batch_get_item operation
 func (svc *DynamoDB) BatchGetItem(in *SDK.BatchGetItemInput) (*SDK.BatchGetItemOutput, error) {
 	return svc.client.BatchGetItem(in)
 }
