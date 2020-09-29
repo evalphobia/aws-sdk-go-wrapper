@@ -11,7 +11,6 @@ func (svc *DynamoDB) BatchGetItem(in BatchGetItemRequest) (*BatchGetItemResponse
 		return nil, err
 	}
 	return newBatchGetItemResponse(o), nil
-
 }
 
 type BatchGetItemRequest struct {
