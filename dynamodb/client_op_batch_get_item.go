@@ -14,13 +14,13 @@ func (svc *DynamoDB) BatchGetItem(in BatchGetItemRequest) (*BatchGetItemResponse
 }
 
 type BatchGetItemRequest struct {
-	RequestItems map[string]*SDK.KeysAndAttributes
+	RequestItems           map[string]*SDK.KeysAndAttributes
 	ReturnConsumedCapacity string
 }
 
 func (r *BatchGetItemRequest) ToInput() *SDK.BatchGetItemInput {
 	i := SDK.BatchGetItemInput{
-		RequestItems:           r.RequestItems,
+		RequestItems: r.RequestItems,
 	}
 	if r.ReturnConsumedCapacity != "" {
 		i.ReturnConsumedCapacity = &r.ReturnConsumedCapacity
@@ -29,15 +29,15 @@ func (r *BatchGetItemRequest) ToInput() *SDK.BatchGetItemInput {
 }
 
 type BatchGetItemResponse struct {
-	Items map[string][]map[string]*SDK.AttributeValue
-	UnprocessedKeys map[string]*SDK.KeysAndAttributes
+	Items            map[string][]map[string]*SDK.AttributeValue
+	UnprocessedKeys  map[string]*SDK.KeysAndAttributes
 	ConsumedCapacity []*SDK.ConsumedCapacity `type:"list"`
 }
 
 func newBatchGetItemResponse(o *SDK.BatchGetItemOutput) *BatchGetItemResponse {
 	res := BatchGetItemResponse{
-		Items:           o.Responses,
-		UnprocessedKeys: o.UnprocessedKeys,
+		Items:            o.Responses,
+		UnprocessedKeys:  o.UnprocessedKeys,
 		ConsumedCapacity: o.ConsumedCapacity,
 	}
 	return &res
