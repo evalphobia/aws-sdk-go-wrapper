@@ -500,9 +500,9 @@ func (s StreamSpecification) IsEmpty() bool {
 type KeysAndAttributes struct {
 	AttributesToGet          []string
 	ConsistentRead           bool
-	ExpressionAttributeNames map[string]string           `type:"map"`
-	Keys                     []map[string]AttributeValue `min:"1" type:"list" required:"true"`
-	ProjectionExpression     string                      `type:"string"`
+	ExpressionAttributeNames map[string]string
+	Keys                     []map[string]AttributeValue
+	ProjectionExpression     string
 }
 
 func (r KeysAndAttributes) ToSDK() *SDK.KeysAndAttributes {
