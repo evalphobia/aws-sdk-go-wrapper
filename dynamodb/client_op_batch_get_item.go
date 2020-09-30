@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 // BatchGetItem executes batch_get_item operation
@@ -49,4 +50,33 @@ func newBatchGetItemResponse(output *SDK.BatchGetItemOutput) *BatchGetItemRespon
 		r.UnprocessedKeys[key] = newKeysAndAttributes(val)
 	}
 	return r
+}
+
+// Unmarshal unmarshals given slice pointer sturct from DynamoDB item result to mapping.
+//     e.g. err = Unmarshal(&[]*yourStruct)
+// The struct tag `dynamodb:""` is used to unmarshal.
+func (r BatchGetItemResponse) Unmarshal(v interface{}) error {
+	return r.UnmarshalWithTagName(v, defaultResultTag)
+}
+
+// UnmarshalWithTagName unmarshals given slice pointer sturct and tag name from DynamoDB item result to mapping.
+func (r BatchGetItemResponse) UnmarshalWithTagName(v interface{}, structTag string) error {
+	decoder := dynamodbattribute.NewDecoder()
+	decoder.TagKey = structTag
+
+	itemsMap := make(map[string]*SDK.AttributeValue, len(r.Responses))
+	for tableName, i := range r.Responses {
+		items := make([]*SDK.AttributeValue, len(i))
+		for i, m := range i {
+			items[i] = &SDK.AttributeValue{M: m}
+		}
+		itemsMap[tableName] = &SDK.AttributeValue{
+			L: items,
+		}
+	}
+	val := &SDK.AttributeValue{M: itemsMap}
+	if err := decoder.Decode(val, v); err != nil {
+		return err
+	}
+	return nil
 }
