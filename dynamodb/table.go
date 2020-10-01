@@ -388,17 +388,6 @@ func (t *Table) GetOne(hashValue interface{}, rangeValue ...interface{}) (map[st
 	return UnmarshalAttributeValue(req.Item), nil
 }
 
-// BatchGetItem executes batch_get_item operation
-func (t *Table) BatchGetItem(attributes KeysAndAttributes, returnConsumedCapacity string) (*BatchGetItemResponse, error) {
-	req := BatchGetItemRequest{
-		RequestItems: map[string]KeysAndAttributes{
-			t.nameWithPrefix: attributes,
-		},
-		ReturnConsumedCapacity: returnConsumedCapacity,
-	}
-	return t.service.BatchGetItem(req)
-}
-
 // ---------------------------------
 // Delete
 // ---------------------------------

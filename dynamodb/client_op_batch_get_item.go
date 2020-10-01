@@ -5,8 +5,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-// BatchGetItem executes batch_get_item operation
-func (svc *DynamoDB) BatchGetItem(in BatchGetItemRequest) (*BatchGetItemResponse, error) {
+// BatchGetAll executes batch_get_item operation
+func (svc *DynamoDB) BatchGetAll(in BatchGetAllRequest) (*BatchGetAllResponse, error) {
 	o, err := svc.client.BatchGetItem(in.ToInput())
 	if err != nil {
 		return nil, err
@@ -14,12 +14,12 @@ func (svc *DynamoDB) BatchGetItem(in BatchGetItemRequest) (*BatchGetItemResponse
 	return newBatchGetItemResponse(o), nil
 }
 
-type BatchGetItemRequest struct {
+type BatchGetAllRequest struct {
 	RequestItems           map[string]KeysAndAttributes
 	ReturnConsumedCapacity string
 }
 
-func (r *BatchGetItemRequest) ToInput() *SDK.BatchGetItemInput {
+func (r *BatchGetAllRequest) ToInput() *SDK.BatchGetItemInput {
 	i := SDK.BatchGetItemInput{}
 	i.RequestItems = make(map[string]*SDK.KeysAndAttributes, len(r.RequestItems))
 	for key, item := range r.RequestItems {
@@ -31,14 +31,14 @@ func (r *BatchGetItemRequest) ToInput() *SDK.BatchGetItemInput {
 	return &i
 }
 
-type BatchGetItemResponse struct {
+type BatchGetAllResponse struct {
 	Responses        map[string][]map[string]*SDK.AttributeValue
 	UnprocessedKeys  map[string]KeysAndAttributes
-	ConsumedCapacity []ConsumedCapacity `type:"list"`
+	ConsumedCapacity []ConsumedCapacity
 }
 
-func newBatchGetItemResponse(output *SDK.BatchGetItemOutput) *BatchGetItemResponse {
-	r := &BatchGetItemResponse{}
+func newBatchGetItemResponse(output *SDK.BatchGetItemOutput) *BatchGetAllResponse {
+	r := &BatchGetAllResponse{}
 	if output == nil {
 		return r
 	}
@@ -52,15 +52,15 @@ func newBatchGetItemResponse(output *SDK.BatchGetItemOutput) *BatchGetItemRespon
 	return r
 }
 
-// Unmarshal unmarshals given slice pointer sturct from DynamoDB item result to mapping.
+// UnmarshalItems unmarshals given slice pointer struct from DynamoDB item result to mapping.
 //     e.g. err = Unmarshal(&[]*yourStruct)
 // The struct tag `dynamodb:""` is used to unmarshal.
-func (r BatchGetItemResponse) Unmarshal(v interface{}) error {
+func (r BatchGetAllResponse) Unmarshal(v interface{}) error {
 	return r.UnmarshalWithTagName(v, defaultResultTag)
 }
 
-// UnmarshalWithTagName unmarshals given slice pointer sturct and tag name from DynamoDB item result to mapping.
-func (r BatchGetItemResponse) UnmarshalWithTagName(v interface{}, structTag string) error {
+// UnmarshalWithTagName unmarshals given slice pointer struct and tag name from DynamoDB item result to mapping.
+func (r BatchGetAllResponse) UnmarshalWithTagName(v interface{}, structTag string) error {
 	decoder := dynamodbattribute.NewDecoder()
 	decoder.TagKey = structTag
 
