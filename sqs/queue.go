@@ -166,6 +166,18 @@ func (q *Queue) send(msg []*SDK.SendMessageBatchRequestEntry) error {
 	return err
 }
 
+// SendSingleMessage sends a message directly to the SQS immediately
+// and bypasses the spool and batch submits.
+func (q *Queue) SendSingleMessage(message string) (string, error) {
+
+	res, err := q.service.client.SendMessage(&SDK.SendMessageInput{
+		MessageBody: pointers.String(message),
+		QueueUrl:    q.url,
+	})
+
+	return res.GoString(), err
+}
+
 // Fetch fetches message list from the queue with limit.
 func (q *Queue) Fetch(num int) ([]*Message, error) {
 	wait := q.waitTimeSeconds
