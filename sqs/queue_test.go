@@ -107,6 +107,16 @@ func TestSend(t *testing.T) {
 	assert.Nil(err)
 }
 
+func TestSendSingleMessage(t *testing.T) {
+	assert := assert.New(t)
+	svc := getTestClient(t)
+	q, _ := svc.GetQueue("test")
+
+	result, err := q.SendSingleMessage("foo sending single message")
+	assert.NotNil(result)
+	assert.Nil(err)
+}
+
 func TestFetch(t *testing.T) {
 	assert := assert.New(t)
 	svc := getTestClient(t)
