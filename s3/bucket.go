@@ -139,11 +139,11 @@ func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 // getObject fetches object from target S3 path
 func (b *Bucket) getObject(path string) (io.Reader, error) {
 	out, err := b.service.client.GetObject(&SDK.GetObjectInput{
-		Bucket: &b.name,
+		Bucket: &b.nameWithPrefix,
 		Key:    &path,
 	})
 	if err != nil {
-		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.name, err.Error())
+		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
 		return nil, err
 	}
 	return out.Body, nil
