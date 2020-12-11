@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	SDK "github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
@@ -134,6 +135,19 @@ func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), err
+}
+
+// GetObjectVersionID returns versionID of object from given S3 path.
+func (b *Bucket) GetObjectVersionID(path string) (string, error) {
+	out, err := b.service.client.GetObject(&SDK.GetObjectInput{
+		Bucket: &b.nameWithPrefix,
+		Key:    &path,
+	})
+	if err != nil {
+		b.service.Errorf("error on `GetObject` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
+		return "", err
+	}
+	return aws.StringValue(out.VersionId), nil
 }
 
 // getObject fetches object from target S3 path
