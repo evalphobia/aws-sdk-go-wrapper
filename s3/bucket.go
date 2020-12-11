@@ -269,7 +269,7 @@ func (b *Bucket) DeleteObjectWithVersionId(path string, versionId string) error 
 	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
 		Bucket:    pointers.String(b.nameWithPrefix),
 		Key:       pointers.String(path),
-		VersionId: versionId,
+		VersionId: pointers.String(versionId),
 	})
 	if err != nil {
 		b.service.Errorf("error on `DeleteObjectWithVersionId` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
