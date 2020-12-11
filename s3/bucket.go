@@ -137,7 +137,7 @@ func (b *Bucket) GetObjectByte(path string) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-// GetObjectVersionId returns versionId of object from given S3 path.
+// GetObjectVersionID returns versionID of object from given S3 path.
 func (b *Bucket) GetObjectVersionID(path string) (string, error) {
 	out, err := b.service.client.GetObject(&SDK.GetObjectInput{
 		Bucket: &b.nameWithPrefix,
