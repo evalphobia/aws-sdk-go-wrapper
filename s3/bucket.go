@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	SDK "github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/private/pointers"
