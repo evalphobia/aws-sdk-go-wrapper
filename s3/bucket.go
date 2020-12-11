@@ -263,3 +263,16 @@ func (b *Bucket) DeleteObject(path string) error {
 	}
 	return err
 }
+
+// DeleteObject deletes the object of target path and versionId.
+func (b *Bucket) DeleteObjectWithVersionId(path string, versionId string) error {
+	_, err := b.service.client.DeleteObject(&SDK.DeleteObjectInput{
+		Bucket:    pointers.String(b.nameWithPrefix),
+		Key:       pointers.String(path),
+		VersionId: versionId,
+	})
+	if err != nil {
+		b.service.Errorf("error on `DeleteObjectWithVersionId` operation; bucket=%s; error=%s;", b.nameWithPrefix, err.Error())
+	}
+	return err
+}
