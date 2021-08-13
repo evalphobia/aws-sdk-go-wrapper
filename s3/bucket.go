@@ -65,6 +65,11 @@ func (b *Bucket) AddSecretObject(obj *PutObject, path string) {
 	b.addObject(obj, path, ACLAuthenticatedRead)
 }
 
+// AddPrivateObject adds object to write spool (w/ Private).
+func (b *Bucket) AddPrivateObject(obj *PutObject, path string) {
+	b.addObject(obj, path, ACLPrivate)
+}
+
 // addObject adds object to write spool.
 func (b *Bucket) addObject(obj *PutObject, path, acl string) {
 	b.putSpoolMu.Lock()
