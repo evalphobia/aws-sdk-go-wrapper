@@ -89,6 +89,35 @@ func TestAddSecretObject(t *testing.T) {
 	}
 }
 
+func TestAddPrivateObject(t *testing.T) {
+	assert := assert.New(t)
+	createBucket(testPutBucketName)
+	f := openFile(t)
+	defer f.Close() // nolint:gosec
+
+	svc := getTestClient(t)
+	b, err := svc.GetBucket(testPutBucketName)
+	assert.NoError(err)
+
+	obj := NewPutObject(f)
+	b.AddPrivateObject(obj, testS3Path)
+	assert.Equal(1, len(b.putSpool))
+
+	obj2 := NewPutObjectString("testString")
+	b.AddPrivateObject(obj2, testS3Path)
+	assert.Equal(2, len(b.putSpool))
+
+	for i, o := range []*PutObject{obj, obj2} {
+		req := b.putSpool[i]
+		assert.Equal("private", *req.ACL)
+		assert.Equal(b.name, *req.Bucket)
+		assert.Equal(o.data, req.Body)
+		assert.Equal(o.Size(), *req.ContentLength)
+		assert.Equal(o.FileType(), *req.ContentType)
+		assert.Equal(testS3Path, *req.Key)
+	}
+}
+
 func TestPutAll(t *testing.T) {
 	assert := assert.New(t)
 	createBucket(testPutBucketName)
