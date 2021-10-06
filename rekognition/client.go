@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/rekognition"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -37,16 +38,21 @@ func New(conf config.Config) (*Rekognition, error) {
 		return nil, err
 	}
 
-	svc := &Rekognition{
+	svc := NewFromSession(sess)
+	svc.prefix = conf.DefaultPrefix
+	return svc, nil
+}
+
+// NewFromSession returns initialized *Rekognition from aws.Session.
+func NewFromSession(sess *session.Session) *Rekognition {
+	return &Rekognition{
 		client:      SDK.New(sess),
 		logger:      log.DefaultLogger,
-		prefix:      conf.DefaultPrefix,
 		collections: make(map[string]*Collection),
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

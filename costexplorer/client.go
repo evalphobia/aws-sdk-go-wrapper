@@ -1,6 +1,7 @@
 package costexplorer
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/costexplorer"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -25,11 +26,15 @@ func New(conf config.Config) (*CostExplorer, error) {
 		return nil, err
 	}
 
-	svc := &CostExplorer{
+	return NewFromSession(sess), nil
+}
+
+// NewFromSession returns initialized *CostExplorer from aws.Session.
+func NewFromSession(sess *session.Session) *CostExplorer {
+	return &CostExplorer{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

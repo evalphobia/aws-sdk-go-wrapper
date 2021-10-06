@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/kms"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -32,11 +33,15 @@ func New(conf config.Config) (*KMS, error) {
 		return nil, err
 	}
 
-	svc := &KMS{
+	return NewFromSession(sess), nil
+}
+
+// NewFromSession returns initialized *KMS from aws.Session.
+func NewFromSession(sess *session.Session) *KMS {
+	return &KMS{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

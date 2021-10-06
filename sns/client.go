@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -51,19 +52,29 @@ func New(conf config.Config, pf Platforms) (*SNS, error) {
 		return nil, err
 	}
 
-	svc := &SNS{
-		client:    SDK.New(sess),
-		logger:    log.DefaultLogger,
-		prefix:    conf.DefaultPrefix,
-		apps:      make(map[string]*PlatformApplication),
-		platforms: pf,
-	}
+	svc := NewFromSession(sess)
+	svc.prefix = conf.DefaultPrefix
+	svc.platforms = pf
 	return svc, nil
+}
+
+// NewFromSession returns initialized *SNS from aws.Session.
+func NewFromSession(sess *session.Session) *SNS {
+	return &SNS{
+		client: SDK.New(sess),
+		logger: log.DefaultLogger,
+		apps:   make(map[string]*PlatformApplication),
+	}
 }
 
 // SetLogger sets logger.
 func (svc *SNS) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPlatforms sets platforms.
+func (svc *SNS) SetPlatforms(pf Platforms) {
+	svc.platforms = pf
 }
 
 // SetAsProduction sets productiom mode flag.

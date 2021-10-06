@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/xray"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -28,20 +29,25 @@ type XRay struct {
 	prefix string
 }
 
-// New returns initialized *Kinesis.
+// New returns initialized *XRay.
 func New(conf config.Config) (*XRay, error) {
 	sess, err := conf.Session()
 	if err != nil {
 		return nil, err
 	}
 
-	svc := &XRay{
+	svc := NewFromSession(sess)
+	svc.prefix = conf.DefaultPrefix
+	return svc, nil
+}
+
+// NewFromSession returns initialized *XRay from aws.Session.
+func NewFromSession(sess *session.Session) *XRay {
+	return &XRay{
 		client:   SDK.New(sess),
 		logger:   log.DefaultLogger,
-		prefix:   conf.DefaultPrefix,
 		sampling: defaultSamplingPolicy,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

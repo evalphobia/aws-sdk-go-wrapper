@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/kinesis"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -33,13 +34,18 @@ func New(conf config.Config) (*Kinesis, error) {
 		return nil, err
 	}
 
-	svc := &Kinesis{
+	svc := NewFromSession(sess)
+	svc.prefix = conf.DefaultPrefix
+	return svc, nil
+}
+
+// NewFromSession returns initialized *Kinesis from aws.Session.
+func NewFromSession(sess *session.Session) *Kinesis {
+	return &Kinesis{
 		client:  SDK.New(sess),
 		logger:  log.DefaultLogger,
-		prefix:  conf.DefaultPrefix,
 		streams: make(map[string]*Stream),
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

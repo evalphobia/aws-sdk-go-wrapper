@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -26,11 +27,15 @@ func New(conf config.Config) (*IAM, error) {
 		return nil, err
 	}
 
-	svc := &IAM{
+	return NewFromSession(sess), nil
+}
+
+// NewFromSession returns initialized *IAM from aws.Session.
+func NewFromSession(sess *session.Session) *IAM {
+	return &IAM{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

@@ -1,6 +1,7 @@
 package pinpointemail
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/pinpointemail"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -25,11 +26,15 @@ func New(conf config.Config) (*PinpointEmail, error) {
 		return nil, err
 	}
 
-	svc := &PinpointEmail{
+	return NewFromSession(sess), nil
+}
+
+// NewFromSession returns initialized *PinpointEmail from aws.Session.
+func NewFromSession(sess *session.Session) *PinpointEmail {
+	return &PinpointEmail{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.
