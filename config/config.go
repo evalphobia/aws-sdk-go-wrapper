@@ -27,6 +27,26 @@ type Config struct {
 
 	// Specific sevice's options
 	S3ForcePathStyle bool
+
+	// optional
+	CredentialsChainVerboseErrors     bool
+	DisableComputeChecksums           bool
+	DisableEndpointHostPrefix         bool
+	DisableParamValidation            bool
+	DisableRestProtocolURICleaning    bool
+	DisableSSL                        bool
+	EC2MetadataDisableTimeoutOverride bool
+	EnableEndpointDiscovery           bool
+	EnforceShouldRetryCheck           bool
+	LowerCaseHeaderMaps               bool
+	S3Disable100Continue              bool
+	S3UseAccelerate                   bool
+	S3DisableContentMD5Validation     bool
+	S3UseARNRegion                    bool
+	UseDualStack                      bool
+
+	UseMaxRetries bool
+	MaxRetries    int
 }
 
 // Session creates AWS session from the Config values.
@@ -49,6 +69,55 @@ func (c Config) AWSConfig() *aws.Config {
 
 	if c.S3ForcePathStyle {
 		awsConf.S3ForcePathStyle = pointers.Bool(true)
+	}
+
+	if c.CredentialsChainVerboseErrors {
+		awsConf.CredentialsChainVerboseErrors = pointers.Bool(true)
+	}
+	if c.DisableComputeChecksums {
+		awsConf.DisableComputeChecksums = pointers.Bool(true)
+	}
+	if c.DisableEndpointHostPrefix {
+		awsConf.DisableEndpointHostPrefix = pointers.Bool(true)
+	}
+	if c.DisableParamValidation {
+		awsConf.DisableParamValidation = pointers.Bool(true)
+	}
+	if c.DisableRestProtocolURICleaning {
+		awsConf.DisableRestProtocolURICleaning = pointers.Bool(true)
+	}
+	if c.DisableSSL {
+		awsConf.DisableSSL = pointers.Bool(true)
+	}
+	if c.EC2MetadataDisableTimeoutOverride {
+		awsConf.EC2MetadataDisableTimeoutOverride = pointers.Bool(true)
+	}
+	if c.EnableEndpointDiscovery {
+		awsConf.EnableEndpointDiscovery = pointers.Bool(true)
+	}
+	if c.EnforceShouldRetryCheck {
+		awsConf.EnforceShouldRetryCheck = pointers.Bool(true)
+	}
+	if c.LowerCaseHeaderMaps {
+		awsConf.LowerCaseHeaderMaps = pointers.Bool(true)
+	}
+	if c.S3Disable100Continue {
+		awsConf.S3Disable100Continue = pointers.Bool(true)
+	}
+	if c.S3UseAccelerate {
+		awsConf.S3UseAccelerate = pointers.Bool(true)
+	}
+	if c.S3DisableContentMD5Validation {
+		awsConf.S3DisableContentMD5Validation = pointers.Bool(true)
+	}
+	if c.S3UseARNRegion {
+		awsConf.S3UseARNRegion = pointers.Bool(true)
+	}
+	if c.UseDualStack {
+		awsConf.UseDualStack = pointers.Bool(true)
+	}
+	if c.UseMaxRetries && c.MaxRetries >= 0 {
+		awsConf.MaxRetries = &c.MaxRetries
 	}
 
 	return awsConf
