@@ -1,6 +1,7 @@
 package cloudtrail
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/cloudtrail"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -25,11 +26,15 @@ func New(conf config.Config) (*CloudTrail, error) {
 		return nil, err
 	}
 
-	svc := &CloudTrail{
+	return NewFromSession(sess), nil
+}
+
+// NewFromSession returns initialized *CloudTrail from aws.Session.
+func NewFromSession(sess *session.Session) *CloudTrail {
+	return &CloudTrail{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

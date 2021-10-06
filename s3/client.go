@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -28,22 +29,27 @@ type S3 struct {
 	buckets   map[string]*Bucket
 }
 
-// New returns initialized *S4.
+// New returns initialized *S3.
 func New(conf config.Config) (*S3, error) {
 	sess, err := conf.Session()
 	if err != nil {
 		return nil, err
 	}
 
+	svc := NewFromSession(sess)
+	svc.prefix = conf.DefaultPrefix
+	return svc, nil
+}
+
+// NewFromSession returns initialized *S3 from aws.Session.
+func NewFromSession(sess *session.Session) *S3 {
 	cli := SDK.New(sess)
-	svc := &S3{
+	return &S3{
 		client:   cli,
 		endpoint: cli.ClientInfo.Endpoint,
 		logger:   log.DefaultLogger,
-		prefix:   conf.DefaultPrefix,
 		buckets:  make(map[string]*Bucket),
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.

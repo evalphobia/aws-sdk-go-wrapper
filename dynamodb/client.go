@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -28,22 +29,26 @@ type DynamoDB struct {
 	writeTables map[string]struct{}
 }
 
-// New returns initializesvc *DynamoDB.
+// New returns initialized *DynamoDB.
 func New(conf config.Config) (*DynamoDB, error) {
 	sess, err := conf.Session()
 	if err != nil {
 		return nil, err
 	}
 
-	cli := SDK.New(sess)
-	svc := &DynamoDB{
-		client:      cli,
+	svc := NewFromSession(sess)
+	svc.prefix = conf.DefaultPrefix
+	return svc, nil
+}
+
+// NewFromSession returns initialized *DynamoDB from aws.Session.
+func NewFromSession(sess *session.Session) *DynamoDB {
+	return &DynamoDB{
+		client:      SDK.New(sess),
 		logger:      log.DefaultLogger,
-		prefix:      conf.DefaultPrefix,
 		tables:      make(map[string]*Table),
 		writeTables: make(map[string]struct{}),
 	}
-	return svc, nil
 }
 
 // GetClient get client.

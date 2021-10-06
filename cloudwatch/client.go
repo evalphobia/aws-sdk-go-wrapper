@@ -1,6 +1,7 @@
 package cloudwatch
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
 	SDK "github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	"github.com/evalphobia/aws-sdk-go-wrapper/config"
@@ -25,11 +26,15 @@ func New(conf config.Config) (*CloudWatch, error) {
 		return nil, err
 	}
 
-	svc := &CloudWatch{
+	return NewFromSession(sess), nil
+}
+
+// NewFromSession returns initialized *CloudWatch from aws.Session.
+func NewFromSession(sess *session.Session) *CloudWatch {
+	return &CloudWatch{
 		client: SDK.New(sess),
 		logger: log.DefaultLogger,
 	}
-	return svc, nil
 }
 
 // SetLogger sets logger.
