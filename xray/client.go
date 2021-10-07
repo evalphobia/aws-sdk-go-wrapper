@@ -50,9 +50,19 @@ func NewFromSession(sess *session.Session) *XRay {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *XRay) GetClient() *SDK.XRay {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *XRay) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPrefix sets prefix.
+func (svc *XRay) SetPrefix(prefix string) {
+	svc.prefix = prefix
 }
 
 // SetSamplingPolicy sets sampling policy.

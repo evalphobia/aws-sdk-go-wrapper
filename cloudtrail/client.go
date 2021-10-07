@@ -37,6 +37,11 @@ func NewFromSession(sess *session.Session) *CloudTrail {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *CloudTrail) GetClient() *SDK.CloudTrail {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *CloudTrail) SetLogger(logger log.Logger) {
 	svc.logger = logger

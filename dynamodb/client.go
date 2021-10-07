@@ -51,7 +51,7 @@ func NewFromSession(sess *session.Session) *DynamoDB {
 	}
 }
 
-// GetClient get client.
+// GetClient gets aws client.
 func (svc *DynamoDB) GetClient() *SDK.DynamoDB {
 	return svc.client
 }
@@ -59,6 +59,11 @@ func (svc *DynamoDB) GetClient() *SDK.DynamoDB {
 // SetLogger sets logger.
 func (svc *DynamoDB) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPrefix sets prefix.
+func (svc *DynamoDB) SetPrefix(prefix string) {
+	svc.prefix = prefix
 }
 
 // ===================

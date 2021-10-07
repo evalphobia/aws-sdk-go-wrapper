@@ -37,6 +37,11 @@ func NewFromSession(sess *session.Session) *PinpointEmail {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *PinpointEmail) GetClient() *SDK.PinpointEmail {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *PinpointEmail) SetLogger(logger log.Logger) {
 	svc.logger = logger

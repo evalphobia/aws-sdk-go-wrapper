@@ -52,9 +52,24 @@ func NewFromSession(sess *session.Session) *S3 {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *S3) GetClient() *SDK.S3 {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *S3) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPrefix sets prefix.
+func (svc *S3) SetPrefix(prefix string) {
+	svc.prefix = prefix
+}
+
+// SetEndpoint sets endpoint.
+func (svc *S3) SetEndpoint(endpoint string) {
+	svc.endpoint = endpoint
 }
 
 // GetBucket gets S3 bucket.

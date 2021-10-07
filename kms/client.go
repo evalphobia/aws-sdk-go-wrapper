@@ -44,6 +44,11 @@ func NewFromSession(sess *session.Session) *KMS {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *KMS) GetClient() *SDK.KMS {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *KMS) SetLogger(logger log.Logger) {
 	svc.logger = logger

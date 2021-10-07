@@ -51,6 +51,11 @@ func NewFromSession(sess *session.Session) *SQS {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *SQS) GetClient() *SDK.SQS {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *SQS) SetLogger(logger log.Logger) {
 	svc.logger = logger

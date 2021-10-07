@@ -37,6 +37,11 @@ func NewFromSession(sess *session.Session) *CloudWatch {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *CloudWatch) GetClient() *SDK.CloudWatch {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *CloudWatch) SetLogger(logger log.Logger) {
 	svc.logger = logger
