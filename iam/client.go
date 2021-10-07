@@ -38,6 +38,11 @@ func NewFromSession(sess *session.Session) *IAM {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *IAM) GetClient() *SDK.IAM {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *IAM) SetLogger(logger log.Logger) {
 	svc.logger = logger

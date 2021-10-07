@@ -37,6 +37,11 @@ func NewFromSession(sess *session.Session) *CostExplorer {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *CostExplorer) GetClient() *SDK.CostExplorer {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *CostExplorer) SetLogger(logger log.Logger) {
 	svc.logger = logger

@@ -55,9 +55,19 @@ func NewFromSession(sess *session.Session) *Rekognition {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *Rekognition) GetClient() *SDK.Rekognition {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *Rekognition) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPrefix sets prefix.
+func (svc *Rekognition) SetPrefix(prefix string) {
+	svc.prefix = prefix
 }
 
 // SetHTTPClient sets httpClient.

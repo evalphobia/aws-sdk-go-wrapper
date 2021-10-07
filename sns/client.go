@@ -67,9 +67,19 @@ func NewFromSession(sess *session.Session) *SNS {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *SNS) GetClient() *SDK.SNS {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *SNS) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPrefix sets prefix.
+func (svc *SNS) SetPrefix(prefix string) {
+	svc.prefix = prefix
 }
 
 // SetPlatforms sets platforms.

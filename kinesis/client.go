@@ -48,9 +48,19 @@ func NewFromSession(sess *session.Session) *Kinesis {
 	}
 }
 
+// GetClient gets aws client.
+func (svc *Kinesis) GetClient() *SDK.Kinesis {
+	return svc.client
+}
+
 // SetLogger sets logger.
 func (svc *Kinesis) SetLogger(logger log.Logger) {
 	svc.logger = logger
+}
+
+// SetPrefix sets prefix.
+func (svc *Kinesis) SetPrefix(prefix string) {
+	svc.prefix = prefix
 }
 
 // GetStream gets Kinesis Stream.
