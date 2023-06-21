@@ -47,6 +47,10 @@ type Config struct {
 
 	UseMaxRetries bool
 	MaxRetries    int
+
+	// Cache aws config for preserving creds to avoid sts rate limit
+	useConfigCache bool
+	configCache    *aws.Config
 }
 
 // Session creates AWS session from the Config values.
@@ -54,8 +58,22 @@ func (c Config) Session() (*session.Session, error) {
 	return session.NewSession(c.AWSConfig())
 }
 
+// SetConfigCache caches *aws.Config.
+func (c *Config) SetConfigCache() {
+	c.configCache = c.awsConfig()
+	c.useConfigCache = true
+}
+
 // AWSConfig creates *aws.Config object from the fields.
 func (c Config) AWSConfig() *aws.Config {
+	if c.useConfigCache {
+		return c.configCache
+	}
+	return c.awsConfig()
+}
+
+// awsConfig creates *aws.Config object from the fields.
+func (c Config) awsConfig() *aws.Config {
 	cred := c.awsCredentials()
 	awsConf := &aws.Config{
 		Credentials: cred,
