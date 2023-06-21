@@ -1,6 +1,8 @@
 package config
 
 import (
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -45,17 +47,39 @@ type Config struct {
 	S3UseARNRegion                    bool
 	UseDualStack                      bool
 
-	UseMaxRetries bool
-	MaxRetries    int
+	UseMaxRetries  bool
+	MaxRetries     int
+	UseConfigCache bool
+	muConfigCache  sync.RWMutex
+	configCache    *aws.Config
 }
 
 // Session creates AWS session from the Config values.
-func (c Config) Session() (*session.Session, error) {
+func (c *Config) Session() (*session.Session, error) {
 	return session.NewSession(c.AWSConfig())
 }
 
 // AWSConfig creates *aws.Config object from the fields.
-func (c Config) AWSConfig() *aws.Config {
+func (c *Config) AWSConfig() *aws.Config {
+	if !c.UseConfigCache {
+		return c.awsConfig()
+	}
+
+	c.muConfigCache.RLock()
+	conf := c.configCache
+	c.muConfigCache.RUnlock()
+
+	if conf == nil {
+		conf = c.awsConfig()
+		c.muConfigCache.Lock()
+		c.configCache = conf
+		c.muConfigCache.Unlock()
+	}
+	return conf
+}
+
+// awsConfig creates *aws.Config object from the fields.
+func (c *Config) awsConfig() *aws.Config {
 	cred := c.awsCredentials()
 	awsConf := &aws.Config{
 		Credentials: cred,
@@ -123,7 +147,7 @@ func (c Config) AWSConfig() *aws.Config {
 	return awsConf
 }
 
-func (c Config) awsCredentials() *credentials.Credentials {
+func (c *Config) awsCredentials() *credentials.Credentials {
 	// from env
 	cred := credentials.NewEnvCredentials()
 	_, err := cred.Get()
@@ -145,7 +169,7 @@ func (c Config) awsCredentials() *credentials.Credentials {
 	return nil
 }
 
-func (c Config) getRegion() string {
+func (c *Config) getRegion() string {
 	if c.Region != "" {
 		return c.Region
 	}
@@ -156,7 +180,7 @@ func (c Config) getRegion() string {
 	return defaultRegion
 }
 
-func (c Config) getEndpoint() string {
+func (c *Config) getEndpoint() string {
 	if c.Endpoint != "" {
 		return c.Endpoint
 	}
